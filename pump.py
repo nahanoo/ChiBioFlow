@@ -1,4 +1,4 @@
-#from app import I2CCom
+from app import I2CCom
 import time
 from calibration import get_fit
 
@@ -24,11 +24,11 @@ class Pump():
         self.fit = None
 
     def turnOn(self):
-        #I2CCom(self.reactor,'Pumps',0,8,self.register,1,0)
+        I2CCom(self.reactor,'Pumps',0,8,self.register,1,0)
         self.running = True
 
     def turnOff(self):
-        #I2CCom(self.reactor,'Pumps',0,8,self.register,0,0)
+        I2CCom(self.reactor,'Pumps',0,8,self.register,0,0)
         self.running = False
 
     def inject_volume(self,ml):
