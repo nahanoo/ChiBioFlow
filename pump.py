@@ -4,12 +4,13 @@ import pandas as pd
 from os.path import join
 
 class Reactor():
-    def __init__(self,reactor_name,pump_names):
+    def __init__(self,reactor_name,pump_names,directions):
         self.reactor_name = reactor_name
-        self.pumps = {pump_name:Pump(reactor_name,pump_name) for pump_name in pump_names}
+        self.pumps = {pump_name:Pump(reactor_name,pump_name,direction) \
+            for pump_name,direction in zip(pump_names,directions)}
 
 class Pump():
-    def __init__(self,reactor_name,pump_name):
+    def __init__(self,reactor_name,pump_name,direction):
         registers = {'clock':
             {
                 'pump1':0x06,
@@ -29,7 +30,7 @@ class Pump():
         self.pump_name = pump_name
         self.running = False
         self.fit = self.get_fit()
-        self.direction = 'counter_clock'
+        self.direction = direction
         if self.direction == 'clock':
             self.register = registers['clock'][pump_name]
         if self.direction == 'counter_clock':
@@ -37,7 +38,7 @@ class Pump():
 
     def get_fit(self):
         df = pd.read_csv(join('calibrations',self.reactor_name+'.csv'),index_col='pump_names')
-        x = 5
+        x = 10
         y = df.loc[self.pump_name]['after']
         b = df.loc[self.pump_name]['before']
         m = (y-b)/x
@@ -57,7 +58,6 @@ class Pump():
         self.turnOff()
 
     def inject_volume(self,ml):
-        print('m',self.fit)
         runtime = ml/self.fit
         self.turnOn()
         time.sleep(runtime)
@@ -67,9 +67,18 @@ def create_reactors():
     pump_mappings = {
         'M0':['pump1','pump2','pump3','pump4']
     }
+    directions = {
+        'M0':{
+            'pump1':'counter_clock',
+            'pump2':'clock',
+            'pump3':'counter_clock',
+            'pump4':'counter_clock'
+        }
+    }
     reactors = dict()
     for reactor_name, pump_names in pump_mappings.items():
-        reactors[reactor_name] = Reactor(reactor_name,pump_names)
+        reactors[reactor_name] = \
+            Reactor(reactor_name,pump_names,directions[reactor_name].values())
     return reactors
     
 def test_pumps():
