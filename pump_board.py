@@ -1,7 +1,7 @@
 import board
 import busio
 from adafruit_bus_device.i2c_device import I2CDevice
-from pump import Pump
+from .pump import Pump
 
 
 class Board():
@@ -27,13 +27,13 @@ class Board():
 
         self.boot()
         self.init_pumps(pumps)
-    
+
     def boot(self):
         with self.device:
             self.device.write(bytes([0, 0]))
             self.device.write(bytes([253, 0]))
-    
-    def init_pumps(self,pumps):
+
+    def init_pumps(self, pumps):
         self.pumps = {name: None for name in pumps.keys()}
         for name, direction in pumps.items():
             register = self.registers[direction][name]

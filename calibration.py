@@ -1,7 +1,5 @@
-from pump import Pump
-from os.path import join
 import pandas as pd
-from .board import Board
+from pump_board import Board
 
 
 def create_template():
@@ -27,3 +25,4 @@ def run_pumps(t):
 def get_fit(t):
     df = pd.read_csv('calibrations.csv')
     df['fit'] = (df['after']-df['before'])/t
+    df.to_csv('calibrations.csv', index=False)
