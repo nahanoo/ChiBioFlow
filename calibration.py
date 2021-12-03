@@ -1,5 +1,5 @@
 import pandas as pd
-from pump_board import Board
+from reactor import Reactor
 
 
 def create_template():
@@ -17,7 +17,7 @@ def run_pumps(t):
         'pump3': 'clock',
         'pump4': 'clock'
     }
-    b = Board(pumps)
+    b = Reactor('M0', pumps)
     for pump in b.pumps:
         pump.run_time(t)
 
