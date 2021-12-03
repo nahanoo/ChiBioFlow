@@ -1,11 +1,13 @@
 import board
 import busio
 from adafruit_bus_device.i2c_device import I2CDevice
-from .pump import Pump
+from pump import Pump
+import time
 
 
-class Board():
-    def __init__(self, pumps):
+class Reactor():
+    def __init__(self, name, pumps):
+        self.name = name
         self.registers = {'clock':
                           {
                               'pump1': 0x06,
@@ -38,3 +40,7 @@ class Board():
         for name, direction in pumps.items():
             register = self.registers[direction][name]
             self.pumps[name] = Pump(name, self.device, register)
+
+    def cycle(self, cycle_time):
+        self.pumps['pump1'].inject_volume(1)
+        time.sleep(cycle_time)
