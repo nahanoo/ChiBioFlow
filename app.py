@@ -2,6 +2,7 @@
 
 #Import required python packages
 import os
+from posixpath import join
 import random
 import time
 import math
@@ -18,6 +19,8 @@ import simplejson
 import copy
 import csv
 import smbus2 as smbus
+import paramiko
+from scp import SCPClient
 
 
 application = Flask(__name__)
@@ -1728,7 +1731,13 @@ def setPWM(M,device,channels,fraction,ConsecutiveFails):
                 sysItems['FailCount']=sysItems['FailCount']+1
                 setPWM(M,device,channels,fraction,ConsecutiveFails)
     
-
+def create_scp_client():
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect('curnagl.dcsr.unil.ch', username='eulrich',
+                key_filename='/root/.ssh/id_rsa')
+    scp_client = SCPClient(ssh.get_transport())
+    return scp_client
 
 
 def csvData(M):
@@ -1786,10 +1795,14 @@ def csvData(M):
     #   for band in bands:
     #       row=row+[sysData[M]['biofilm'][item][band]]
 
-
-
+    experiment = 'test'
     filename = sysData[M]['Experiment']['startTime'] + '_' + M + '_data' + '.csv'
-    filename=filename.replace(":","_")
+    filename = filename.replace(':','_')
+    filename = filename.replace(' ','_')
+    filename=os.path.join(experiment,M,filename)
+    source_dir = join(experiment,M)
+    if not os.path.exists(source_dir):
+        os.makedirs(source_dir)
 
     lock.acquire() #We are avoiding writing to a file at the same time as we do digital communications, since it might potentially cause the computer to lag and consequently data transfer to fail.
     if os.path.isfile(filename) is False: #Only if we are starting a fresh file
@@ -1803,7 +1816,11 @@ def csvData(M):
     with open(filename, 'a') as csvFile: # Here we append the new data to our CSV file.
         writer = csv.writer(csvFile)
         writer.writerow(row)
-    csvFile.close()        
+    csvFile.close()
+    scp_client = create_scp_client()
+    target_dir = join('ChiBioFlow','data',filename)
+    scp_client.put(filename,target_dir)
+    scp_client.close()
     lock.release() 
     
 
