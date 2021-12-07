@@ -1064,6 +1064,10 @@ def SetCustom(Program,Status):
 def CustomProgram(M):
     #Runs a custom program, some examples are included. You can remove/edit this function as you see fit.
     #Note that the custom programs (as set up at present) use an external .csv file with input parameters. THis is done to allow these parameters to easily be varied on the fly. 
+    def ml_to_sec(ml):
+        ml_per_sec = 2.028
+        return ml/ml_per_sec
+
     global sysData
     M=str(M)
     program=sysData[M]['Custom']['Program']
@@ -1224,9 +1228,13 @@ def CustomProgram(M):
             SetOutputOn(M,'UV',0) #Deactivate UV
 
     elif (program=="C7"):
+        t = ml_to_sec(2)
         setPWM('M0','Pumps',sysItems['Pump1']['In1'],1,0)
-        time.sleep(5)
+        time.sleep(t)
         setPWM('M0','Pumps',sysItems['Pump1']['In1'],0,0)
+        setPWM('M0','Pumps',sysItems['Pump2']['In2'],1,0)
+        time.sleep(t)
+        setPWM('M0','Pumps',sysItems['Pump2']['In2'],0,0)
                 
     return
 
@@ -1817,10 +1825,12 @@ def csvData(M):
         writer = csv.writer(csvFile)
         writer.writerow(row)
     csvFile.close()
-    scp_client = create_scp_client()
-    target_dir = join('ChiBioFlow','data',filename)
-    scp_client.put(filename,target_dir)
-    scp_client.close()
+    sync = False
+    if sync == True:
+        scp_client = create_scp_client()
+        target_dir = join('ChiBioFlow','data',filename)
+        scp_client.put(filename,target_dir)
+        scp_client.close()
     lock.release() 
     
 
