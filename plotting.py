@@ -12,8 +12,11 @@ def get_client():
     """Creates ssh client for cluster connection."""
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect('curnagl.dcsr.unil.ch', username='eulrich',
-                key_filename='/home/eric/.ssh/id_rsa')
+    ssh.connect(
+        "curnagl.dcsr.unil.ch",
+        username="eulrich",
+        key_filename="/home/eric/.ssh/id_rsa",
+    )
     scp_client = SCPClient(ssh.get_transport())
     return scp_client
 
@@ -21,20 +24,19 @@ def get_client():
 def sync_data():
     """Grabs latest data from cluster."""
     client = get_client()
-    source = join('ChiBioFlow', 'data')
-    client.get(source, './', recursive=True)
+    source = join("ChiBioFlow", "data")
+    client.get(source, "./", recursive=True)
 
 
 def parse_args():
     """Parsing variables for plotting."""
-    parser = argparse.ArgumentParser(
-        description='Plotting library for ChiBio.')
+    parser = argparse.ArgumentParser(description="Plotting library for ChiBio.")
+    parser.add_argument("column", help="column name to plot from ChiBio csv.")
+    parser.add_argument("experiment", help="name of the experiment directory")
     parser.add_argument(
-        'column', help='column name to plot from ChiBio csv.')
-    parser.add_argument('experiment', help='name of the experiment directory'
-                        )
-    parser.add_argument('--csv', help='path to csv if specific csv should be plotted.',
-                        )
+        "--csv",
+        help="path to csv if specific csv should be plotted.",
+    )
     return parser.parse_args()
 
 
@@ -45,26 +47,28 @@ def line_plot(args):
     """
     e = args.experiment
     c = args.column
-    reactors = listdir(join('data', e))
-    df = pd.DataFrame(columns=['exp_time', 'reactor', c])
+    reactors = listdir(join("data", e))
+    df = pd.DataFrame(columns=["exp_time", "reactor", c])
     if args.csv is None:
         for reactor in reactors:
-            f = glob.glob(join('data', e, reactor, '*.csv'))
+            f = glob.glob(join("data", e, reactor, "*.csv"))
             if len(f) > 1:
                 print(
-                    'There are multiple csv as sources. \
-                    Clean direcotry first. Or use the optional --csv flag.')
+                    "There are multiple csv as sources. \
+                    Clean direcotry first. Or use the optional --csv flag."
+                )
                 break
-            data = pd.read_csv(f[0], usecols=['exp_time', c])
-            data.insert(1, 'reactor', reactor)
-            data['exp_time'] = data['exp_time']/60/60
+            data = pd.read_csv(f[0], usecols=["exp_time", c])
+            data.insert(1, "reactor", reactor)
+            #time is in seconds, deviding by 60**2 to get hours
+            data["exp_time"] = data["exp_time"] / 60 / 60
             df = df.append(data)
-        fig = px.line(df, x='exp_time', y=c, facet_col='reactor')
+        fig = px.line(df, x="exp_time", y=c, facet_col="reactor")
         fig.show()
     else:
-        df = pd.read_csv(args.csv, usecols=['exp_time', c])
-        df['exp_time'] = df['exp_time']/60/60
-        fig = px.line(df, x='exp_time', y=c)
+        df = pd.read_csv(args.csv, usecols=["exp_time", c])
+        df["exp_time"] = df["exp_time"] / 60 / 60
+        fig = px.line(df, x="exp_time", y=c)
         fig.show()
 
 
