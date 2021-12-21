@@ -57,11 +57,13 @@ def line_plot(args):
                 break
             data = pd.read_csv(f[0], usecols=['exp_time', c])
             data.insert(1, 'reactor', reactor)
+            data['exp_time'] = data['exp_time']/60/60
             df = df.append(data)
         fig = px.line(df, x='exp_time', y=c, facet_col='reactor')
         fig.show()
     else:
         df = pd.read_csv(args.csv, usecols=['exp_time', c])
+        df['exp_time'] = df['exp_time']/60/60
         fig = px.line(df, x='exp_time', y=c)
         fig.show()
 
