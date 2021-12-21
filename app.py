@@ -1803,7 +1803,7 @@ def csvData(M):
     #   for band in bands:
     #       row=row+[sysData[M]['biofilm'][item][band]]
 
-    experiment = 'test'
+    experiment = 'growth_curve'
     filename = sysData[M]['Experiment']['startTime'] + '_' + M + '_data' + '.csv'
     filename = filename.replace(':','_')
     filename = filename.replace(' ','_')
@@ -1825,7 +1825,7 @@ def csvData(M):
         writer = csv.writer(csvFile)
         writer.writerow(row)
     csvFile.close()
-    sync = False
+    sync = True
     if sync == True:
         scp_client = create_scp_client()
         target_dir = join('ChiBioFlow','data',filename)
@@ -2216,14 +2216,23 @@ def runExperiment(M,placeholder):
     csvData(M) #This command writes system data to a CSV file for future keeping.
     #And intermittently write the setup parameters to a data file. 
     if(sysData[M]['Experiment']['cycles']%10==1): #We only write whole configuration file each 10 cycles since it is not really that important. 
+        experiment = 'growth_curve'
         TempStartTime=sysData[M]['Experiment']['startTimeRaw']
         sysData[M]['Experiment']['startTimeRaw']=0 #We had to set this to zero during the write operation since the system does not like writing data in such a format.
         
         filename = sysData[M]['Experiment']['startTime'] + '_' + M + '.txt'
         filename=filename.replace(":","_")
+        filename=filename.replace(" ","_")
+        filename=os.path.join(experiment,M,filename)
         f = open(filename,'w')
         simplejson.dump(sysData[M],f)
         f.close()
+        sync = True
+        if sync == True:
+            scp_client = create_scp_client()
+            target_dir = join('ChiBioFlow','data',filename)
+            scp_client.put(filename,target_dir)
+            scp_client.close()
         sysData[M]['Experiment']['startTimeRaw']=TempStartTime
     ##### Written
 
