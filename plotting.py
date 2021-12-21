@@ -1,4 +1,3 @@
-from typing import Optional
 import plotly.express as px
 import argparse
 from os.path import join
@@ -10,6 +9,7 @@ from scp import SCPClient
 
 
 def get_client():
+    """Creates ssh client for cluster connection."""
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect('curnagl.dcsr.unil.ch', username='eulrich',
@@ -19,6 +19,7 @@ def get_client():
 
 
 def sync_data():
+    """Grabs latest data from cluster."""
     client = get_client()
     source = join('ChiBioFlow', 'data')
     client.get(source, './', recursive=True)
@@ -38,6 +39,10 @@ def parse_args():
 
 
 def line_plot(args):
+    """Creates lineplot for parsed parameter e.g. od_measured.
+    Plots every reactor as subplot. CSVs can also be parsed using
+    the optional --csv flag.
+    """
     e = args.experiment
     c = args.column
     reactors = listdir(join('data', e))
