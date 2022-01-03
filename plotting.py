@@ -64,7 +64,7 @@ def line_plot(args):
             data["exp_time"] = data["exp_time"] / 60 / 60
             df = df.append(data)
         fig = px.line(df, x="exp_time", y=c, facet_col="reactor")
-        fig.show()
+        fig.write_image('od.png')
     else:
         df = pd.read_csv(args.csv, usecols=["exp_time", c])
         df["exp_time"] = df["exp_time"] / 60 / 60
