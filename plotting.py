@@ -53,9 +53,9 @@ def line_plot(args):
         for reactor in reactors:
             f = glob.glob(join("data", e, reactor, "*.csv"))
             if len(f) > 1:
+                print(f)
                 print(
-                    "There are multiple csv as sources. \
-                    Clean direcotry first. Or use the optional --csv flag."
+                    "There are multiple csv as sources. Clean direcotry first. Or use the optional --csv flag."
                 )
                 break
             data = pd.read_csv(f[0], usecols=["exp_time", c])

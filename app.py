@@ -1803,7 +1803,7 @@ def csvData(M):
     #   for band in bands:
     #       row=row+[sysData[M]['biofilm'][item][band]]
 
-    experiment = 'growth_curve'
+    experiment = 'gfp_excitation'
     filename = sysData[M]['Experiment']['startTime'] + '_' + M + '_data' + '.csv'
     filename = filename.replace(':','_')
     filename = filename.replace(' ','_')
@@ -2216,7 +2216,7 @@ def runExperiment(M,placeholder):
     csvData(M) #This command writes system data to a CSV file for future keeping.
     #And intermittently write the setup parameters to a data file. 
     if(sysData[M]['Experiment']['cycles']%10==1): #We only write whole configuration file each 10 cycles since it is not really that important. 
-        experiment = 'growth_curve'
+        experiment = 'gfp_excitation'
         TempStartTime=sysData[M]['Experiment']['startTimeRaw']
         sysData[M]['Experiment']['startTimeRaw']=0 #We had to set this to zero during the write operation since the system does not like writing data in such a format.
         
