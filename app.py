@@ -2,7 +2,6 @@
 
 #Import required python packages
 import os
-from posixpath import join
 import random
 import time
 import math
@@ -19,8 +18,6 @@ import simplejson
 import copy
 import csv
 import smbus2 as smbus
-import paramiko
-from scp import SCPClient
 
 
 application = Flask(__name__)
@@ -1064,17 +1061,13 @@ def SetCustom(Program,Status):
 def CustomProgram(M):
     #Runs a custom program, some examples are included. You can remove/edit this function as you see fit.
     #Note that the custom programs (as set up at present) use an external .csv file with input parameters. THis is done to allow these parameters to easily be varied on the fly. 
-    def ml_to_sec(ml):
-        ml_per_sec = 2.028
-        return ml/ml_per_sec
-
     global sysData
     M=str(M)
     program=sysData[M]['Custom']['Program']
     #Subsequent few lines reads in external parameters from a file if you are using any.
     fname='InputParameters_' + str(M)+'.csv'
 	
-    with open(fname, 'r') as f:
+    with open(fname, 'rb') as f:
         reader = csv.reader(f)
         listin = list(reader)
     Params=listin[0]
@@ -1226,16 +1219,9 @@ def CustomProgram(M):
             SetOutputOn(M,'UV',1) #Activate UV
             time.sleep(Dose) #Wait for dose to be administered
             SetOutputOn(M,'UV',0) #Deactivate UV
-
-    elif (program=="C7"):
-        t = ml_to_sec(2)
-        setPWM('M0','Pumps',sysItems['Pump1']['In1'],1,0)
-        time.sleep(t)
-        setPWM('M0','Pumps',sysItems['Pump1']['In1'],0,0)
-        setPWM('M0','Pumps',sysItems['Pump2']['In2'],1,0)
-        time.sleep(t)
-        setPWM('M0','Pumps',sysItems['Pump2']['In2'],0,0)
                 
+                
+    
     return
 
 def CustomLEDCycle(M,LED,Value):
@@ -1739,13 +1725,7 @@ def setPWM(M,device,channels,fraction,ConsecutiveFails):
                 sysItems['FailCount']=sysItems['FailCount']+1
                 setPWM(M,device,channels,fraction,ConsecutiveFails)
     
-def create_scp_client():
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect('curnagl.dcsr.unil.ch', username='eulrich',
-                key_filename='/root/.ssh/id_rsa')
-    scp_client = SCPClient(ssh.get_transport())
-    return scp_client
+
 
 
 def csvData(M):
@@ -1803,14 +1783,10 @@ def csvData(M):
     #   for band in bands:
     #       row=row+[sysData[M]['biofilm'][item][band]]
 
-    experiment = 'growth_curve'
+
+
     filename = sysData[M]['Experiment']['startTime'] + '_' + M + '_data' + '.csv'
-    filename = filename.replace(':','_')
-    filename = filename.replace(' ','_')
-    filename=os.path.join(experiment,M,filename)
-    source_dir = join(experiment,M)
-    if not os.path.exists(source_dir):
-        os.makedirs(source_dir)
+    filename=filename.replace(":","_")
 
     lock.acquire() #We are avoiding writing to a file at the same time as we do digital communications, since it might potentially cause the computer to lag and consequently data transfer to fail.
     if os.path.isfile(filename) is False: #Only if we are starting a fresh file
@@ -1824,13 +1800,7 @@ def csvData(M):
     with open(filename, 'a') as csvFile: # Here we append the new data to our CSV file.
         writer = csv.writer(csvFile)
         writer.writerow(row)
-    csvFile.close()
-    sync = True
-    if sync == True:
-        scp_client = create_scp_client()
-        target_dir = join('ChiBioFlow','data',filename)
-        scp_client.put(filename,target_dir)
-        scp_client.close()
+    csvFile.close()        
     lock.release() 
     
 
@@ -2216,23 +2186,14 @@ def runExperiment(M,placeholder):
     csvData(M) #This command writes system data to a CSV file for future keeping.
     #And intermittently write the setup parameters to a data file. 
     if(sysData[M]['Experiment']['cycles']%10==1): #We only write whole configuration file each 10 cycles since it is not really that important. 
-        experiment = 'growth_curve'
         TempStartTime=sysData[M]['Experiment']['startTimeRaw']
         sysData[M]['Experiment']['startTimeRaw']=0 #We had to set this to zero during the write operation since the system does not like writing data in such a format.
         
         filename = sysData[M]['Experiment']['startTime'] + '_' + M + '.txt'
         filename=filename.replace(":","_")
-        filename=filename.replace(" ","_")
-        filename=os.path.join(experiment,M,filename)
         f = open(filename,'w')
         simplejson.dump(sysData[M],f)
         f.close()
-        sync = True
-        if sync == True:
-            scp_client = create_scp_client()
-            target_dir = join('ChiBioFlow','data',filename)
-            scp_client.put(filename,target_dir)
-            scp_client.close()
         sysData[M]['Experiment']['startTimeRaw']=TempStartTime
     ##### Written
 
