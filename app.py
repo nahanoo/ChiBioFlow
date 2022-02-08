@@ -162,7 +162,13 @@ sysItems = {
         '0x11' : {'A' : 'CLEAR', 'B' : 'ExtINT'},
         '0x12' : {'A' : 'DARK', 'B' : 'U'},
         '0x13' : {'A' : 'FLICKER', 'B' : 'NIR'},
-    }
+    },
+    'chain': ['M0', 'M1', 'M2','M3'],
+    'chains': {'Media-M0': ('M0', 'Pump2'),
+               'M0-M1': ('M0', 'Pump1'),
+               'M1-M2': ('M1', 'Pump2'),
+               'M2-M3': ('M1', 'Pump1'),
+               'M3-Waste': ('M2', 'Pump2')}
 }
    
 
@@ -1067,7 +1073,7 @@ def CustomProgram(M):
     #Subsequent few lines reads in external parameters from a file if you are using any.
     fname='InputParameters_' + str(M)+'.csv'
 	
-    with open(fname, 'rb') as f:
+    with open(fname, 'r') as f:
         reader = csv.reader(f)
         listin = list(reader)
     Params=listin[0]
@@ -1219,7 +1225,28 @@ def CustomProgram(M):
             SetOutputOn(M,'UV',1) #Activate UV
             time.sleep(Dose) #Wait for dose to be administered
             SetOutputOn(M,'UV',0) #Deactivate UV
-                
+    
+    elif (program == "C7"):
+        transfer=False
+        for reactor in sysItems['chain']:
+            print('OD of reactor', reactor+':',
+                  sysData[reactor]['OD']['current'])
+            if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
+                transfer=True
+        if Params[0] != 'transfer':
+            tranfer=False
+        if transfer:
+            for counter, (chain, (reactor, pump)) in enumerate(sysItems['chains'].items()):
+                source, target=chain.split('-')
+                print('Transferring from', source, 'to', target,
+                    'using control reactor', reactor, 'and', pump)
+                sysData[reactor][pump]['target']=-1
+                SetOutputOn(reactor, pump, 1)
+                time.sleep(2+0.5*counter)
+                SetOutputOn(reactor, pump, 0)
+                time.sleep(0)
+        else:
+            print('Current OD under target OD')
                 
     
     return
