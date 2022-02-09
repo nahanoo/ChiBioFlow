@@ -16,25 +16,24 @@ def parse_args():
 
 
 def get_files(fname):
-    cmd = ['scp','root@192.168.7.2:chibio:'+fname+'*',join('data','tmp')]
-    call(' '.join(cmd),shell=True)
-    
+    cmd = ['scp', 'root@192.168.7.2:chibio:'+fname+'*', join('data', 'tmp')]
+    call(' '.join(cmd), shell=True)
+
 
 def copy_files(experiment):
-    for f in glob(join('data','tmp','*')):
+    for f in glob(join('data', 'tmp', '*')):
         print(f)
         m = 'M'+f.split('M')[-1][0]
         print(m)
-        dir = join('data',experiment,m)
+        dir = join('data', experiment, m)
         if not exists(dir):
             mkdir(dir)
-        move(f,join('data',experiment,m))
-        
+        move(f, join('data', experiment, m))
 
 
 fname = parse_args().fname
 experiment = parse_args().experiment
-dir = join('data',experiment)
+dir = join('data', experiment)
 if not exists(dir):
     mkdir(dir)
 get_files(fname)
