@@ -1247,7 +1247,27 @@ def CustomProgram(M):
                 time.sleep(0)
         else:
             print('Current OD under target OD')
-                
+    
+    elif (program=="C8"):
+        transfer=False
+        for reactor in sysItems['chain']:
+            print('OD of reactor', reactor+':',
+                  sysData[reactor]['OD']['current'])
+            if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
+                transfer=True
+        if Params[0] != 'transfer':
+            tranfer=False
+        if transfer:
+            for chain, (reactor, pump) in sysItems['chains'].items():
+                source, target=chain.split('-')
+                if source == 'Media':
+                sysData[reactor][pump]['target']=-1
+                SetOutputOn(reactor, pump, 1)
+                time.sleep(2+0.5*counter)
+                SetOutputOn(reactor, pump, 0)
+                time.sleep(0)
+        else:
+            print('Current OD under target OD')
     
     return
 
