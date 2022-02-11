@@ -46,7 +46,7 @@ sysData = {'M0' : {
    'UV' : {'WL' : 'UV', 'default': 0.5, 'target' : 0.0, 'max': 1.0, 'min' : 0.0,'ON' : 0},
    'Heat' : {'default': 0.0, 'target' : 0.0, 'max': 1.0, 'min' : 0.0,'ON' : 0,'record' : []},
    'Thermostat' : {'default': 37.0, 'target' : 0.0, 'max': 50.0, 'min' : 0.0,'ON' : 0,'record' : [],'cycleTime' : 30.0, 'Integral' : 0.0,'last' : -1},
-   'Experiment' : {'indicator' : 'USR0', 'startTime' : 'Waiting', 'startTimeRaw' : 0, 'ON' : 0,'cycles' : 0, 'cycleTime' : 60.0,'threadCount' : 0},
+   'Experiment' : {'indicator' : 'USR0', 'startTime' : 'Waiting', 'startTimeRaw' : 0, 'ON' : 0,'cycles' : 0, 'cycleTime' : 20.0,'threadCount' : 0},
    'Terminal' : {'text' : ''},
    'AS7341' : {
         'spectrum' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0, 'NIR' : 0,'DARK' : 0,'ExtGPIO' : 0, 'ExtINT' : 0, 'FLICKER' : 0},
@@ -1227,6 +1227,7 @@ def CustomProgram(M):
             SetOutputOn(M,'UV',0) #Deactivate UV
     
     elif (program == "C7"):
+        run_time = float(Params[1])
         transfer=False
         for reactor in sysItems['chain']:
             print('OD of reactor', reactor+':',
@@ -1238,11 +1239,11 @@ def CustomProgram(M):
         if transfer:
             for counter, (chain, (reactor, pump)) in enumerate(sysItems['chains'].items()):
                 source, target=chain.split('-')
-                print('Transferring from', source, 'to', target,
-                    'using control reactor', reactor, 'and', pump)
+                #print('Transferring from', source, 'to', target,
+                #    'using control reactor', reactor, 'and', pump)
                 sysData[reactor][pump]['target']=-1
                 SetOutputOn(reactor, pump, 1)
-                time.sleep(2+0.5*counter)
+                time.sleep(run_time+0.5*counter)
                 SetOutputOn(reactor, pump, 0)
                 time.sleep(0)
         else:
