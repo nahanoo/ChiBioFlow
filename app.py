@@ -1251,36 +1251,32 @@ def CustomProgram(M):
             print('Current OD under target OD')
     
     elif (program=="C8"):
-        transfer=False
-        for reactor in sysItems['chain']:
-            print('OD of reactor', reactor+':',
-                  sysData[reactor]['OD']['current'])
-            if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
-                transfer=True
-        if Params[0] != 'transfer':
-            tranfer=False
-        if transfer:
-            for chain, (reactor, pump) in sysItems['chains'].items():
-                source, target=chain.split('-')
-                if source == 'Media':
-                    run_time = float(Params[1])
-                else:
-                    run_time = float(Params[1]) + 2
+        if Params[2] == 'On':
+            transfer=False
+            for reactor in sysItems['chain']:
+                print('OD of reactor', reactor+':',
+                    sysData[reactor]['OD']['current'])
+                if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
+                    transfer=True
+            if Params[0] != 'transfer':
+                tranfer=False
+            if transfer:
+                for chain, (control_reactor, pump) in sysItems['chains'].items():
+                    source, target = chain.split('-')
+                    if source == 'Media':
+                        run_time = float(Params[1])
+                    else:
+                        run_time = float(Params[1]) + 2
 
-                if source != 'Media':
-                    SetOutputOn(source,'Stir',0)
-                sysData[reactor][pump]['target']=-1
-                SetOutputOn(reactor, pump, 1)                
-                time.sleep(run_time)
-                SetOutputOn(reactor, pump, 0)
-                if source != 'Media':
-                    SetOutputOn(source,'Stir',1)
-                time.sleep(1)
-                
-
-        else:
-            print('Current OD under target OD')
-    
+                    if source != 'Media':
+                        SetOutputOn(source,'Stir',0)
+                    sysData[control_reactor][pump]['target']=-1
+                    SetOutputOn(control_reactor, pump, 1)                
+                    time.sleep(run_time)
+                    SetOutputOn(control_reactor, pump, 0)
+                    if source != 'Media':
+                        SetOutputOn(source,'Stir',1)
+                    time.sleep(4)
     return
 
 def CustomLEDCycle(M,LED,Value):
@@ -2136,6 +2132,13 @@ def runExperiment(M,placeholder):
     global sysData
     global sysItems
     global sysDevices
+
+    fname='InputParameters_M0.csv'
+	
+    with open(fname, 'r') as f:
+        reader = csv.reader(f)
+        listin = list(reader)
+    Params=listin[0]
     
     sysData[M]['Experiment']['threadCount']=(sysData[M]['Experiment']['threadCount']+1)%100
     currentThread=sysData[M]['Experiment']['threadCount']
@@ -2159,13 +2162,16 @@ def runExperiment(M,placeholder):
     sysData[M]['OD']['Measuring']=1 #Begin measuring - this flag is just to indicate that a measurement is currently being taken.
     
     #We now meausre OD 4 times and take the average to reduce noise when in auto mode!
-    ODV=0.0
-    for i in [0, 1, 2, 3]:
-        MeasureOD(M)
-        ODV=ODV+sysData[M]['OD']['current']
-        time.sleep(0.25)
-    sysData[M]['OD']['current']=ODV/4.0
-    
+    if Params[2] == 'On':
+        ODV=0.0
+        for i in [0, 1, 2, 3]:
+            MeasureOD(M)
+            ODV=ODV+sysData[M]['OD']['current']
+            time.sleep(0.25)
+        sysData[M]['OD']['current']=ODV/4.0
+    else:
+        print('Stopping OD measurements for sampling')
+
     MeasureTemp(M,'Internal') #Measuring all temperatures
     MeasureTemp(M,'External')
     MeasureTemp(M,'IR')
