@@ -1276,7 +1276,7 @@ def CustomProgram(M):
                     SetOutputOn(control_reactor, pump, 0)
                     if source != 'Media':
                         SetOutputOn(source,'Stir',1)
-                    time.sleep(4)
+                    time.sleep(3)
     return
 
 def CustomLEDCycle(M,LED,Value):
