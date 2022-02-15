@@ -1251,32 +1251,31 @@ def CustomProgram(M):
             print('Current OD under target OD')
     
     elif (program=="C8"):
-        if Params[2] == 'On':
-            transfer=False
-            for reactor in sysItems['chain']:
-                print('OD of reactor', reactor+':',
-                    sysData[reactor]['OD']['current'])
-                if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
-                    transfer=True
-            if Params[0] != 'transfer':
-                tranfer=False
-            if transfer:
-                for chain, (control_reactor, pump) in sysItems['chains'].items():
-                    source, target = chain.split('-')
-                    if source == 'Media':
-                        run_time = float(Params[1])
-                    else:
-                        run_time = float(Params[1]) + 2
+        transfer=False
+        for reactor in sysItems['chain']:
+            print('OD of reactor', reactor+':',
+                sysData[reactor]['OD']['current'])
+            if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
+                transfer=True
+        if Params[0] != 'transfer':
+            tranfer=False
+        if transfer:
+            for chain, (control_reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    run_time = float(Params[1])
+                else:
+                    run_time = float(Params[1]) + 2
 
-                    if source != 'Media':
-                        SetOutputOn(source,'Stir',0)
-                    sysData[control_reactor][pump]['target']=-1
-                    SetOutputOn(control_reactor, pump, 1)                
-                    time.sleep(run_time)
-                    SetOutputOn(control_reactor, pump, 0)
-                    if source != 'Media':
-                        SetOutputOn(source,'Stir',1)
-                    time.sleep(3)
+                if source != 'Media':
+                    SetOutputOn(source,'Stir',0)
+                sysData[control_reactor][pump]['target']=-1
+                SetOutputOn(control_reactor, pump, 1)                
+                time.sleep(run_time)
+                SetOutputOn(control_reactor, pump, 0)
+                if source != 'Media':
+                    SetOutputOn(source,'Stir',1)
+                time.sleep(3)
     return
 
 def CustomLEDCycle(M,LED,Value):
@@ -1842,6 +1841,7 @@ def csvData(M):
 
     filename = sysData[M]['Experiment']['startTime'] + '_' + M + '_data' + '.csv'
     filename=filename.replace(":","_")
+    filename=filename.replace(" ","_")
 
     lock.acquire() #We are avoiding writing to a file at the same time as we do digital communications, since it might potentially cause the computer to lag and consequently data transfer to fail.
     if os.path.isfile(filename) is False: #Only if we are starting a fresh file
@@ -2256,6 +2256,7 @@ def runExperiment(M,placeholder):
         
         filename = sysData[M]['Experiment']['startTime'] + '_' + M + '.txt'
         filename=filename.replace(":","_")
+        filename=filename.replace(" ","_")
         f = open(filename,'w')
         simplejson.dump(sysData[M],f)
         f.close()
