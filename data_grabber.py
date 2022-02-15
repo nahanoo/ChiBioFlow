@@ -1,9 +1,10 @@
-from glob import glob
 from os import mkdir
 from os.path import join, exists
 import argparse
 from subprocess import call
-from shutil import move
+from shutil import copy
+from os import listdir
+from os import remove
 
 
 def parse_args():
@@ -16,19 +17,18 @@ def parse_args():
 
 
 def get_files(fname):
-    cmd = ['scp', 'root@192.168.7.2:chibio:'+fname+'*', join('data', 'tmp')]
+    cmd = ['scp', join('root@192.168.7.2:','root','chibio',fname+'*'), join('data', 'tmp')]
     call(' '.join(cmd), shell=True)
 
 
 def copy_files(experiment):
-    for f in glob(join('data', 'tmp', '*')):
-        print(f)
+    for f in listdir(join('data', 'tmp')):
         m = 'M'+f.split('M')[-1][0]
-        print(m)
         dir = join('data', experiment, m)
         if not exists(dir):
             mkdir(dir)
-        move(f, join('data', experiment, m))
+        copy(join('data', 'tmp',f), join('data', experiment, m,f))
+        remove(join('data', 'tmp',f))
 
 
 fname = parse_args().fname
