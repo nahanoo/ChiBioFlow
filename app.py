@@ -1251,14 +1251,16 @@ def CustomProgram(M):
             print('Current OD under target OD')
     
     elif (program=="C8"):
+        if Params[0] != 'transfer':
+            return
+
         transfer=False
         for reactor in sysItems['chain']:
             print('OD of reactor', reactor+':',
                 sysData[reactor]['OD']['current'])
             if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
                 transfer=True
-        if Params[0] != 'transfer':
-            tranfer=False
+
         if transfer:
             for chain, (control_reactor, pump) in sysItems['chains'].items():
                 source, target = chain.split('-')
@@ -1275,7 +1277,7 @@ def CustomProgram(M):
                 SetOutputOn(control_reactor, pump, 0)
                 if source != 'Media':
                     SetOutputOn(source,'Stir',1)
-                time.sleep(3)
+                time.sleep(4)
     return
 
 def CustomLEDCycle(M,LED,Value):
