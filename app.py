@@ -19,6 +19,9 @@ import simplejson
 import copy
 import csv
 import smbus2 as smbus
+from os.path import join
+import pandas as pd
+from scipy.optimize import curve_fit
 
 
 application = Flask(__name__)
@@ -79,8 +82,10 @@ sysData = {'M0' : {
                 'LEDE' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDF' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDG' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
-                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}}
-   }}
+                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}},
+   'exp_fit':{'m':0,'t':0}
+   }
+   }
 
 
 
@@ -1515,7 +1520,29 @@ def I2CCom(M,device,rw,hl,data1,data2,SMBUSFLAG):
     return(out)
     
     
-    
+def exp_fit(x,m,t):
+    return m * np.exp(-t * x)
+
+def get_od(y,m,t):
+    return np.log(y/m)/-t
+
+def get_fit():
+    reactors = ['M0','M1','M3','M4','M5','M8']
+    for reactor in reactors:
+        fname = join('calibrations',reactor+'.csv')
+        with open(fname,'r') as f:
+            reader = csv.reader(f)
+            lines = list(reader)
+        xs = []
+        ys = []
+        for line in lines:
+            xs.append(line[0])
+            ys += line[1:]
+        (m,t),cv = curve_fit(exp_fit,xs,ys)
+        sysData[reactor]['exp_fit']['m'] = m
+        sysData[reactor]['exp_fit']['t'] = t
+        print(reactor,'m:',m,'t:',t)
+
 
 @application.route("/CalibrateOD/<item>/<M>/<value>/<value2>",methods=['POST'])
 def CalibrateOD(M,item,value,value2):
@@ -1624,15 +1651,10 @@ def MeasureOD(M):
     if (device=='LASER650'):
         out=GetTransmission(M,'LASER650',['CLEAR'],1,255)
         sysData[M]['OD0']['raw']=float(out[0])
-    
-        a=sysData[M]['OD0']['LASERa']#Retrieve the calibration factors for OD.
-        b=sysData[M]['OD0']['LASERb'] 
-        try:
-            raw=math.log10(sysData[M]['OD0']['target']/sysData[M]['OD0']['raw'])
-            sysData[M]['OD']['current']=raw*b + raw*raw*a
-        except:
-            sysData[M]['OD']['current']=0;
-            print(str(datetime.now()) + ' OD Measurement exception on ' + str(device))
+        m = sysData[M]['exp_fit']['m']
+        t = sysData[M]['exp_fit']['t']
+        sysData[M]['OD']['current'] = get_od(float(out[0]),m,t)
+
     elif (device=='LEDF'):
         out=GetTransmission(M,'LEDF',['CLEAR'],7,255)
 
@@ -2152,6 +2174,10 @@ def runExperiment(M,placeholder):
     sysData[M]['Experiment']['cycles']=sysData[M]['Experiment']['cycles']+1
     addTerminal(M,'Cycle ' + str(sysData[M]['Experiment']['cycles']) + ' Started')
     CycleTime=sysData[M]['Experiment']['cycleTime']
+    # Reading OD calibrations
+    print('Reading OD calibrations;')
+    get_fit()
+
 
     SetOutputOn(M,'Stir',0) #Turning stirring off
     time.sleep(5.0) #Wait for liquid to settle.
