@@ -1,6 +1,7 @@
 ######### Chi.Bio Operating System V1.0 #########
 
 #Import required python packages
+from cProfile import run
 import os
 import random
 import time
@@ -1227,6 +1228,7 @@ def CustomProgram(M):
             SetOutputOn(M,'UV',0) #Deactivate UV
     
     elif (program == "C7"):
+        run_time = float(Params[1])
         transfer=False
         for reactor in sysItems['chain']:
             print('OD of reactor', reactor+':',
@@ -1238,17 +1240,44 @@ def CustomProgram(M):
         if transfer:
             for counter, (chain, (reactor, pump)) in enumerate(sysItems['chains'].items()):
                 source, target=chain.split('-')
-                print('Transferring from', source, 'to', target,
-                    'using control reactor', reactor, 'and', pump)
+                #print('Transferring from', source, 'to', target,
+                #    'using control reactor', reactor, 'and', pump)
                 sysData[reactor][pump]['target']=-1
                 SetOutputOn(reactor, pump, 1)
-                time.sleep(2+0.5*counter)
+                time.sleep(run_time+0.5*counter)
                 SetOutputOn(reactor, pump, 0)
                 time.sleep(0)
         else:
             print('Current OD under target OD')
-                
     
+    elif (program=="C8"):
+        if Params[0] != 'transfer':
+            return
+
+        transfer=False
+        for reactor in sysItems['chain']:
+            print('OD of reactor', reactor+':',
+                sysData[reactor]['OD']['current'])
+            if sysData[reactor]['OD']['current'] > sysData[reactor]['OD']['target']:
+                transfer=True
+
+        if transfer:
+            for chain, (control_reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    run_time = float(Params[1])
+                else:
+                    run_time = float(Params[1]) + 2
+
+                if source != 'Media':
+                    SetOutputOn(source,'Stir',0)
+                sysData[control_reactor][pump]['target']=-1
+                SetOutputOn(control_reactor, pump, 1)                
+                time.sleep(run_time)
+                SetOutputOn(control_reactor, pump, 0)
+                if source != 'Media':
+                    SetOutputOn(source,'Stir',1)
+                time.sleep(4)
     return
 
 def CustomLEDCycle(M,LED,Value):
@@ -1814,6 +1843,7 @@ def csvData(M):
 
     filename = sysData[M]['Experiment']['startTime'] + '_' + M + '_data' + '.csv'
     filename=filename.replace(":","_")
+    filename=filename.replace(" ","_")
 
     lock.acquire() #We are avoiding writing to a file at the same time as we do digital communications, since it might potentially cause the computer to lag and consequently data transfer to fail.
     if os.path.isfile(filename) is False: #Only if we are starting a fresh file
@@ -2104,6 +2134,13 @@ def runExperiment(M,placeholder):
     global sysData
     global sysItems
     global sysDevices
+
+    fname='InputParameters_M0.csv'
+	
+    with open(fname, 'r') as f:
+        reader = csv.reader(f)
+        listin = list(reader)
+    Params=listin[0]
     
     sysData[M]['Experiment']['threadCount']=(sysData[M]['Experiment']['threadCount']+1)%100
     currentThread=sysData[M]['Experiment']['threadCount']
@@ -2127,13 +2164,16 @@ def runExperiment(M,placeholder):
     sysData[M]['OD']['Measuring']=1 #Begin measuring - this flag is just to indicate that a measurement is currently being taken.
     
     #We now meausre OD 4 times and take the average to reduce noise when in auto mode!
-    ODV=0.0
-    for i in [0, 1, 2, 3]:
-        MeasureOD(M)
-        ODV=ODV+sysData[M]['OD']['current']
-        time.sleep(0.25)
-    sysData[M]['OD']['current']=ODV/4.0
-    
+    if Params[2] == 'On':
+        ODV=0.0
+        for i in [0, 1, 2, 3]:
+            MeasureOD(M)
+            ODV=ODV+sysData[M]['OD']['current']
+            time.sleep(0.25)
+        sysData[M]['OD']['current']=ODV/4.0
+    else:
+        print('Stopping OD measurements for sampling')
+
     MeasureTemp(M,'Internal') #Measuring all temperatures
     MeasureTemp(M,'External')
     MeasureTemp(M,'IR')
@@ -2218,6 +2258,7 @@ def runExperiment(M,placeholder):
         
         filename = sysData[M]['Experiment']['startTime'] + '_' + M + '.txt'
         filename=filename.replace(":","_")
+        filename=filename.replace(" ","_")
         f = open(filename,'w')
         simplejson.dump(sysData[M],f)
         f.close()
