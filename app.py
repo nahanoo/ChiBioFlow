@@ -19,7 +19,7 @@ import simplejson
 import copy
 import csv
 import smbus2 as smbus
-
+from os.path import join
 
 application = Flask(__name__)
 application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0 #Try this https://stackoverflow.com/questions/23112316/using-flask-how-do-i-modify-the-cache-control-header-for-all-output/23115561#23115561
@@ -79,8 +79,10 @@ sysData = {'M0' : {
                 'LEDE' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDF' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDG' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
-                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}}
-   }}
+                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}},
+   'exp_fit':{'m':0,'t':0}
+   }
+   }
 
 
 
@@ -382,6 +384,14 @@ def initialise(M):
     #         print(str(i))
     #     sysDevices[M]['ThermometerInternal']['device'].readU8(int(0x05))
     # getData=I2CCom(M,which,1,16,0x05,0,0)
+
+    # Reading fitting parameters from OD calibration
+    params = join('calibrations',M + '_params.csv')
+    with open(params,'r') as f:
+        reader = csv.reader(f)
+        lines = list(reader)
+    sysData[M]['exp_fit']['m'] = float(lines[1][0])
+    sysData[M]['exp_fit']['t'] = float(lines[1][1])
     
 
     scanDevices(M)
@@ -1515,8 +1525,6 @@ def I2CCom(M,device,rw,hl,data1,data2,SMBUSFLAG):
     return(out)
     
     
-    
-
 @application.route("/CalibrateOD/<item>/<M>/<value>/<value2>",methods=['POST'])
 def CalibrateOD(M,item,value,value2):
     #Used to calculate calibration value for OD measurements.
@@ -1610,7 +1618,8 @@ def CalibrateOD(M,item,value,value2):
         
     return ('', 204)    
     
-    
+def get_od(raw,m,t):
+    return np.log(raw/m)/-t
         
 @application.route("/MeasureOD/<M>",methods=['POST'])
 def MeasureOD(M):
@@ -1624,15 +1633,10 @@ def MeasureOD(M):
     if (device=='LASER650'):
         out=GetTransmission(M,'LASER650',['CLEAR'],1,255)
         sysData[M]['OD0']['raw']=float(out[0])
-    
-        a=sysData[M]['OD0']['LASERa']#Retrieve the calibration factors for OD.
-        b=sysData[M]['OD0']['LASERb'] 
-        try:
-            raw=math.log10(sysData[M]['OD0']['target']/sysData[M]['OD0']['raw'])
-            sysData[M]['OD']['current']=raw*b + raw*raw*a
-        except:
-            sysData[M]['OD']['current']=0;
-            print(str(datetime.now()) + ' OD Measurement exception on ' + str(device))
+        m = sysData[M]['exp_fit']['m']
+        t = sysData[M]['exp_fit']['t']
+        sysData[M]['OD']['current'] = get_od(float(out[0]),m,t)
+
     elif (device=='LEDF'):
         out=GetTransmission(M,'LEDF',['CLEAR'],7,255)
 
@@ -2152,6 +2156,8 @@ def runExperiment(M,placeholder):
     sysData[M]['Experiment']['cycles']=sysData[M]['Experiment']['cycles']+1
     addTerminal(M,'Cycle ' + str(sysData[M]['Experiment']['cycles']) + ' Started')
     CycleTime=sysData[M]['Experiment']['cycleTime']
+    # Reading OD calibrations
+    print('Reading OD calibrations;')
 
     SetOutputOn(M,'Stir',0) #Turning stirring off
     time.sleep(5.0) #Wait for liquid to settle.
