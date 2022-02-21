@@ -387,6 +387,14 @@ def initialise(M):
     #         print(str(i))
     #     sysDevices[M]['ThermometerInternal']['device'].readU8(int(0x05))
     # getData=I2CCom(M,which,1,16,0x05,0,0)
+
+    # Reading fitting parameters from OD calibration
+    params = join('calibrations',M + '_params.csv')
+    with open(params,'r') as f:
+        reader = csv.reader(f)
+        lines = list(reader)
+    sysData[M]['exp_fit']['m'] = lines[1][0]
+    sysData[M]['exp_fit']['t'] = lines[1][1]
     
 
     scanDevices(M)
@@ -1520,30 +1528,6 @@ def I2CCom(M,device,rw,hl,data1,data2,SMBUSFLAG):
     return(out)
     
     
-def exp_fit(x,m,t):
-    return m * np.exp(-t * x)
-
-def get_od(y,m,t):
-    return np.log(y/m)/-t
-
-def get_fit():
-    reactors = ['M0','M1','M3','M4','M5','M8']
-    for reactor in reactors:
-        fname = join('calibrations',reactor+'.csv')
-        with open(fname,'r') as f:
-            reader = csv.reader(f)
-            lines = list(reader)
-        xs = []
-        ys = []
-        for line in lines:
-            xs.append(line[0])
-            ys += line[1:]
-        (m,t),cv = curve_fit(exp_fit,xs,ys)
-        sysData[reactor]['exp_fit']['m'] = m
-        sysData[reactor]['exp_fit']['t'] = t
-        print(reactor,'m:',m,'t:',t)
-
-
 @application.route("/CalibrateOD/<item>/<M>/<value>/<value2>",methods=['POST'])
 def CalibrateOD(M,item,value,value2):
     #Used to calculate calibration value for OD measurements.
@@ -1637,7 +1621,8 @@ def CalibrateOD(M,item,value,value2):
         
     return ('', 204)    
     
-    
+def get_od(raw,m,t):
+    return np.log(raw/m)/-t
         
 @application.route("/MeasureOD/<M>",methods=['POST'])
 def MeasureOD(M):
