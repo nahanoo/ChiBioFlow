@@ -2156,8 +2156,6 @@ def runExperiment(M,placeholder):
     sysData[M]['Experiment']['cycles']=sysData[M]['Experiment']['cycles']+1
     addTerminal(M,'Cycle ' + str(sysData[M]['Experiment']['cycles']) + ' Started')
     CycleTime=sysData[M]['Experiment']['cycleTime']
-    # Reading OD calibrations
-    print('Reading OD calibrations;')
 
     SetOutputOn(M,'Stir',0) #Turning stirring off
     time.sleep(5.0) #Wait for liquid to settle.
