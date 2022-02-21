@@ -390,8 +390,8 @@ def initialise(M):
     with open(params,'r') as f:
         reader = csv.reader(f)
         lines = list(reader)
-    sysData[M]['exp_fit']['m'] = lines[1][0]
-    sysData[M]['exp_fit']['t'] = lines[1][1]
+    sysData[M]['exp_fit']['m'] = float(lines[1][0])
+    sysData[M]['exp_fit']['t'] = float(lines[1][1])
     
 
     scanDevices(M)
@@ -1635,7 +1635,6 @@ def MeasureOD(M):
         sysData[M]['OD0']['raw']=float(out[0])
         m = sysData[M]['exp_fit']['m']
         t = sysData[M]['exp_fit']['t']
-        print(m,t)
         sysData[M]['OD']['current'] = get_od(float(out[0]),m,t)
 
     elif (device=='LEDF'):
@@ -2159,8 +2158,6 @@ def runExperiment(M,placeholder):
     CycleTime=sysData[M]['Experiment']['cycleTime']
     # Reading OD calibrations
     print('Reading OD calibrations;')
-    get_fit()
-
 
     SetOutputOn(M,'Stir',0) #Turning stirring off
     time.sleep(5.0) #Wait for liquid to settle.
