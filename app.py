@@ -20,9 +20,6 @@ import copy
 import csv
 import smbus2 as smbus
 from os.path import join
-import pandas as pd
-from scipy.optimize import curve_fit
-
 
 application = Flask(__name__)
 application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0 #Try this https://stackoverflow.com/questions/23112316/using-flask-how-do-i-modify-the-cache-control-header-for-all-output/23115561#23115561
@@ -1638,6 +1635,7 @@ def MeasureOD(M):
         sysData[M]['OD0']['raw']=float(out[0])
         m = sysData[M]['exp_fit']['m']
         t = sysData[M]['exp_fit']['t']
+        print(m,t)
         sysData[M]['OD']['current'] = get_od(float(out[0]),m,t)
 
     elif (device=='LEDF'):
