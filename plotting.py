@@ -92,9 +92,10 @@ args = parse_args()
 e = args.experiment
 c = args.column
 mode = args.mode
+csv = args.csv
 if mode == 'chibio':
-    if args.csv is not None:
-        plot_chibio(args.csv)
+    if csv is not None:
+        plot_chibio(csv)
     else:
         plot_chibio()
 if mode == 'strain':
