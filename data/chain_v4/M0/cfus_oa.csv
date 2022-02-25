@@ -1,8 +1,8 @@
 dilution,day_0,day_1
-10-1,0,overgrown
-10-2,0,overgrown
-10-3,0,88
-10-4,0,8
-10-5,0,1
-10-6,0,0
+10-1,overgrown,overgrown
+10-2,overgrown,overgrown
+10-3,overgrown,88
+10-4,overgrown,8
+10-5,12,1
+10-6,4,0
 10-7,0,0
