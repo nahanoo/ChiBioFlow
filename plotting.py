@@ -85,7 +85,7 @@ def plot_strains():
                 out.at[i,strain] = average_cfus(df[day])
                 i += 1
     fig = px.line(out, x="day", y=['at','ct','ms','oa'], facet_col="reactor", facet_col_wrap=2,
-                        category_orders={'reactor': sorted(reactors)})
+                        category_orders={'reactor': sorted(reactors)},log_y=True)
     fig.show()
 
 args = parse_args()
