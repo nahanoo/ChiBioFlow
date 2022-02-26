@@ -1,8 +1,8 @@
-dilution,day_0,day_1
-10-1,0,overgrown
-10-2,0,overgrown
-10-3,0,overgrown
-10-4,0,23
-10-5,0,2
-10-6,0,3
-10-7,0,0
+dilution,day_0,day_1,day_2
+10-1,0,overgrown,overgrown
+10-2,0,overgrown,overgrown
+10-3,0,overgrown,overgrown
+10-4,0,23,overgrown
+10-5,0,2,35
+10-6,0,3,6
+10-7,0,0,0
