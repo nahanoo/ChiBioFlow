@@ -66,16 +66,16 @@ def average_cfus(series):
             pass
         else:
             cfu = int(cfu)
-            if cfu > 10:
+            if cfu >= 8:
                 cfus.append(cfu * dilution[counter] * conversion)
     if len(cfus) == 0:
-        avg = 0
+        avg = None
     else:
         avg = sum(cfus)/len(cfus)
     return avg
 
 
-def plot_strains():
+def plot_strains(log=True):
     out = pd.DataFrame(columns=['day', 'reactor', 'at', 'ct', 'ms', 'oa'])
     reactors = [split(element)[-1] for element in glob(join("data", e, 'M*'))]
     i = 0
@@ -89,7 +89,7 @@ def plot_strains():
                 out.at[i, strain] = average_cfus(df[day])
                 i += 1
     fig = px.scatter(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
-             category_orders={'reactor': sorted(reactors)},log_y=True)
+             category_orders={'reactor': sorted(reactors)},log_y=log)
     fig.show()
 
 
@@ -105,3 +105,4 @@ if mode == 'chibio':
         plot_chibio()
 if mode == 'strain':
     plot_strains()
+    plot_strains(log=False)
