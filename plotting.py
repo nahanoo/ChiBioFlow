@@ -4,6 +4,11 @@ from os.path import join, split
 import pandas as pd
 from glob import glob
 
+colors = {'at': '#2c8c5a',
+          'ct': '#8872cd',
+          'oa': '#e27e50',
+          'ms': '#e5b008'}
+
 
 def parse_args():
     """Parsing variables for plotting."""
@@ -86,12 +91,39 @@ def plot_strains(log=True):
             df = pd.read_csv(f)
             for day in df.columns[1:]:
                 out.at[i, 'reactor'] = reactor
-                out.at[i, 'day'] = day
+                out.at[i, 'day'] = day.split('_')[-1]
                 out.at[i, strain] = average_cfus(df[day])
                 i += 1
     fig = px.line(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
-             category_orders={'reactor': sorted(reactors)},log_y=log)
+                  category_orders={'reactor': sorted(reactors)}, log_y=log, color_discrete_map=colors)
     fig.show()
+    f = join('/home', 'eric', 'notes', 'talks',
+             'labmeetin_2022_04_13', 'pictures', 'strains.png')
+    #f = join('/home', 'eric', 'notes', 'talks',
+    #         'labmeetin_2022_04_13', 'pictures', 'biofilm_strains.png')
+    fig.write_image(f, scale=2)
+
+
+def plot_strain(log=True):
+    out = pd.DataFrame(columns=['day', 'reactor', 'at', 'ct', 'ms', 'oa'])
+    reactors = [split(element)[-1] for element in glob(join("data", e, 'M*'))]
+    i = 0
+    for reactor in reactors:
+        for f in glob(join('data', e, reactor, 'cfu*.csv')):
+            strain = f.split('.')[0][-2:]
+            df = pd.read_csv(f)
+            for day in df.columns[1:]:
+                out.at[i, 'reactor'] = reactor
+                out.at[i, 'day'] = day.split('_')[-1]
+                out.at[i, strain] = average_cfus(df[day])
+                i += 1
+    for strain in ['at', 'ct', 'ms', 'oa']:
+        fig = px.line(out, x="day", y=[strain], facet_col="reactor", facet_col_wrap=4,
+                      category_orders={'reactor': sorted(reactors)}, color_discrete_map=colors, log_y=log)
+        fig.show()
+        f = join('/home', 'eric', 'notes', 'talks', 'labmeetin_2022_04_13',
+                 'pictures', 'growth_curve_' + strain + '.png')
+        fig.write_image(f, scale=2)
 
 
 args = parse_args()
@@ -104,6 +136,9 @@ if mode == 'chibio':
         plot_chibio(csv)
     else:
         plot_chibio()
-if mode == 'strain':
+if mode == 'strains':
     plot_strains()
     plot_strains(log=False)
+if mode == 'strain':
+    plot_strain()
+    # plot_strains(log=False)
