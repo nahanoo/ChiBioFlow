@@ -81,6 +81,7 @@ def plot_strains(log=True):
     i = 0
     for reactor in reactors:
         for f in glob(join('data', e, reactor, 'cfu*.csv')):
+            print(f)
             strain = f.split('.')[0][-2:]
             df = pd.read_csv(f)
             for day in df.columns[1:]:
@@ -88,7 +89,7 @@ def plot_strains(log=True):
                 out.at[i, 'day'] = day
                 out.at[i, strain] = average_cfus(df[day])
                 i += 1
-    fig = px.scatter(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
+    fig = px.line(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
              category_orders={'reactor': sorted(reactors)},log_y=log)
     fig.show()
 
