@@ -1,8 +1,8 @@
 dilution,day_0,day_1,day_2,day_3,day_4,day_5,day_6
-10-1,overgrown,overgrown,overgrown,0,overgrown,overgrown,overgrown
-10-2,overgrown,overgrown,overgrown,0,overgrown,overgrown,overgrown
-10-3,overgrown,overgrown,17,0,overgrown,overgrown,overgrown
-10-4,overgrown,overgrown,0,0,overgrown,27,70
-10-5,28,14,0,0,22,0,20
-10-6,1,0,0,0,0,0,0
+10-1,0,overgrown,overgrown,0,overgrown,overgrown,overgrown
+10-2,0,overgrown,overgrown,0,overgrown,overgrown,overgrown
+10-3,0,overgrown,17,0,overgrown,overgrown,overgrown
+10-4,0,overgrown,0,0,overgrown,27,70
+10-5,0,14,0,0,22,0,20
+10-6,0,0,0,0,0,0,0
 10-7,0,0,0,0,0,0,0
