@@ -80,13 +80,12 @@ def average_cfus(series):
     return avg
 
 
-def plot_strains(log=True):
+def plot_strains(log=True,csv='cfu*.csv'):
     out = pd.DataFrame(columns=['day', 'reactor', 'at', 'ct', 'ms', 'oa'])
     reactors = [split(element)[-1] for element in glob(join("data", e, 'M*'))]
     i = 0
     for reactor in reactors:
-        for f in glob(join('data', e, reactor, 'cfu*.csv')):
-            print(f)
+        for f in glob(join('data', e, reactor, csv)):
             strain = f.split('.')[0][-2:]
             df = pd.read_csv(f)
             for day in df.columns[1:]:
@@ -94,11 +93,10 @@ def plot_strains(log=True):
                 out.at[i, 'day'] = day.split('_')[-1]
                 out.at[i, strain] = average_cfus(df[day])
                 i += 1
-    fig = px.line(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
+    fig = px.scatter(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
                   category_orders={'reactor': sorted(reactors)}, log_y=log, color_discrete_map=colors)
     fig.show()
-    f = join('/home', 'eric', 'notes', 'talks',
-             'labmeetin_2022_04_13', 'pictures', 'strains.png')
+    f = join('strains.png')
     #f = join('/home', 'eric', 'notes', 'talks',
     #         'labmeetin_2022_04_13', 'pictures', 'biofilm_strains.png')
     fig.write_image(f, scale=2)
@@ -137,8 +135,11 @@ if mode == 'chibio':
     else:
         plot_chibio()
 if mode == 'strains':
-    plot_strains()
-    plot_strains(log=False)
+    #plot_strains()
+    plot_strains(log=True)
 if mode == 'strain':
     plot_strain()
     # plot_strains(log=False)
+
+if mode == 'biofilm':
+    plot_strains(csv='biofilm_cfu*.csv')
