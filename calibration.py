@@ -5,7 +5,7 @@ from os.path import join
 import csv
 import pandas as pd
 
-reactors = ['M'+str(j) for j in range(9)]
+reactors = ['M'+str(j) for j in range(8)]
 
 def exp_fit(x,m,t):
     return m * np.exp(-t * x)
