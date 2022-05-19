@@ -1,3 +1,4 @@
+from cProfile import label
 import plotly.express as px
 import argparse
 from os.path import join, split
@@ -46,8 +47,19 @@ def plot_chibio(csv=None, transfers=False):
             # time is in seconds, deviding by 60**2 to get hours
             data["exp_time"] = data["exp_time"] / 60 / 60
             df = df.append(data)
-        fig = px.line(df, x="exp_time", y=c, facet_col="reactor", facet_col_wrap=2,
-                      category_orders={'reactor': sorted(reactors)})
+        if c == 'od_measured':
+            fig = px.line(df, x="exp_time", y=c, facet_col="reactor", facet_col_wrap=2,
+                      category_orders={'reactor': sorted(reactors)},labels={
+                          'exp_time':'',
+                          'od_measured' : ''
+                      })
+            fig.update_layout(font={'size':50})
+            fig.update_layout(
+            xaxis_title='Time in hours',
+            yaxis_title='Measured OD')
+        else:
+            fig = px.line(df, x="exp_time", y=c, facet_col="reactor", facet_col_wrap=2,
+                        category_orders={'reactor': sorted(reactors)})
     else:
         print(csv)
         df = pd.read_csv(csv, usecols=["exp_time", c])
@@ -59,12 +71,13 @@ def plot_chibio(csv=None, transfers=False):
         for t, od in zip(df['exp_time'], df['od_measured']):
             if od > target_od:
                 fig.add_vline(x=t)
+
     fig.show()
 
 
 def average_cfus(series):
-    conversion = 20 * 1E2
-    dilution = [1E1, 1E2, 1E3, 1E4, 1E5, 1E6, 1E7]
+    conversion = 1E2
+    dilution = [1E0, 1E1, 1E2, 1E3, 1E4, 1E5, 1E6]
     cfus = []
     for counter, cfu in enumerate(series):
         if cfu == 'overgrown':
@@ -81,6 +94,10 @@ def average_cfus(series):
 
 
 def plot_strains(log=True):
+    names = {'at': '<i>A. tumefaciens</i>',
+              'ct': '<i>C. testosteroni</i>',
+              'ms': '<i>M. saperdae</i>',
+              'oa': '<i>O. anthropi</i>'}
     out = pd.DataFrame(columns=['day', 'reactor', 'at', 'ct', 'ms', 'oa'])
     reactors = [split(element)[-1] for element in glob(join("data", e, 'M*'))]
     i = 0
@@ -94,11 +111,22 @@ def plot_strains(log=True):
                 out.at[i, strain] = average_cfus(df[day])
                 i += 1
     fig = px.line(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
-                  category_orders={'reactor': sorted(reactors)}, log_y=log, color_discrete_map=colors)
+                  category_orders={'reactor': sorted(reactors)}, log_y=log, color_discrete_map=colors,labels={
+                    'day':''
+                  })
+    fig.for_each_trace(lambda t: t.update(name = names[t.name],
+                                      legendgroup = names[t.name],
+                                      hovertemplate = t.hovertemplate.replace(t.name, names[t.name])
+                                     )
+                  )
+    fig.update_layout(font={'size':40},
+            xaxis_title='Day',
+            yaxis_title='CFUs/mL')
+
     fig.show()
     f = join('/home', 'eric', 'notes', 'talks',
              'labmeetin_2022_04_13', 'pictures', 'strains.png')
-    #f = join('/home', 'eric', 'notes', 'talks',
+    # f = join('/home', 'eric', 'notes', 'talks',
     #         'labmeetin_2022_04_13', 'pictures', 'biofilm_strains.png')
     fig.write_image(f, scale=2)
 
