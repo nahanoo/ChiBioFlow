@@ -102,7 +102,7 @@ def plot_strains(log=True):
     reactors = [split(element)[-1] for element in glob(join("data", e, 'M*'))]
     i = 0
     for reactor in reactors:
-        for f in glob(join('data', e, reactor, 'cfu*.csv')):
+        for f in glob(join('data', e, reactor, csv)):
             strain = f.split('.')[0][-2:]
             df = pd.read_csv(f)
             for day in df.columns[1:]:
@@ -124,11 +124,11 @@ def plot_strains(log=True):
             yaxis_title='CFUs/mL')
 
     fig.show()
-    f = join('/home', 'eric', 'notes', 'talks',
-             'labmeetin_2022_04_13', 'pictures', 'strains.png')
+    #f = join('/home', 'eric', 'notes', 'talks',
+    #         'labmeetin_2022_04_13', 'pictures', 'strains.png')
     # f = join('/home', 'eric', 'notes', 'talks',
     #         'labmeetin_2022_04_13', 'pictures', 'biofilm_strains.png')
-    fig.write_image(f, scale=2)
+    #fig.write_image(f, scale=2)
 
 
 def plot_strain(log=True):
@@ -164,8 +164,11 @@ if mode == 'chibio':
     else:
         plot_chibio()
 if mode == 'strains':
-    plot_strains()
-    plot_strains(log=False)
+    #plot_strains()
+    plot_strains(log=True)
 if mode == 'strain':
     plot_strain()
     # plot_strains(log=False)
+
+if mode == 'biofilm':
+    plot_strains(csv='biofilm_cfu*.csv')
