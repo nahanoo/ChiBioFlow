@@ -1,14 +1,21 @@
-from cProfile import label
 import plotly.express as px
 import argparse
 from os.path import join, split
 import pandas as pd
 from glob import glob
+import statistics
+import numpy as np
 
 colors = {'at': '#2c8c5a',
           'ct': '#8872cd',
           'oa': '#e27e50',
           'ms': '#e5b008'}
+
+names = {'at': '<i>A. tumefaciens</i>',
+              'ct': '<i>C. testosteroni</i>',
+              'ms': '<i>M. saperdae</i>',
+              'oa': '<i>O. anthropi</i>'}
+sample_times = [19,43,67,90]
 
 
 def parse_args():
@@ -27,7 +34,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def plot_chibio(csv=None, transfers=False):
+def plot_chibio(csv=None, transfers=False, sampling=True):
     """Creates lineplot for parsed parameter e.g. od_measured.
     Plots every reactor as subplot. CSVs can also be parsed using
     the optional --csv flag.
@@ -72,6 +79,10 @@ def plot_chibio(csv=None, transfers=False):
             if od > target_od:
                 fig.add_vline(x=t)
 
+    if sampling:
+        for sample_time in sample_times:
+            fig.add_vline(x=sample_time)
+
     fig.show()
 
 
@@ -94,15 +105,11 @@ def average_cfus(series):
 
 
 def plot_strains(log=True):
-    names = {'at': '<i>A. tumefaciens</i>',
-              'ct': '<i>C. testosteroni</i>',
-              'ms': '<i>M. saperdae</i>',
-              'oa': '<i>O. anthropi</i>'}
     out = pd.DataFrame(columns=['day', 'reactor', 'at', 'ct', 'ms', 'oa'])
     reactors = [split(element)[-1] for element in glob(join("data", e, 'M*'))]
     i = 0
     for reactor in reactors:
-        for f in glob(join('data', e, reactor, csv)):
+        for f in glob(join('data', e, reactor, 'cfu*.csv')):
             strain = f.split('.')[0][-2:]
             df = pd.read_csv(f)
             for day in df.columns[1:]:
@@ -152,6 +159,51 @@ def plot_strain(log=True):
                  'pictures', 'growth_curve_' + strain + '.png')
         fig.write_image(f, scale=2)
 
+def plot_strains_triplicates(log=True):
+    conversion = 1E2
+    out = pd.DataFrame(columns=['day', 'reactor', 'at', 'ct', 'ms', 'oa','error'])
+    reactors = [split(element)[-1] for element in glob(join("data", e, 'M*'))]
+    
+    i = 0
+    for reactor in reactors:
+        for f in glob(join('data', e, reactor, 'cfu*.csv')):
+            strain = f.split('.')[0][-2:]
+            df = pd.read_csv(f)
+            for day in df.columns[1:]:
+                for counter,entry in enumerate(df[day]):
+                    if '|' in str(entry):
+                        counts = [int(element) for element in entry.split('|')]
+                        counts = [10**counter*conversion*cfu for cfu in counts]
+                        cfus = statistics.mean(counts)
+                        error = statistics.stdev(counts)
+                        if cfus == 0:
+                            cfus = np.nan
+                            error = np.nan
+                out.at[i, 'reactor'] = reactor
+                out.at[i, 'day'] = day.split('_')[-1]
+                out.at[i, strain] = cfus
+                out.at[i,'error'] = error
+                i += 1
+                
+    fig = px.line(out, x="day", y=['at', 'ct', 'ms', 'oa'], facet_col="reactor", facet_col_wrap=4,
+                  category_orders={'reactor': sorted(reactors)}, log_y=log, color_discrete_map=colors,labels={
+                    'day':''
+                  },error_y='error')
+    fig.show()
+    """
+    fig.for_each_trace(lambda t: t.update(name = names[t.name],
+                                      legendgroup = names[t.name],
+                                      hovertemplate = t.hovertemplate.replace(t.name, names[t.name])
+                                     )
+                  )
+    fig.update_layout(font={'size':40},
+            xaxis_title='Day',
+            yaxis_title='CFUs/mL')
+
+    fig.show()
+    """
+    return out
+
 
 args = parse_args()
 e = args.experiment
@@ -172,3 +224,6 @@ if mode == 'strain':
 
 if mode == 'biofilm':
     plot_strains(csv='biofilm_cfu*.csv')
+
+if mode == 'strains_triplicates':
+    plot_strains_triplicates()
