@@ -10,6 +10,8 @@ colors = {'at': '#2c8c5a',
           'oa': '#e27e50',
           'ms': '#e5b008'}
 
+sample_times = [19,43,67,90]
+
 
 def parse_args():
     """Parsing variables for plotting."""
@@ -27,7 +29,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def plot_chibio(csv=None, transfers=False):
+def plot_chibio(csv=None, transfers=False, sampling=True):
     """Creates lineplot for parsed parameter e.g. od_measured.
     Plots every reactor as subplot. CSVs can also be parsed using
     the optional --csv flag.
@@ -71,6 +73,10 @@ def plot_chibio(csv=None, transfers=False):
         for t, od in zip(df['exp_time'], df['od_measured']):
             if od > target_od:
                 fig.add_vline(x=t)
+
+    if sampling:
+        for sample_time in sample_times:
+            fig.add_vline(x=sample_time)
 
     fig.show()
 
