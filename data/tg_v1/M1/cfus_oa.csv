@@ -1,8 +1,8 @@
-dilution,day_0,day_1,day_2,day_3
-10-1,0,overgrown,overgrown,overgrown
-10-2,0,overgrown,overgrown,overgrown
-10-3,0,overgrown,overgrown,overgrown
-10-4,0,overgrown,overgrown,overgrown
-10-5,0,29|38|43,22|26|25,20|23|14
-10-6,0,0,0,0
-10-7,0,0,0,0
+dilution,day_0,day_1,day_2,day_3,day_4,day_5
+10-1,0,overgrown,overgrown,overgrown,overgrown,overgrown
+10-2,0,overgrown,overgrown,overgrown,overgrown,overgrown
+10-3,0,overgrown,overgrown,overgrown,overgrown,overgrown
+10-4,0,overgrown,overgrown,overgrown,60|50|40,overgrown
+10-5,0,29|38|43,22|26|25,20|23|14,0,40|48|50
+10-6,0,0,0,0,0,0
+10-7,0|0|0,0,0,0,0,0
