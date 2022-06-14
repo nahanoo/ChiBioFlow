@@ -1281,9 +1281,9 @@ def CustomProgram(M):
 
                 if source != 'Media':
                     SetOutputOn(source,'Stir',0)
-                if Params[2] == 'up':
+                if Params[3] == 'up':
                     sysData[control_reactor][pump]['target']=-1
-                if Params[2] == 'down':
+                if Params[3] == 'down':
                     sysData[control_reactor][pump]['target']=1
                 SetOutputOn(control_reactor, pump, 1)                
                 time.sleep(run_time)
