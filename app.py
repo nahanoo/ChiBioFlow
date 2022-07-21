@@ -166,12 +166,12 @@ sysItems = {
         '0x12': {'A': 'DARK', 'B': 'U'},
         '0x13': {'A': 'FLICKER', 'B': 'NIR'},
     },
-    'chain': ['M0', 'M1', 'M3', 'M5'],
-    'chains': {'Media-M0': ('M0', 'Pump2'),
-               'M0-M1': ('M0', 'Pump1'),
-               'M1-M3': ('M1', 'Pump2'),
-               'M3-M5': ('M1', 'Pump1'),
-               'M3-Waste': ('M3', 'Pump2')}
+    'chain': ['M6', 'M1', 'M0', 'M5'],
+    'chains': {'Media-M6': ('M6', 'Pump2'),
+               'M6-M1': ('M6', 'Pump1'),
+               'M1-M0': ('M1', 'Pump2'),
+               'M0-M5': ('M1', 'Pump1'),
+               'M5-Waste': ('M0', 'Pump2')}
 }
 
 
@@ -1276,11 +1276,9 @@ def CustomProgram(M):
 
         control_reactor = sysItems['chain'][0]
         cycle = sysData[control_reactor]['Experiment']['cycles']
-        if cycle == 0:
-            return
-
+        print('Cycle',cycle)
         transfer = False
-        if cycle%60 == 0:
+        if cycle%30 == 0:
             transfer = True
 
         for reactor in sysItems['chain']:
