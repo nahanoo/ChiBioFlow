@@ -36,7 +36,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def plot_chibio(csv=None, transfers=False, sampling=True):
+def plot_chibio(csv=None, transfers=False, sampling=False):
     """Creates lineplot for parsed parameter e.g. od_measured.
     Plots every reactor as subplot. CSVs can also be parsed using
     the optional --csv flag.
@@ -58,7 +58,7 @@ def plot_chibio(csv=None, transfers=False, sampling=True):
             df = df.append(data)
         if c == 'od_measured':
             fig = px.line(df, x="exp_time", y=c, facet_col="reactor", facet_col_wrap=2,hover_data=['exp_time']  ,
-                      category_orders={'reactor': sorted(reactors)})
+                      category_orders={'reactor': ['M6','M1','M0','M5']})
             fig.update_layout(font={'size':20})
             fig.update_layout(
             xaxis_title='Time in hours',
@@ -266,7 +266,7 @@ def plot_strains_triplicates(log=False,composition=False):
                   category_orders={'reactor': sorted(reactors)}, log_y=log, color_discrete_map=colors,labels={
                     'day':''
                   },error_y='error')
-    #fig.show()
+    fig.show()
     composition = pd.DataFrame(columns=['day', 'reactor', 'at', 'ct', 'ms', 'oa'])
     i = 0
     for reactor in reactors:
