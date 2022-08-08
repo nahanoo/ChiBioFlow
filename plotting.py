@@ -21,6 +21,9 @@ def parse_args():
 
 
 <<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 714573da5466ad345b2ce34bffd315b045f08b68
 def plot_chibio(csv=None, transfers=False, sampling=False):
     """Creates lineplot for parsed parameter e.g. od_measured.
     Plots every reactor as subplot. CSVs can also be parsed using
