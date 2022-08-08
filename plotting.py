@@ -173,6 +173,13 @@ def main():
         fig = style_plot(fig, 'cfus')
         fig.show()
 
+    if mode == 'total':
+        df = cfu_parser()
+        fig = plot_total(df)
+        #fig = style_plot(fig, 'cfus')
+        fig.show()
+    return df
+
 
 def plot_chibio():
     """Creates lineplot for parsed column e.g. od_measured.
@@ -192,6 +199,15 @@ def plot_chibio():
 
     return fig
 
+def plot_total(df):
+    """Plot sum of CFUs of all species"""
+    df = df[['reactor','sample_time','total']].drop_duplicates()
+    fig = px.line(df, x="sample_time", y='total', facet_col="reactor",
+                  facet_col_wrap=2, category_orders={'reactor': chain}, log_y=True)
+    fig.update_layout(font={'size': 20},
+                          xaxis_title='Time in hours',
+                          yaxis_title='CFUs/mL')
+    return fig
 
 def plot_species(df):
     """Plots CFUs based on parsed xlsx sheet"""
@@ -203,7 +219,7 @@ def plot_species(df):
 def plot_composition(df):
     """Plots community composition in percent"""
     fig = px.line(df, x="sample_time", y='composition', facet_col="reactor",
-                  facet_col_wrap=2, category_orders={'reactor': chain}, color='species', log_y=True)
+                  facet_col_wrap=2, category_orders={'reactor': chain}, color='species', log_y=False)
     return fig
 
 
@@ -302,4 +318,4 @@ def cfu_parser():
 
 
 if __name__ == '__main__':
-    main()
+    df = main()

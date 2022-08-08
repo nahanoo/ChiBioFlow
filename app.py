@@ -166,12 +166,12 @@ sysItems = {
         '0x12': {'A': 'DARK', 'B': 'U'},
         '0x13': {'A': 'FLICKER', 'B': 'NIR'},
     },
-    'chain': ['M6', 'M1', 'M7', 'M2'],
-    'chains': {'Media-M6': ('M6', 'Pump2'),
-               'M6-M1': ('M6', 'Pump1'),
-               'M1-M7': ('M1', 'Pump2'),
-               'M7-M2': ('M1', 'Pump1'),
-               'M2-Waste': ('M7', 'Pump2')}
+    'chain': ['M0', 'M1', 'M3', 'M5'],
+    'chains': {'Media-M0': ('M0', 'Pump2'),
+               'M0-M1': ('M0', 'Pump1'),
+               'M1-M3': ('M1', 'Pump2'),
+               'M0-M5': ('M1', 'Pump1'),
+               'M5-Waste': ('M3', 'Pump2')}
 }
 
 
