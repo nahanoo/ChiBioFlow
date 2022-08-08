@@ -47,8 +47,8 @@ sysData = {'M0': {
     'LASER650': {'name': 'LASER650', 'default': 0.5, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0},
     'UV': {'WL': 'UV', 'default': 0.5, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0},
     'Heat': {'default': 0.0, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0, 'record': []},
-    'Thermostat': {'default': 37.0, 'target': 0.0, 'max': 50.0, 'min': 0.0, 'ON': 0, 'record': [], 'cycleTime': 30.0, 'Integral': 0.0, 'last': -1},
-    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 60.0, 'threadCount': 0},
+    'Thermostat': {'default': 37.0, 'target': 0.0, 'max': 50.0, 'min': 0.0, 'ON': 0, 'record': [], 'cycleTime': 30, 'Integral': 0.0, 'last': -1},
+    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 120, 'threadCount': 0},
     'Terminal': {'text': ''},
     'AS7341': {
         'spectrum': {'nm410': 0, 'nm440': 0, 'nm470': 0, 'nm510': 0, 'nm550': 0, 'nm583': 0, 'nm620': 0, 'nm670': 0, 'CLEAR': 0, 'NIR': 0, 'DARK': 0, 'ExtGPIO': 0, 'ExtINT': 0, 'FLICKER': 0},
@@ -1278,7 +1278,7 @@ def CustomProgram(M):
         cycle = sysData[control_reactor]['Experiment']['cycles']
         print('Cycle',cycle)
         transfer = False
-        if cycle%30 == 0:
+        if cycle%15 == 0:
             transfer = True
 
         for reactor in sysItems['chain']:
@@ -1294,15 +1294,11 @@ def CustomProgram(M):
                 else:
                     run_time = float(Params[1]) + 2
 
-                if source != 'Media':
-                    SetOutputOn(source, 'Stir', 0)
                 sysData[control_reactor][pump]['target'] = -1
                 SetOutputOn(control_reactor, pump, 1)
                 time.sleep(run_time)
                 SetOutputOn(control_reactor, pump, 0)
-                if source != 'Media':
-                    SetOutputOn(source, 'Stir', 1)
-                time.sleep(4)
+                time.sleep(15)
 
     elif (program == "C7"):
         run_time = float(Params[1])
