@@ -52,7 +52,7 @@ def create_reactors():
     pump_mappings = {
         'M0': {
             'pump1': 'counter_clock',
-            'pump2': 'clock',
+            'pump2': 'counter_clock',
             'pump3': 'counter_clock',
             'pump4': 'counter_clock'
         }
