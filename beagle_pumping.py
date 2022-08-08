@@ -50,7 +50,7 @@ class Pump():
 
 def create_reactors():
     pump_mappings = {
-        'M0': {
+        'M6': {
             'pump1': 'counter_clock',
             'pump2': 'counter_clock',
             'pump3': 'counter_clock',
@@ -61,3 +61,8 @@ def create_reactors():
     for reactor_name, pumps in pump_mappings.items():
         reactors[reactor_name] = Reactor(reactor_name, pumps)
     return reactors
+
+r = create_reactors()
+for injection in range(10):
+    r['M6'].pumps['pump2'].run_time(1)
+    time.sleep(2)
