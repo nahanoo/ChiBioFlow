@@ -48,7 +48,7 @@ sysData = {'M0': {
     'UV': {'WL': 'UV', 'default': 0.5, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0},
     'Heat': {'default': 0.0, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0, 'record': []},
     'Thermostat': {'default': 37.0, 'target': 0.0, 'max': 50.0, 'min': 0.0, 'ON': 0, 'record': [], 'cycleTime': 30, 'Integral': 0.0, 'last': -1},
-    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 30, 'threadCount': 0},
+    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 120, 'threadCount': 0},
     'Terminal': {'text': ''},
     'AS7341': {
         'spectrum': {'nm410': 0, 'nm440': 0, 'nm470': 0, 'nm510': 0, 'nm550': 0, 'nm583': 0, 'nm620': 0, 'nm670': 0, 'CLEAR': 0, 'NIR': 0, 'DARK': 0, 'ExtGPIO': 0, 'ExtINT': 0, 'FLICKER': 0},
@@ -166,12 +166,12 @@ sysItems = {
         '0x12': {'A': 'DARK', 'B': 'U'},
         '0x13': {'A': 'FLICKER', 'B': 'NIR'},
     },
-    'chain': ['M0', 'M1', 'M3', 'M5'],
-    'chains': {'Media-M0': ('M0', 'Pump2'),
-               'M0-M1': ('M0', 'Pump1'),
-               'M1-M3': ('M1', 'Pump2'),
-               'M0-M5': ('M1', 'Pump1'),
-               'M5-Waste': ('M3', 'Pump2')}
+    'chain': ['M6', 'M1', 'M7', 'M2'],
+    'chains': {'Media-M6': ('M6', 'Pump2'),
+               'M6-M1': ('M6', 'Pump1'),
+               'M1-M7': ('M1', 'Pump2'),
+               'M7-M2': ('M1', 'Pump1'),
+               'M7-Waste': ('M7', 'Pump2')}
 }
 
 
