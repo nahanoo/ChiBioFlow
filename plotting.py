@@ -20,10 +20,6 @@ def parse_args():
     return parser.parse_args()
 
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 714573da5466ad345b2ce34bffd315b045f08b68
 def plot_chibio(csv=None, transfers=False, sampling=False):
     """Creates lineplot for parsed parameter e.g. od_measured.
     Plots every reactor as subplot. CSVs can also be parsed using
@@ -142,7 +138,7 @@ def plot_strain(log=True):
     for strain in ['at', 'ct', 'ms', 'oa']:
         fig = px.line(out, x="day", y=[strain], facet_col="reactor", facet_col_wrap=4,
                       category_orders={'reactor': sorted(reactors)}, color_discrete_map=colors, log_y=log)
-=======
+
 def main():
     global e
     global c
@@ -158,7 +154,6 @@ def main():
     if mode == 'chibio':
         fig = plot_chibio()
         fig = style_plot(fig, 'od_measured')
->>>>>>> a61bdd4a5dfc00c68a77de50c19f2ce6b8e2425e
         fig.show()
 
     if mode == 'species':
