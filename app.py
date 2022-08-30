@@ -1170,24 +1170,23 @@ def CustomProgram(M):
                     str(green) + ' red= ' + str(red) + ' integral= ' + str(integral))
 
     elif (program == "C2"):  # UV Integral Control Program
-        integral = 0.0  # Integral in integral controller
-        UV = 0.0  # Intensity of Green actuation
-        GrowthRate = sysData[M]['GrowthRate']['current']
-        # This is the controller setpoint.
-        GrowthTarget = sysData[M]['Custom']['Status']
-        error = GrowthTarget-GrowthRate
-        KP = float(Params[0])  # Past data suggest value of ~0.005
-        KI = float(Params[1])  # Past data suggest value of ~2e-5
-        integral = sysData[M]['Custom']['param2']+error*KI
-        if(integral > 0):
-            integral = 0.0
-        sysData[M]['Custom']['param2'] = integral
-        UV = -1.0*(KP*error+integral)
-        sysData[M]['Custom']['param1'] = UV
-        SetOutputTarget(M, 'UV', UV)
-        SetOutputOn(M, 'UV', 1)
-        addTerminal(M, 'Program = ' + str(program) + ' UV= ' +
-                    str(UV) + ' integral= ' + str(integral))
+        run_time = 0.3
+        pump_in = 'Pump1'
+        pump_out = 'Pump2'
+        SetOutputOn(M,pump_in,1)
+        time.sleep(run_time)
+        SetOutputOn(M,pump_in,0)
+        time.sleep(0.5)
+        SetOutputOn(M,pump_out,1)
+        time.sleep(run_time)
+        SetOutputOn(M,pump_out,0)
+
+        SetFPMeasurement('FP1',"LEDB",'nm550','nm550','x512')
+        SetFPMeasurement('FP2',"LEDE",'nm670','nm670','x512')
+        MeasureFP(M)
+        print('GFP emmission:',sysData[M]['FP1']['Emit1'])
+        print('RFP emmission:',sysData[M]['FP2']['Emit1'])
+
 
     elif (program == "C3"):  # UV Integral Control Program Mk 2
         # Integral in integral controller
