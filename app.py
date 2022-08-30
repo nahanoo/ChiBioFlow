@@ -1238,37 +1238,51 @@ def CustomProgram(M):
         sysData[M]['Custom']['Status'] = timept
 
     elif (program == "C5"):  # UV Dosing program
-        # This is the timestep as we follow in minutes
-        timept = int(sysData[M]['Custom']['Status'])
-        # Increment time as we have entered the loop another time!
-        sysData[M]['Custom']['Status'] = timept+1
+        if Params[0] != 'transfer':
+            return
 
-        # The amount of time Pump2 is going to be on for following RegulateOD above.
-        Pump2Ontime = sysData[M]['Experiment']['cycleTime']*1.05 * \
-            abs(sysData[M]['Pump2']['target'])*sysData[M]['Pump2']['ON']+0.5
-        # Pause here is to prevent output pumping happening at the same time as stirring.
-        time.sleep(Pump2Ontime)
+        control_reactor = sysItems['chain'][0]
+        cycle = sysData[control_reactor]['Experiment']['cycles']
+        print('Cycle',cycle)
+        for reactor in sysItems['chain']:
+            print('OD of reactor', reactor+':',
+                  sysData[reactor]['OD']['current'])
 
-        timelength = 300  # Time between doses in minutes
-        if(timept % timelength == 2):  # So this happens every 5 hours!
-            iters = (timept//timelength)
-            Dose0 = float(Params[0])
-            # UV Dose, in terms of amount of time UV shoudl be left on at 1.0 intensity.
-            Dose = Dose0*(2.0**float(iters))
-            print(str(datetime.now()) + ' Gave dose ' + str(Dose) +
-                  " at iteration " + str(iters) + " on device " + str(M))
+        for chain, (control_reactor, pump) in sysItems['chains'].items():
+            sysData[control_reactor][pump]['target'] = -1
+        
+        injections = 0
+        registers = {
+                         'Pump1': 0x0A,
+                         'Pump2': 0x12,
+                         'Pump3': 0x1A,
+                         'Pump4': 0x22
+                     }
+                     
+        while injections < 24:
+            print(injections)
+            for chain, (control_reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    run_time = 0.01
+                else:
+                    run_time = float(Params[-1])    
+                I2CCom(control_reactor, 'Pumps', 0, 8, registers[pump], 1, 0)
+                time.sleep(run_time)
+                I2CCom(control_reactor, 'Pumps', 0, 8, registers[pump], 0, 0)
+                time.sleep(float(Params[1]))
+            injections += 1
+        
+            """if cycle%5 == 0:
+            for chain, (control_reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    break 
+                SetOutputOn(control_reactor, pump, 1)
+                time.sleep(1)
+                SetOutputOn(control_reactor, pump, 0)
+                time.sleep(0.5)"""
 
-            if (Dose < 30.0):
-                powerlvl = Dose/30.0
-                SetOutputTarget(M, 'UV', powerlvl)
-                Dose = 30.0
-            else:
-                # Ensure UV is on at aopropriate intensity
-                SetOutputTarget(M, 'UV', 1.0)
-
-            SetOutputOn(M, 'UV', 1)  # Activate UV
-            time.sleep(Dose)  # Wait for dose to be administered
-            SetOutputOn(M, 'UV', 0)  # Deactivate UV
 
     elif (program == "C6"):  # UV Dosing program 2 - constant value!
         if Params[0] != 'transfer':
@@ -2248,7 +2262,6 @@ def ExperimentStartStop(M, value):
 def runExperiment(M, placeholder):
     # Primary function for running an automated experiment.
     M = str(M)
-
     global sysData
     global sysItems
     global sysDevices
@@ -2334,7 +2347,6 @@ def runExperiment(M, placeholder):
         CustomThread = Thread(target=CustomProgram, args=(M,))
         CustomThread.setDaemon(True)
         CustomThread.start()
-
     # The amount of time Pump2 is going to be on for following RegulateOD above.
     Pump2Ontime = sysData[M]['Experiment']['cycleTime']*1.05 * \
         abs(sysData[M]['Pump2']['target'])*sysData[M]['Pump2']['ON']+0.5
@@ -2416,6 +2428,7 @@ def runExperiment(M, placeholder):
     elapsedTime2 = nowend-now
     elapsedTimeSeconds2 = round(elapsedTime2.total_seconds(), 2)
     sleeptime = CycleTime-elapsedTimeSeconds2
+    print('sleep time',sleeptime)
     if (sleeptime < 0):
         sleeptime = 0
         addTerminal(M, 'Experiment Cycle Time is too short!!!')
@@ -2435,8 +2448,6 @@ def runExperiment(M, placeholder):
     else:
         turnEverythingOff(M)
         addTerminal(M, 'Experiment Stopped')
-
-
 if __name__ == '__main__':
     initialiseAll()
     application.run(debug=True, threaded=True, host='0.0.0.0', port=5000)
