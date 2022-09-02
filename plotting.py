@@ -1,13 +1,15 @@
 from genericpath import exists
 import plotly.express as px
+import plotly.graph_objects as go
 import argparse
 from os.path import join
 from chibio_parser import cfu_parser
 from chibio_parser import chibio_parser
 import numpy as np
+from model_class import Chain
 
 
-def plot_chibio(e, chain, c, multi=True,fit=True):
+def plot_chibio(e, chain, c, multi=True, fit=True):
     """Creates lineplot for parsed column e.g. od_measured.
     Plots every reactor as subplot.
     """
@@ -19,17 +21,23 @@ def plot_chibio(e, chain, c, multi=True,fit=True):
     df = chibio_parser(e, chain, c)
 
     if multi:
-        fig = px.line(df, x="exp_time", y=c, facet_col="temp", color='temp',
-                      facet_col_wrap=2, hover_data=['exp_time'], color_discrete_map=temp_colors)
+        fig = px.line(df, x="exp_time", y=c, facet_col="reactor", color='temp', hover_data=['exp_time'], 
+                      color_discrete_map=temp_colors,category_orders={'reactor':chain})
         if fit:
+            cs = Chain(df[['reactor','temp']].drop_duplicates()['temp'].to_list())
+            cs.transfer_rate = 24
+            cs.experiment(int(max(df['exp_time'])))
+            for counter,f in enumerate(fig['data']):
+                xs = cs.chain[counter].xs
+                ys = cs.chain[counter].ys
+                fig.add_trace(go.Scatter(x=xs, y=ys), row=1, col=counter+1)
 
-            
     if not multi:
         fig = px.line(df, x="exp_time", y=c, color='temp',
                       hover_data=['exp_time'], line_dash='reactor',
                       color_discrete_map=temp_colors)
 
-    return df, fig
+    return df, fig, cs
 
 
 def plot_total(df, chain):
@@ -148,12 +156,12 @@ def main():
 
     if (mode == 'chibio_single') | (mode == 'chibio_multi'):
         if mode == 'chibio_multi':
-            df, fig = plot_chibio(e, chain, c)
+            df, fig, cs = plot_chibio(e, chain, c)
         if mode == 'chibio_single':
             df, fig = plot_chibio(e, chain, c, multi=False)
         fig = style_plot(e, chain, fig, 'od_measured')
-        fig.show()
-        return df, fig
+        # fig.show()
+        return df, fig, cs
 
     if mode == 'species':
         df = cfu_parser(e, chain)
@@ -176,8 +184,8 @@ def main():
         fig.show()
         return df, fig
 
-    return df, fig
+    return df, fig, cs
 
 
 if __name__ == '__main__':
-    df, fig = main()
+    df, fig, cs = main()
