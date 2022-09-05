@@ -1,4 +1,5 @@
 
+from audioop import add
 from genericpath import exists
 import plotly.express as px
 import plotly.graph_objects as go
@@ -10,35 +11,33 @@ import numpy as np
 from model_class import Chain
 
 
-def plot_chibio(e, chain, c, multi=True, fit=True):
+def plot_chibio(e, order, c, multi=True):
     """Creates lineplot for parsed column e.g. od_measured.
     Plots every reactor as subplot.
     """
-    temp_colors = {28.0: '#6834eb',
-                   33.0: '#a234eb',
-                   38.0: '#eb34c0',
-                   43.0: '#eb3434'}
-
-    df = chibio_parser(e, chain, c)
+    df = chibio_parser(e, order, c)
 
     if multi:
-        fig = px.line(df, x="exp_time", y=c, facet_col="reactor", color='temp', hover_data=['exp_time'], 
-                      color_discrete_map=temp_colors,category_orders={'reactor':chain})
-        if fit:
-            cs = Chain(df[['reactor','temp']].drop_duplicates()['temp'].to_list())
-            cs.transfer_rate = 0
-            cs.experiment(int(max(df['exp_time'])),0)
-            for counter,f in enumerate(fig['data']):
-                xs = cs.chain[counter].xs
-                ys = cs.chain[counter].ys
-                fig.add_trace(go.Scatter(x=xs, y=ys), row=1, col=counter+1)
+        fig = px.line(df, x="exp_time", y=c, facet_col="reactor", color='temp', hover_data=[
+                      'exp_time'], category_orders={'reactor': order})
 
     if not multi:
         fig = px.line(df, x="exp_time", y=c, color='temp',
-                      hover_data=['exp_time'], line_dash='reactor',
-                      color_discrete_map=temp_colors)
+                      hover_data=['exp_time'], line_dash='reactor')
+    return df, fig
 
-    return df, fig, cs
+
+def add_model(df, fig, chain):
+    temps = df[['reactor', 'temp']].drop_duplicates()['temp'].to_list()
+    chain.experiment(int(max(df['exp_time'])))
+    for counter, f in enumerate(fig['data']):
+        xs = chain.chain[counter].xs
+        ys = chain.chain[counter].ys
+        name = str(temps[counter]) + ' model'
+        fig.add_trace(go.Scatter(x=xs, y=ys, name=name),
+                      row=1, col=counter + 1)
+
+    return df, fig
 
 
 def plot_total(df, chain):
@@ -98,6 +97,13 @@ def style_plot(e, chain, fig, style, fontsize=20):
         return fig
 
     if style == 'od_measured':
+        temp_colors = {28.0: '#420f99',
+                       33.0: '#a234eb',
+                       38.0: '#eb34c0',
+                       43.0: '#eb3434'}
+        for data in fig['data']:
+            temp = data['name'].split(' ')[0]
+            data.line.color = temp_colors[float(temp)]
         fig.for_each_xaxis(
             lambda axis: axis.title.update(text='Time in hours'))
         fig.for_each_yaxis(lambda axis: axis.title.update(text='Measured OD'))
@@ -153,16 +159,20 @@ def main():
     c = args.column
     mode = args.mode
     with open(join('data', e, 'order.txt'), 'r') as f:
-        chain = f.read().rstrip().split(',')
+        order = f.read().rstrip().split(',')
 
-    if (mode == 'chibio_single') | (mode == 'chibio_multi'):
+    if (mode == 'chibio_single') | (mode == 'chibio_multi') | (mode == 'chibio_model'):
         if mode == 'chibio_multi':
-            df, fig, cs = plot_chibio(e, chain, c)
+            df, fig = plot_chibio(e, order, c)
         if mode == 'chibio_single':
-            df, fig = plot_chibio(e, chain, c, multi=False)
-        fig = style_plot(e, chain, fig, 'od_measured')
-        # fig.show()
-        return df, fig, cs
+            df, fig = plot_chibio(e, order, c, multi=False)
+        if mode == 'chibio_model':
+            df, fig = plot_chibio(e, order, c)
+            temps = df[['reactor', 'temp']].drop_duplicates()['temp'].to_list()
+            chain = Chain(temps)
+            df, fig = add_model(df, fig, chain)
+        fig = style_plot(e, order, fig, 'od_measured')
+        return df, fig
 
     if mode == 'species':
         df = cfu_parser(e, chain)
@@ -185,8 +195,9 @@ def main():
         fig.show()
         return df, fig
 
-    return df, fig, cs
+    return df, fig
 
 
 if __name__ == '__main__':
-    df, fig, cs = main()
+    df, fig = main()
+    fig.show()
