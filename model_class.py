@@ -19,25 +19,23 @@ class Chemostat():
 
 
 class Chain():
-    def __init__(self):
-        self.chain = [Chemostat({'r': 0.456,
-                                 'K': 0.8,
-                                 'N': 0.1}),
-                      Chemostat({'r': 0.456,
-                                 'K': 1,
-                                 'N': 0}),
-                      Chemostat({'r': 0.456,
-                                 'K': 1,
-                                 'N': 0}),
-                      Chemostat({'r': 0.456,
-                                 'K': 1,
-                                 'N': 0})
-        ]
+    def __init__(self, temps):
+        params = {28.0: {'r': 0.456,
+                         'K': 0.8,
+                         'N': 0.1},
+                  33.0: {'r': 0.456,
+                         'K': 1,
+                         'N': 0},
+                  38.0: {'r': 0.456,
+                         'K': 1,
+                         'N': 0},
+                  43.0:  {'r': 0.456,
+                          'K': 1,
+                          'N': 0}}
+        self.chain = [Chemostat(params[temp] for temp in temps)]
         self.volume = 20
         self.dilution_rate = 0.313
         self.transfer_rate = 1
-
-    
 
     def dilute(self):
         v_trans = self.dilution_rate * self.volume / self.transfer_rate
@@ -47,16 +45,17 @@ class Chain():
             else:
                 N_in = self.chain[counter - 1].N
 
-            c.N = (N_in * v_trans + c.N * self.volume) / (v_trans + self.volume) 
-        
+            c.N = (N_in * v_trans + c.N * self.volume) / \
+                (v_trans + self.volume)
+
     def experiment(self, exp_time):
         intervals = exp_time * self.transfer_rate
         interval = 1 / self.transfer_rate
         for i in range(intervals):
             for c in self.chain:
-                xs = interval * i + np.arange(0,interval,1/3600)
-                c.xs = np.concatenate([c.xs,xs])
-                ys = [e[0] for e in odeint(c.model,c.N,xs)]
+                xs = interval * i + np.arange(0, interval, 1/3600)
+                c.xs = np.concatenate([c.xs, xs])
+                ys = [e[0] for e in odeint(c.model, c.N, xs)]
                 c.ys = np.concatenate([c.ys, ys])
                 c.N = c.ys[-1]
             self.dilute()
@@ -65,9 +64,9 @@ class Chain():
 k = Chain()
 k.experiment(48)
 for c in k.chain:
-    plt.plot(c.xs,c.ys)
+    plt.plot(c.xs, c.ys)
 
 plt.show()
-#plt.show()
+# plt.show()
 """    def dilute(self):
         return 20 * (self.Nt(3600, self.N0) - self.N0) / self.N0"""
