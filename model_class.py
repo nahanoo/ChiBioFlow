@@ -61,19 +61,26 @@ class Chain():
                 (v_trans + self.volume)
 
     def experiment(self, exp_time, transfer_rate=2):
-        self.transfer_rate = transfer_rate
-        # Stores how many transfers are done in one experiment
-        intervals = exp_time * self.transfer_rate
-        # Time between two dilutions
-        interval = 1 / self.transfer_rate
-        for i in range(intervals):
+        if transfer_rate != 0:
+            self.transfer_rate = transfer_rate
+            # Stores how many transfers are done in one experiment
+            intervals = exp_time * self.transfer_rate
+            # Time between two dilutions
+            interval = 1 / self.transfer_rate
+            for i in range(intervals):
+                for c in self.chain:
+                    # Simulated time scale
+                    xs = interval * i + np.arange(0, interval, 1/3600)
+                    c.xs = np.concatenate([c.xs, xs])
+                    # Modelled OD values
+                    ys = [e[0] for e in odeint(c.model, c.N, xs)]
+                    c.ys = np.concatenate([c.ys, ys])
+                    # Storing latest OD
+                    c.N = c.ys[-1]
+                self.dilute()
+        if transfer_rate == 0:
             for c in self.chain:
-                # Simulated time scale
-                xs = interval * i + np.arange(0, interval, 1/3600)
-                c.xs = np.concatenate([c.xs, xs])
-                # Modelled OD values
-                ys = [e[0] for e in odeint(c.model, c.N, xs)]
-                c.ys = np.concatenate([c.ys, ys])
-                # Storing latest OD
+                c.xs = np.arange(0, exp_time, 1/3600)
+                c.ys = [e[0] for e in odeint(c.model, c.N, c.xs)]
                 c.N = c.ys[-1]
-            self.dilute()
+

@@ -1,3 +1,4 @@
+
 from genericpath import exists
 import plotly.express as px
 import plotly.graph_objects as go
@@ -25,8 +26,8 @@ def plot_chibio(e, chain, c, multi=True, fit=True):
                       color_discrete_map=temp_colors,category_orders={'reactor':chain})
         if fit:
             cs = Chain(df[['reactor','temp']].drop_duplicates()['temp'].to_list())
-            cs.transfer_rate = 24
-            cs.experiment(int(max(df['exp_time'])))
+            cs.transfer_rate = 0
+            cs.experiment(int(max(df['exp_time'])),0)
             for counter,f in enumerate(fig['data']):
                 xs = cs.chain[counter].xs
                 ys = cs.chain[counter].ys
@@ -146,3 +147,46 @@ def parse_args():
     return parser.parse_args()
 
 
+def main():
+    args = parse_args()
+    e = args.experiment
+    c = args.column
+    mode = args.mode
+    with open(join('data', e, 'order.txt'), 'r') as f:
+        chain = f.read().rstrip().split(',')
+
+    if (mode == 'chibio_single') | (mode == 'chibio_multi'):
+        if mode == 'chibio_multi':
+            df, fig, cs = plot_chibio(e, chain, c)
+        if mode == 'chibio_single':
+            df, fig = plot_chibio(e, chain, c, multi=False)
+        fig = style_plot(e, chain, fig, 'od_measured')
+        # fig.show()
+        return df, fig, cs
+
+    if mode == 'species':
+        df = cfu_parser(e, chain)
+        fig = plot_species(df, chain)
+        fig = style_plot(e, chain, fig, 'cfus')
+        fig.show()
+        return df, fig
+
+    if mode == 'composition':
+        df = cfu_parser(e, chain)
+        fig = plot_composition(df, chain)
+        fig = style_plot(e, chain, fig, 'composition')
+        fig.show()
+        return df, fig
+
+    if mode == 'total':
+        df = cfu_parser(e, chain)
+        fig = plot_total(df, chain)
+        fig = style_plot(e, chain, fig, 'cfus')
+        fig.show()
+        return df, fig
+
+    return df, fig, cs
+
+
+if __name__ == '__main__':
+    df, fig, cs = main()
