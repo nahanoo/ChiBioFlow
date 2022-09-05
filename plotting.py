@@ -36,7 +36,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def plot_chibio(csv=None, transfers=False, sampling=True):
+def plot_chibio(csv=None, transfers=False, sampling=False):
     """Creates lineplot for parsed parameter e.g. od_measured.
     Plots every reactor as subplot. CSVs can also be parsed using
     the optional --csv flag.
@@ -58,8 +58,8 @@ def plot_chibio(csv=None, transfers=False, sampling=True):
             df = df.append(data)
         if c == 'od_measured':
             fig = px.line(df, x="exp_time", y=c, facet_col="reactor", facet_col_wrap=2,hover_data=['exp_time']  ,
-                      category_orders={'reactor': sorted(reactors)})
-            fig.update_layout(font={'size':20})
+                      category_orders={'reactor': ['M6','M1','M0','M5']})
+            fig.update_layout(font={'size':30})
             fig.update_layout(
             xaxis_title='Time in hours',
             yaxis_title='Measured OD')
@@ -126,7 +126,7 @@ def plot_strains(log=True):
                                       hovertemplate = t.hovertemplate.replace(t.name, names[t.name])
                                      )
                   )
-    fig.update_layout(font={'size':20},
+    fig.update_layout(font={'size':30},
             xaxis_title='Day',
             yaxis_title='CFUs/mL')
 
@@ -294,6 +294,12 @@ def plot_strains_triplicates(log=False,composition=False):
                   category_orders={'reactor': sorted(reactors)},color_discrete_map=colors,labels={
                     'day':''
                   })
+    fig.for_each_trace(lambda t: t.update(name = names[t.name],
+                                      legendgroup = names[t.name],
+                                      hovertemplate = t.hovertemplate.replace(t.name, names[t.name])))
+    fig.update_layout(font={'size':30},
+            xaxis_title='Day',
+            yaxis_title='Species composition')
     fig.show()
 
     
