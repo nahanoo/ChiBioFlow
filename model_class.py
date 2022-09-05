@@ -1,67 +1,73 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from curveball import models
-from curveball import baranyi_roberts_model
 from sympy import symbols, solve, Eq, exp
+from scipy.integrate import odeint
 
 
 class Chemostat():
-    def __init__(self, f, N0):
-        self.fit(f)
-        self.K = symbols('K')
-        self.r = symbols('r')
-        self.t = symbols('t')
-        self.N0 = N0
-        self.N = symbols('N')
+    def __init__(self, params):
+        self.K = params['K']
+        self.r = params['r']
+        self.N = params['N']
 
-        self.N1 = None
-        self.input = None
+        self.xs = np.ndarray(0)
+        self.ys = np.ndarray(0)
 
-    def fit(self, f):
-        self.df = pd.read_csv(
-            f)[['exp_time', 'od_measured']].loc[:400]
-        self.df.columns = ['Time', 'OD']
-        ms = models.get_models(baranyi_roberts_model)
-        logistic = ms[1]()
-        fit = logistic.guess(data=self.df['OD'], t=self.df['Time'])
-        self.params = {}
-        for p in fit.keys():
-            self.params[p] = fit[p].value
-
-    def Nt(self, t, N0):
-        return self.params['K']/(1 - (1 - self.params['K']/N0) * exp(-self.params['r']*t))
-
-    def plot_fit(self):
-        xs = self.df['Time']
-        ys = [self.Nt(x, self.params['y0']) for x in self.df['Time']]
-        ts = self.df['Time']
-        ods = self.df['OD']
-        plt.plot(xs, ys)
-        plt.plot(ts,ods)
-        plt.show()
-
-    def plot_curve(self, t0, t1):
-        xs = np.linspace(t0, t1, 60)
-        ys = [self.Nt(x, self.N0) for x in xs]
-        plt.plot(xs, ys)
-        plt.show()
-
-    def get_x(self, N):
-        fN = Eq(N, self.model())
-        ft = solve(fN, self.t)[0]
-        return float(ft.subs({self.K: self.params['K'], self.r: self.params['r']}))
-
-    def get_dilution(self):
-        target = self.Nt(3600,self.N0)
-        v = self.N0 * 20 / target
-        return 20 - 20*20/v
-
-    def model(self):
-        return self.K/(1 - (1 - self.K/self.N0) * exp(-self.r*self.t))
+    def model(self, N, t):
+        return self.r * N * (1 - N/self.K)
 
 
-#c = Chemostat('data/overnight_06_15/M0/2021-04-16_23_37_40_M0_data.csv', 0.08)
-#c.plot_fit()
-#c.plot_curve(0, 3600)
-#print(c.get_x(0.09))
+class Chain():
+    def __init__(self):
+        self.chain = [Chemostat({'r': 0.456,
+                                 'K': 0.8,
+                                 'N': 0.1}),
+                      Chemostat({'r': 0.456,
+                                 'K': 1,
+                                 'N': 0}),
+                      Chemostat({'r': 0.456,
+                                 'K': 1,
+                                 'N': 0}),
+                      Chemostat({'r': 0.456,
+                                 'K': 1,
+                                 'N': 0})
+        ]
+        self.volume = 20
+        self.dilution_rate = 0.313
+        self.transfer_rate = 1
+
+    
+
+    def dilute(self):
+        v_trans = self.dilution_rate * self.volume / self.transfer_rate
+        for counter, c in enumerate(self.chain):
+            if counter == 0:
+                N_in = 0
+            else:
+                N_in = self.chain[counter - 1].N
+
+            c.N = (N_in * v_trans + c.N * self.volume) / (v_trans + self.volume) 
+        
+    def experiment(self, exp_time):
+        intervals = exp_time * self.transfer_rate
+        interval = 1 / self.transfer_rate
+        for i in range(intervals):
+            for c in self.chain:
+                xs = interval * i + np.arange(0,interval,1/3600)
+                c.xs = np.concatenate([c.xs,xs])
+                ys = [e[0] for e in odeint(c.model,c.N,xs)]
+                c.ys = np.concatenate([c.ys, ys])
+                c.N = c.ys[-1]
+            self.dilute()
+
+
+k = Chain()
+k.experiment(48)
+for c in k.chain:
+    plt.plot(c.xs,c.ys)
+
+plt.show()
+#plt.show()
+"""    def dilute(self):
+        return 20 * (self.Nt(3600, self.N0) - self.N0) / self.N0"""

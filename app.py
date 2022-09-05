@@ -47,8 +47,8 @@ sysData = {'M0': {
     'LASER650': {'name': 'LASER650', 'default': 0.5, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0},
     'UV': {'WL': 'UV', 'default': 0.5, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0},
     'Heat': {'default': 0.0, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0, 'record': []},
-    'Thermostat': {'default': 37.0, 'target': 0.0, 'max': 50.0, 'min': 0.0, 'ON': 0, 'record': [], 'cycleTime': 30.0, 'Integral': 0.0, 'last': -1},
-    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 60.0, 'threadCount': 0},
+    'Thermostat': {'default': 37.0, 'target': 0.0, 'max': 50.0, 'min': 0.0, 'ON': 0, 'record': [], 'cycleTime': 30, 'Integral': 0.0, 'last': -1},
+    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 120, 'threadCount': 0},
     'Terminal': {'text': ''},
     'AS7341': {
         'spectrum': {'nm410': 0, 'nm440': 0, 'nm470': 0, 'nm510': 0, 'nm550': 0, 'nm583': 0, 'nm620': 0, 'nm670': 0, 'CLEAR': 0, 'NIR': 0, 'DARK': 0, 'ExtGPIO': 0, 'ExtINT': 0, 'FLICKER': 0},
@@ -166,12 +166,12 @@ sysItems = {
         '0x12': {'A': 'DARK', 'B': 'U'},
         '0x13': {'A': 'FLICKER', 'B': 'NIR'},
     },
-    'chain': ['M6', 'M1', 'M0', 'M5'],
-    'chains': {'Media-M6': ('M6', 'Pump2'),
-               'M6-M1': ('M6', 'Pump1'),
-               'M1-M0': ('M1', 'Pump2'),
-               'M0-M5': ('M1', 'Pump1'),
-               'M5-Waste': ('M0', 'Pump2')}
+    'chain': ['M0', 'M1', 'M4', 'M5'],
+    'chains': {'Media-M0': ('M0', 'Pump2'),
+               'M0-M1': ('M0', 'Pump1'),
+               'M1-M4': ('M1', 'Pump2'),
+               'M4-M5': ('M1', 'Pump1'),
+               'M5-Waste': ('M4', 'Pump2')}
 }
 
 
@@ -1170,24 +1170,23 @@ def CustomProgram(M):
                     str(green) + ' red= ' + str(red) + ' integral= ' + str(integral))
 
     elif (program == "C2"):  # UV Integral Control Program
-        integral = 0.0  # Integral in integral controller
-        UV = 0.0  # Intensity of Green actuation
-        GrowthRate = sysData[M]['GrowthRate']['current']
-        # This is the controller setpoint.
-        GrowthTarget = sysData[M]['Custom']['Status']
-        error = GrowthTarget-GrowthRate
-        KP = float(Params[0])  # Past data suggest value of ~0.005
-        KI = float(Params[1])  # Past data suggest value of ~2e-5
-        integral = sysData[M]['Custom']['param2']+error*KI
-        if(integral > 0):
-            integral = 0.0
-        sysData[M]['Custom']['param2'] = integral
-        UV = -1.0*(KP*error+integral)
-        sysData[M]['Custom']['param1'] = UV
-        SetOutputTarget(M, 'UV', UV)
-        SetOutputOn(M, 'UV', 1)
-        addTerminal(M, 'Program = ' + str(program) + ' UV= ' +
-                    str(UV) + ' integral= ' + str(integral))
+        run_time = 0.3
+        pump_in = 'Pump1'
+        pump_out = 'Pump2'
+        SetOutputOn(M,pump_in,1)
+        time.sleep(run_time)
+        SetOutputOn(M,pump_in,0)
+        time.sleep(0.5)
+        SetOutputOn(M,pump_out,1)
+        time.sleep(run_time)
+        SetOutputOn(M,pump_out,0)
+
+        SetFPMeasurement('FP1',"LEDB",'nm550','nm550','x512')
+        SetFPMeasurement('FP2',"LEDE",'nm670','nm670','x512')
+        MeasureFP(M)
+        print('GFP emmission:',sysData[M]['FP1']['Emit1'])
+        print('RFP emmission:',sysData[M]['FP2']['Emit1'])
+
 
     elif (program == "C3"):  # UV Integral Control Program Mk 2
         # Integral in integral controller
@@ -1238,37 +1237,51 @@ def CustomProgram(M):
         sysData[M]['Custom']['Status'] = timept
 
     elif (program == "C5"):  # UV Dosing program
-        # This is the timestep as we follow in minutes
-        timept = int(sysData[M]['Custom']['Status'])
-        # Increment time as we have entered the loop another time!
-        sysData[M]['Custom']['Status'] = timept+1
+        if Params[0] != 'transfer':
+            return
 
-        # The amount of time Pump2 is going to be on for following RegulateOD above.
-        Pump2Ontime = sysData[M]['Experiment']['cycleTime']*1.05 * \
-            abs(sysData[M]['Pump2']['target'])*sysData[M]['Pump2']['ON']+0.5
-        # Pause here is to prevent output pumping happening at the same time as stirring.
-        time.sleep(Pump2Ontime)
+        control_reactor = sysItems['chain'][0]
+        cycle = sysData[control_reactor]['Experiment']['cycles']
+        print('Cycle',cycle)
+        for reactor in sysItems['chain']:
+            print('OD of reactor', reactor+':',
+                  sysData[reactor]['OD']['current'])
 
-        timelength = 300  # Time between doses in minutes
-        if(timept % timelength == 2):  # So this happens every 5 hours!
-            iters = (timept//timelength)
-            Dose0 = float(Params[0])
-            # UV Dose, in terms of amount of time UV shoudl be left on at 1.0 intensity.
-            Dose = Dose0*(2.0**float(iters))
-            print(str(datetime.now()) + ' Gave dose ' + str(Dose) +
-                  " at iteration " + str(iters) + " on device " + str(M))
+        for chain, (control_reactor, pump) in sysItems['chains'].items():
+            sysData[control_reactor][pump]['target'] = -1
+        
+        injections = 0
+        registers = {
+                         'Pump1': 0x0A,
+                         'Pump2': 0x12,
+                         'Pump3': 0x1A,
+                         'Pump4': 0x22
+                     }
+                     
+        while injections < 24:
+            print(injections)
+            for chain, (control_reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    run_time = 0.01
+                else:
+                    run_time = float(Params[-1])    
+                I2CCom(control_reactor, 'Pumps', 0, 8, registers[pump], 1, 0)
+                time.sleep(run_time)
+                I2CCom(control_reactor, 'Pumps', 0, 8, registers[pump], 0, 0)
+                time.sleep(float(Params[1]))
+            injections += 1
+        
+            """if cycle%5 == 0:
+            for chain, (control_reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    break 
+                SetOutputOn(control_reactor, pump, 1)
+                time.sleep(1)
+                SetOutputOn(control_reactor, pump, 0)
+                time.sleep(0.5)"""
 
-            if (Dose < 30.0):
-                powerlvl = Dose/30.0
-                SetOutputTarget(M, 'UV', powerlvl)
-                Dose = 30.0
-            else:
-                # Ensure UV is on at aopropriate intensity
-                SetOutputTarget(M, 'UV', 1.0)
-
-            SetOutputOn(M, 'UV', 1)  # Activate UV
-            time.sleep(Dose)  # Wait for dose to be administered
-            SetOutputOn(M, 'UV', 0)  # Deactivate UV
 
     elif (program == "C6"):  # UV Dosing program 2 - constant value!
         if Params[0] != 'transfer':
@@ -1278,7 +1291,7 @@ def CustomProgram(M):
         cycle = sysData[control_reactor]['Experiment']['cycles']
         print('Cycle',cycle)
         transfer = False
-        if cycle%30 == 0:
+        if cycle%15 == 0:
             transfer = True
 
         for reactor in sysItems['chain']:
@@ -1294,15 +1307,11 @@ def CustomProgram(M):
                 else:
                     run_time = float(Params[1]) + 2
 
-                if source != 'Media':
-                    SetOutputOn(source, 'Stir', 0)
                 sysData[control_reactor][pump]['target'] = -1
                 SetOutputOn(control_reactor, pump, 1)
                 time.sleep(run_time)
                 SetOutputOn(control_reactor, pump, 0)
-                if source != 'Media':
-                    SetOutputOn(source, 'Stir', 1)
-                time.sleep(4)
+                time.sleep(15)
 
     elif (program == "C7"):
         run_time = float(Params[1])
@@ -2252,7 +2261,6 @@ def ExperimentStartStop(M, value):
 def runExperiment(M, placeholder):
     # Primary function for running an automated experiment.
     M = str(M)
-
     global sysData
     global sysItems
     global sysDevices
@@ -2338,7 +2346,6 @@ def runExperiment(M, placeholder):
         CustomThread = Thread(target=CustomProgram, args=(M,))
         CustomThread.setDaemon(True)
         CustomThread.start()
-
     # The amount of time Pump2 is going to be on for following RegulateOD above.
     Pump2Ontime = sysData[M]['Experiment']['cycleTime']*1.05 * \
         abs(sysData[M]['Pump2']['target'])*sysData[M]['Pump2']['ON']+0.5
@@ -2420,6 +2427,7 @@ def runExperiment(M, placeholder):
     elapsedTime2 = nowend-now
     elapsedTimeSeconds2 = round(elapsedTime2.total_seconds(), 2)
     sleeptime = CycleTime-elapsedTimeSeconds2
+    print('sleep time',sleeptime)
     if (sleeptime < 0):
         sleeptime = 0
         addTerminal(M, 'Experiment Cycle Time is too short!!!')
@@ -2439,8 +2447,6 @@ def runExperiment(M, placeholder):
     else:
         turnEverythingOff(M)
         addTerminal(M, 'Experiment Stopped')
-
-
 if __name__ == '__main__':
     initialiseAll()
     application.run(debug=True, threaded=True, host='0.0.0.0', port=5000)

@@ -2,14 +2,15 @@ import math
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import pandas as pd
+from os.path import join
 
 
 def growth_rate(t0, t1, n0, n1):
     try:
-        return ((math.log10(n1) - math.log10(n0)) * 2.303) / (t1-t0)
+        return ((math.log10(n1) - math.log10(n0)) * 2.303) / (3600*(t1-t0))
     except ValueError:
         return 0
-
 
 def growth_function(t0, t1, n0, r):
     return n0 * (1 + r)**(t1 - t0)
@@ -22,11 +23,13 @@ def time_array(t0, t1, steps):
 def plot(xs, ys):
     px.line(x=xs, y=ys).show()
 
+
 def dilution(n1, dilution_rate, v):
     dilution_factor = (v + dilution_rate) / v
     return n1 / dilution_factor
 
-def main(t0,n0,cycles,dilution_rate):
+
+def plot_dilutions(t0, n0, r, cycles, dilution_rate):
     x = np.ndarray(0)
     y = np.ndarray(0)
 
@@ -34,29 +37,41 @@ def main(t0,n0,cycles,dilution_rate):
         t1 = cycle
         xs = time_array(t0, t1, 60)
         ys = [growth_function(t0, x, n0, r) for x in xs]
-        x = np.concatenate([x,xs])
-        y = np.concatenate([y,ys])
+        x = np.concatenate([x, xs])
+        y = np.concatenate([y, ys])
         t0 = t1
-        n0 = dilution(ys[-1],dilution_rate,15)
+        n0 = dilution(ys[-1], dilution_rate, 20)
+    plot(x,y)
+    return x, y
 
-    return x,y
 
-v = 15
-dilution_rate = 3.41
-t0 = 59.046
-t1 = 61.340
-steps = 60
-n0 = 0.118
-n1 = 0.201
-r = growth_rate(t0, t1, n0, n1)
+def plot_exp_rates(csv):
+    df = pd.read_csv(csv)[['exp_time', 'od_measured']]
+    df["exp_time"] = df["exp_time"] / 60 / 60
+    start = 0
+    xs = []
+    ys = []
+    for i in df.index:
+        if (i%60 == 0) & (i !=0):
+            t0 = df.loc[start]['exp_time']
+            t1 = df.loc[i-1]['exp_time']
+            n0 = df.loc[start]['od_measured']
+            n1 = df.loc[i-1]['od_measured']
+            r = growth_rate(t0, t1, n0, n1)
+            print(t0,t1,n0,n1,r)    
+
+            xs.append(t1)
+            ys.append(growth_rate(t0, t1, n0, n1))
+            start = i
+    plot(xs,ys)       
+    return df
+
+
+
+dilution_rate = 6.28
 t0 = 0
-n0 = 0.06
-x, y = main(t0,n0,10,dilution_rate)
+n0 = 0.08
+r = 0.32
+x, y = plot_dilutions(t0,n0,r,20,dilution_rate)
 plot(x,y)
 
-"""28 Celsius paramters
-r = growth_rate(0.93, 0.159, 0.205)
-g = generation_time(r)
-def generation_time(r):
-    return (math.log(2))/math.log(1+r)
-"""
