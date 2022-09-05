@@ -24,16 +24,16 @@ class Chain():
         # cs = Chain([28.0,33.0,380.43.0]) for example
         params = {28.0: {'r': 0.32,
                          'K': 1.1,
-                         'N': 0.08},
+                         'N': 0.03},
                   33.0: {'r': 0.32,
                          'K': 0.85,
-                         'N': 0},
+                         'N': 0.06},
                   38.0: {'r': 0.24,
                          'K': 0.26,
-                         'N': 0},
-                  43.0: {'r': 0,
-                         'K': 0.8,
-                         'N': 0}}
+                         'N': 0.05},
+                  43.0: {'r': 0.1,
+                         'K': 0.07,
+                         'N': 0.07}}
 
         self.chain = [Chemostat(params[temp]) for temp in temps]
         # We calculate ideal dilution rate
@@ -45,8 +45,8 @@ class Chain():
     def get_dilution(self):
         c1 = self.chain[0]
         # Calculating OD after 1 hour to calculate necessary dilution
-        N1 = [e[0] for e in odeint(c1.model, c1.N, [0, 1])][-1]
-        return ((self.volume * (N1 - c1.N)) / c1.N) / self.volume
+        N1 = [e[0] for e in odeint(c1.model, c1.N, [0, 0.5])][-1]
+        return ((2 * self.volume * (N1 - c1.N)) / c1.N) / self.volume
 
     def dilute(self):
         # Function that simulates a dilution row
