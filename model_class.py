@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 
 
 class Chemostat():
-    def __init__(self, params):
+    def __init__(self, params,name):
         # Model paramters are stored in chemostat class
         self.K = params['K']
         self.r = params['r']
@@ -12,6 +12,8 @@ class Chemostat():
         # Modelling values
         self.xs = np.ndarray(0)
         self.ys = np.ndarray(0)
+
+        self.name = name
 
     def model(self, N, t):
         # Simple logistic model
@@ -35,12 +37,13 @@ class Chain():
                          'K': 0.07,
                          'N': 0.07}}
 
-        self.chain = [Chemostat(params[temp]) for temp in temps]
+        self.chain = [Chemostat(params[temp],temp) for temp in temps]
         # We calculate ideal dilution rate
         self.volume = 20
-        self.dilution_rate = self.get_dilution()
-        # Transfer rates are dilutions per hour default is 2
+         # Transfer rates are dilutions per hour default is 2
         self.transfer_rate = 2
+        self.dilution_rate = self.get_dilution()
+       
 
     def get_dilution(self):
         c1 = self.chain[0]
@@ -60,9 +63,8 @@ class Chain():
             c.N = (N_in * v_trans + c.N * self.volume) / \
                 (v_trans + self.volume)
 
-    def experiment(self, exp_time, transfer_rate=2):
-        if transfer_rate != 0:
-            self.transfer_rate = transfer_rate
+    def experiment(self, exp_time):
+        if self.transfer_rate != 0:
             # Stores how many transfers are done in one experiment
             intervals = exp_time * self.transfer_rate
             # Time between two dilutions
@@ -78,7 +80,7 @@ class Chain():
                     # Storing latest OD
                     c.N = c.ys[-1]
                 self.dilute()
-        if transfer_rate == 0:
+        if self.transfer_rate == 0:
             for c in self.chain:
                 c.xs = np.arange(0, exp_time, 1/3600)
                 c.ys = [e[0] for e in odeint(c.model, c.N, c.xs)]
