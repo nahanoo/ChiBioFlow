@@ -40,7 +40,7 @@ class Chain():
         self.chain = [Chemostat(params[temp],temp) for temp in temps]
         # We calculate ideal dilution rate
         self.volume = 20
-         # Transfer rates are dilutions per hour default is 2
+        # Transfer rates are dilutions per hour default is 2
         self.transfer_rate = 2
         self.dilution_rate = self.get_dilution()
        
@@ -72,7 +72,8 @@ class Chain():
             for i in range(intervals):
                 for c in self.chain:
                     # Simulated time scale
-                    xs = interval * i + np.arange(0, interval, 1/3600)
+                    xs = interval * i + np.arange(0, interval, 0.25)
+                    xs = np.append(xs,interval+interval*i)
                     c.xs = np.concatenate([c.xs, xs])
                     # Modelled OD values
                     ys = [e[0] for e in odeint(c.model, c.N, xs)]
@@ -82,7 +83,7 @@ class Chain():
                 self.dilute()
         if self.transfer_rate == 0:
             for c in self.chain:
-                c.xs = np.arange(0, exp_time, 1/3600)
+                c.xs = np.arange(0, exp_time, 0.5)
                 c.ys = [e[0] for e in odeint(c.model, c.N, c.xs)]
                 c.N = c.ys[-1]
 
