@@ -19,7 +19,8 @@ def plot_od(e, multi=True, model=False, chain=None):
 
     if multi:
         fig = px.line(df, x="exp_time", y='od_measured', facet_col="reactor", color='temp', hover_data=[
-                      'exp_time'], category_orders={'reactor': order})
+                      'exp_time'], category_orders={'reactor': order},title=None)
+        fig.update_traces(opacity=0.8)
 
     if not multi:
         fig = px.line(df, x="exp_time", y=c, color='temp',
@@ -34,7 +35,7 @@ def plot_od(e, multi=True, model=False, chain=None):
             xs = chain.chain[counter].xs
             ys = chain.chain[counter].ys
             name = str(temps[counter]) + ' model'
-            fig.add_trace(go.Scatter(x=xs, y=ys, name=name, line=dict(dash='dash')),
+            fig.add_trace(go.Scatter(x=xs, y=ys, name=name, opacity=0.8),
                           row=1, col=counter + 1)
         fig = style_plot(e, fig, 'od_measured')
 
@@ -104,13 +105,20 @@ def style_plot(e, fig, style, fontsize=14):
         return fig
 
     if style == 'od_measured':
-        temp_colors = {28.0: '#420f99',
-                       33.0: '#a234eb',
-                       38.0: '#eb34c0',
-                       43.0: '#eb3434'}
+        temp_colors = {'28.0': '#446A46',
+                       '33.0': '#1C3879',
+                       '38.0': '#F29393',
+                       '43.0': '#A10035'}
+        model_colors = {'28.0 model': '#82A284',
+                       '33.0 model': '#607EAA',
+                       '38.0 model': '#FEC260',
+                       '43.0 model': '#F675A8'}
         for data in fig['data']:
-            temp = data['name'].split(' ')[0]
-            data.line.color = temp_colors[float(temp)]
+            name = data['name']
+            if 'model' in name:
+                data.line.color = model_colors[name]
+            else:
+                data.line.color = temp_colors[name]
         fig.for_each_xaxis(
             lambda axis: axis.title.update(text='Time in hours'))
         fig.for_each_yaxis(lambda axis: axis.title.update(text='Measured OD'))
@@ -123,8 +131,8 @@ def style_plot(e, fig, style, fontsize=14):
 
             for sample_time in sample_times:
                 fig.add_vline(x=sample_time)
-        fig.update_layout(
-            height=350)
+        fig.update_layout(height=350)
+        #fig.update_title(visible=False)
 
     if style == 'cfus':
         fig.for_each_xaxis(
@@ -143,8 +151,7 @@ def style_plot(e, fig, style, fontsize=14):
         fig = species_colors(fig)
         fig = species_names(fig)
 
-    fig.update_layout(font={'size': fontsize},
-                      title=e)
+    fig.update_layout(font={'size': fontsize})
 
     return fig
 
