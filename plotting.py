@@ -23,7 +23,7 @@ def plot_od(e, multi=True, model=False, chain=None):
         fig.update_traces(opacity=0.8)
 
     if not multi:
-        fig = px.line(df, x="exp_time", y=c, color='temp',
+        fig = px.line(df, x="exp_time", y='od_measured', color='temp',
                       hover_data=['exp_time'],)
 
     fig = style_plot(e, fig, 'od_measured')
@@ -60,7 +60,7 @@ def plot_species(e):
     df, order = cfu_parser(e)
     df['average'] = df['average'].replace(0, np.nan)
     fig = px.line(df, x="sample_time", y='average', facet_col="reactor",
-                  facet_col_wrap=2, category_orders={'reactor': order}, error_y='stdev', color='species', log_y=True)
+                  facet_col_wrap=4, category_orders={'reactor': order}, error_y='stdev', color='species', log_y=True)
     fig = style_plot(e, fig, 'cfus')
     return df, fig
 
@@ -69,8 +69,8 @@ def plot_composition(e):
     """Plots community composition in percent"""
     df, order = cfu_parser(e)
     fig = px.line(df, x="sample_time", y='composition', facet_col="reactor",
-                  facet_col_wrap=2, category_orders={'reactor': order}, color='species', log_y=False)
-    fig = style_plot(e, order, fig, 'composition')
+                  facet_col_wrap=4, category_orders={'reactor': order}, color='species', log_y=False,markers=True)
+    fig = style_plot(e, fig, 'composition')
 
     return df, fig
 
@@ -200,7 +200,6 @@ def main():
 
     if mode == 'composition':
         df, fig = plot_composition(e)
-        fig = style_plot(e, order, fig, 'composition')
         fig.show()
         return df, fig
 
