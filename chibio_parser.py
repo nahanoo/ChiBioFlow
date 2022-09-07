@@ -3,6 +3,8 @@ from os.path import join
 import pandas as pd
 from glob import glob
 import json
+import numpy as np
+
 
 def cfu_parser(e):
     with open(join('data', e, 'order.txt'), 'r') as f:
@@ -27,7 +29,7 @@ def cfu_parser(e):
     counts = []
     for count, dilution in zip(df['count'], df['dilution']):
         # Conversion to CFUs/mL sample volume 5 uL
-        counts.append([int(n)/10**dilution * 0.5E2 for n in count.split('|')])
+        counts.append([(int(n)/10**dilution) * 200 for n in count.split('|')])
     # Calculating average and stdev
     df['average'] = [mean(count) for count in counts]
     df['stdev'] = [stdev(count) for count in counts]
@@ -46,9 +48,37 @@ def cfu_parser(e):
     df.insert(len(df.columns), 'composition', None)
     df['composition'] = 100 / df['total'] * df['average']
 
+    df.insert(len(df.columns),'temp',None)
+    temps = {}
+    for reactor in set(df['reactor']):
+        f = glob(join("data", e, reactor, "*.txt"))[0]
+        j = open(f)
+        j_data = json.load(j)
+        temp = j_data['Thermostat']['last']
+        temps[reactor] = temp
+    for i,reactor in zip(df.index,df['reactor']):
+        df.at[i,'temp'] = temps[reactor]
+    
+
     return df, order
 
-def chibio_parser(e,c='od_measured'):
+
+def chibio_parser(e, c='od_measured', down_sample=True, sample_size=5):
+    def average(df):
+        out = pd.DataFrame(columns=['exp_time', 'od_measured'])
+        i = 0
+        j = 0
+        while True:
+            try:
+                sliece = df.loc[i:i+sample_size]
+                out.at[j, 'exp_time'] = sliece.iloc[-1]['exp_time']
+                out.at[j, 'od_measured'] = np.average(sliece['od_measured'])
+                i += sample_size
+                j += 1
+            except IndexError:
+                break
+        return out
+
     df = pd.DataFrame(columns=["exp_time", "reactor", c])
 
     with open(join('data', e, 'order.txt'), 'r') as f:
@@ -57,16 +87,21 @@ def chibio_parser(e,c='od_measured'):
     for reactor in order:
         f = glob(join("data", e, reactor, "*data.csv"))[0]
         data = pd.read_csv(f, usecols=["exp_time", c])
+        if down_sample:
+            data = average(data)
         data.insert(1, "reactor", reactor)
         data["exp_time"] = data["exp_time"] / 60 / 60
-        data.insert(len(data.columns),'temp',None)
+        data.insert(len(data.columns), 'temp', None)
         f = glob(join("data", e, reactor, "*.txt"))[0]
         j = open(f)
         j_data = json.load(j)
         data['temp'] = j_data['Thermostat']['last']
 
         df = pd.concat([df, data])
-    if e == 'overnight_gradient_06_16_failed':
+
+    if e == 'overnight_gradient_06_16_':
         df = df[df['od_measured'] < 0.8]
 
-    return df,order
+    
+
+    return df, order
