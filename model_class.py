@@ -42,7 +42,7 @@ class Chain():
         self.volume = 20
         # Transfer rates are dilutions per hour default is 2
         self.transfer_rate = 2
-        self.dilution_rate = self.get_dilution()
+        self.dilution_rate = 0.31395
        
 
     def get_dilution(self):
