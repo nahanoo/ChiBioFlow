@@ -19,7 +19,7 @@ def plot_od(e, multi=True, model=False, chain=None):
 
     if multi:
         fig = px.line(df, x="exp_time", y='od_measured', facet_col="reactor", color='temp', hover_data=[
-                      'exp_time'], category_orders={'reactor': order},title=None)
+                      'exp_time'], category_orders={'reactor': order}, title=None)
         fig.update_traces(opacity=0.8)
 
     if not multi:
@@ -45,13 +45,13 @@ def plot_od(e, multi=True, model=False, chain=None):
 def plot_total(e):
     """Plot sum of CFUs of all species"""
     df, order = cfu_parser(e)
-    df = df[['reactor', 'sample_time', 'total']].drop_duplicates()
+    df = df[['reactor', 'sample_time', 'total', 'temp']].drop_duplicates()
     df['total'] = df['total'].replace(0, np.nan)
     fig = px.line(df, x="sample_time", y='total', facet_col="reactor",
-                  facet_col_wrap=2, category_orders={'reactor': order}, log_y=True)
-    fig.update_layout(font={'size': 20},
-                      xaxis_title='Time in hours',
-                      yaxis_title='CFUs/mL')
+                  facet_col_wrap=4, category_orders={'reactor': order}, log_y=True, markers=True)
+    fig = style_plot(e, fig, 'total')
+    for annotation, temp in zip(fig.layout.annotations, df[['reactor', 'temp']].drop_duplicates()['temp']):
+        annotation['text'] = temp
     return df, fig
 
 
@@ -60,8 +60,11 @@ def plot_species(e):
     df, order = cfu_parser(e)
     df['average'] = df['average'].replace(0, np.nan)
     fig = px.line(df, x="sample_time", y='average', facet_col="reactor",
-                  facet_col_wrap=4, category_orders={'reactor': order}, error_y='stdev', color='species', log_y=True)
+                  facet_col_wrap=4, category_orders={'reactor': order},
+                  error_y='stdev', color='species', log_y=True, markers=True)
     fig = style_plot(e, fig, 'cfus')
+    for annotation, temp in zip(fig.layout.annotations, df[['reactor', 'temp']].drop_duplicates()['temp']):
+        annotation['text'] = temp
     return df, fig
 
 
@@ -69,9 +72,10 @@ def plot_composition(e):
     """Plots community composition in percent"""
     df, order = cfu_parser(e)
     fig = px.line(df, x="sample_time", y='composition', facet_col="reactor",
-                  facet_col_wrap=4, category_orders={'reactor': order}, color='species', log_y=False,markers=True)
+                  facet_col_wrap=4, category_orders={'reactor': order}, color='species', log_y=False, markers=True)
     fig = style_plot(e, fig, 'composition')
-
+    for annotation, temp in zip(fig.layout.annotations, df[['reactor', 'temp']].drop_duplicates()['temp']):
+        annotation['text'] = temp
     return df, fig
 
 
@@ -110,9 +114,9 @@ def style_plot(e, fig, style, fontsize=14):
                        '38.0': '#F29393',
                        '43.0': '#A10035'}
         model_colors = {'28.0 model': '#82A284',
-                       '33.0 model': '#607EAA',
-                       '38.0 model': '#FEC260',
-                       '43.0 model': '#F675A8'}
+                        '33.0 model': '#607EAA',
+                        '38.0 model': '#FEC260',
+                        '43.0 model': '#F675A8'}
         for data in fig['data']:
             name = data['name']
             if 'model' in name:
@@ -132,7 +136,6 @@ def style_plot(e, fig, style, fontsize=14):
             for sample_time in sample_times:
                 fig.add_vline(x=sample_time)
         fig.update_layout(height=350)
-        #fig.update_title(visible=False)
 
     if style == 'cfus':
         fig.for_each_xaxis(
@@ -141,6 +144,13 @@ def style_plot(e, fig, style, fontsize=14):
 
         fig = species_colors(fig)
         fig = species_names(fig)
+        fig.update_layout(height=350)
+
+    if style == 'total':
+        fig.for_each_xaxis(
+            lambda axis: axis.title.update(text='Time in hours'))
+        fig.for_each_yaxis(lambda axis: axis.title.update(text='CFUs/mL'))
+        fig.update_layout(height=350)
 
     if style == 'composition':
         fig.for_each_xaxis(
@@ -150,6 +160,7 @@ def style_plot(e, fig, style, fontsize=14):
 
         fig = species_colors(fig)
         fig = species_names(fig)
+        fig.update_layout(height=350)
 
     fig.update_layout(font={'size': fontsize})
 
