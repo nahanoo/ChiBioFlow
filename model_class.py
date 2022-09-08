@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 
 
 class Chemostat():
-    def __init__(self, params,name):
+    def __init__(self, params, name):
         # Model paramters are stored in chemostat class
         self.K = params['K']
         self.r = params['r']
@@ -37,13 +37,13 @@ class Chain():
                          'K': 0.07,
                          'N': 0.07}}
 
-        self.chain = [Chemostat(params[temp],temp) for temp in temps]
+        self.chain = [Chemostat(params[temp], temp) for temp in temps]
         # We calculate ideal dilution rate
         self.volume = 20
         # Transfer rates are dilutions per hour default is 2
         self.transfer_rate = 2
         self.dilution_rate = 0.31395
-       
+        
 
     def get_dilution(self):
         c1 = self.chain[0]
@@ -53,15 +53,15 @@ class Chain():
 
     def dilute(self):
         # Function that simulates a dilution row
-        v_trans = self.dilution_rate * self.volume / self.transfer_rate
+        self.v_trans = self.dilution_rate * self.volume / self.transfer_rate
         for counter, c in enumerate(self.chain):
             if counter == 0:
                 N_in = 0
             else:
                 N_in = self.chain[counter - 1].N
 
-            c.N = (N_in * v_trans + c.N * self.volume) / \
-                (v_trans + self.volume)
+            c.N = (N_in * self.v_trans + c.N * self.volume) / \
+                (self.v_trans + self.volume)
 
     def experiment(self, exp_time):
         if self.transfer_rate != 0:
@@ -73,7 +73,7 @@ class Chain():
                 for c in self.chain:
                     # Simulated time scale
                     xs = interval * i + np.arange(0, interval, 0.25)
-                    xs = np.append(xs,interval+interval*i)
+                    xs = np.append(xs, interval+interval*i)
                     c.xs = np.concatenate([c.xs, xs])
                     # Modelled OD values
                     ys = [e[0] for e in odeint(c.model, c.N, xs)]
@@ -86,4 +86,3 @@ class Chain():
                 c.xs = np.arange(0, exp_time, 0.5)
                 c.ys = [e[0] for e in odeint(c.model, c.N, c.xs)]
                 c.N = c.ys[-1]
-
