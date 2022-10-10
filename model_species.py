@@ -4,7 +4,8 @@ from scipy.integrate import odeint
 
 class Specie():
     def __init__(self, r, K, N):
-        self.K = K
+        self.K_init = K
+        self.K = self.K_init
         self.r = r
         self.N = N
 
@@ -59,6 +60,7 @@ class Chain():
                             self.volume) / (self.v_trans + self.volume)
 
     def experiment(self, exp_time):
+        max_K = max([specie.K for specie in self.chain[0].species.values()])
         if self.transfer_rate != 0:
             # Stores how many transfers are done in one experiment
             intervals = exp_time * self.transfer_rate
@@ -67,7 +69,7 @@ class Chain():
             for i in range(intervals):
                 xs = interval * i + np.arange(0, interval, 0.25)
                 xs = np.append(xs, interval+interval*i)
-                for c in self.chain:
+                for counter,c in enumerate(self.chain):
                     # Simulated time scale
                     for name,specie in c.species.items():
                         specie.xs = np.concatenate([specie.xs, xs])
@@ -76,6 +78,10 @@ class Chain():
                         specie.ys = np.concatenate([specie.ys, ys])
                         # Storing latest OD
                         specie.N = specie.ys[-1]
+                        if counter != 0:
+                            for name,specie in self.chain[counter].species.items():
+                                if True: #specie.K < max_K:
+                                    specie.K = self.chain[counter -1].species[name].N + self.chain[counter -1].species[name].K_init
                 self.dilute()
         if self.transfer_rate == 0:
             for c in self.chain:
