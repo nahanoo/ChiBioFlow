@@ -1,5 +1,4 @@
 
-from audioop import add
 from genericpath import exists
 import plotly.express as px
 import plotly.graph_objects as go
@@ -9,6 +8,7 @@ from chibio_parser import cfu_parser
 from chibio_parser import chibio_parser
 import numpy as np
 from model_class import Chain
+import pandas as pd
 
 
 def plot_od(e, multi=True, model=False, chain=None):
@@ -40,6 +40,19 @@ def plot_od(e, multi=True, model=False, chain=None):
         fig = style_plot(e, fig, 'od_measured')
 
     return df, fig
+
+
+def plot_species_model(chain):
+    df = pd.DataFrame(columns=['x', 'N', 'species', 'reactor'])
+    i = 0
+    for c in chain.chain:
+        for name, specie in c.species.items():
+            for x, y in zip(specie.xs, specie.ys):
+                df.loc[i] = [x, y, name, c.name]
+                i += 1
+    print(df)
+    fig = px.line(df, x='x', y='N', facet_col='reactor', color='species')
+    return fig
 
 
 def plot_total(e):
