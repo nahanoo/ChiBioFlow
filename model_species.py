@@ -9,7 +9,6 @@ class Specie():
         self.r = r
         self.N = N
 
-        self.xs = np.ndarray(0)
         self.ys = np.ndarray(0)
 
     def model(self, N, t):
@@ -26,7 +25,14 @@ class Chemostat():
                         'oa': Specie(0.3, 0.8, 0.02)}
 
         self.name = name
+        self.total = np.ndarray(0)
+        self.sum_N()
+        
 
+    def sum_N(self):
+        total = sum([specie.ys for specie in self.species.values()])
+        self.total = np.concatenate([self.total,total])
+        return
 
 class Chain():
     def __init__(self, chems):
@@ -39,6 +45,8 @@ class Chain():
         # Transfer rates are dilutions per hour default is 2
         self.transfer_rate = 2
         self.dilution_rate = 0.31395
+        self.xs = np.ndarray(0)
+
 
     def get_dilution(self):
         c1 = self.chain[0]
@@ -50,17 +58,16 @@ class Chain():
         # Function that simulates a dilution row
         self.v_trans = self.dilution_rate * self.volume / self.transfer_rate
         for counter, c in enumerate(self.chain):
-            if counter == 0:
-                N_in = 0
-            else:
-                N_in = self.chain[counter - 1].species[name].N
             for name, specie in c.species.items():
-                
+                if counter == 0:
+                    N_in = 0
+                else:
+                    N_in = self.chain[counter - 1].species[name].N
                 specie.N = (N_in * self.v_trans + specie.N *
                             self.volume) / (self.v_trans + self.volume)
 
+
     def experiment(self, exp_time):
-        max_K = max([specie.K for specie in self.chain[0].species.values()])
         if self.transfer_rate != 0:
             # Stores how many transfers are done in one experiment
             intervals = exp_time * self.transfer_rate
@@ -69,10 +76,10 @@ class Chain():
             for i in range(intervals):
                 xs = interval * i + np.arange(0, interval, 0.25)
                 xs = np.append(xs, interval+interval*i)
+                self.xs = np.concatenate([self.xs,xs])
                 for counter,c in enumerate(self.chain):
                     # Simulated time scale
                     for name,specie in c.species.items():
-                        specie.xs = np.concatenate([specie.xs, xs])
                         # Modelled OD values
                         ys = [e[0] for e in odeint(specie.model, specie.N, xs)]
                         specie.ys = np.concatenate([specie.ys, ys])
@@ -80,9 +87,15 @@ class Chain():
                         specie.N = specie.ys[-1]
                         if counter != 0:
                             for name,specie in self.chain[counter].species.items():
-                                if True: #specie.K < max_K:
+                                if False: #specie.K < max_K:
                                     specie.K = self.chain[counter -1].species[name].N + self.chain[counter -1].species[name].K_init
                 self.dilute()
+            for c in self.chain:
+                c.sum_N()
+                
+                
+            
+
         if self.transfer_rate == 0:
             for c in self.chain:
                 c.xs = np.arange(0, exp_time, 0.5)
