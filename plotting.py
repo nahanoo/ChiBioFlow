@@ -43,15 +43,23 @@ def plot_od(e, multi=True, model=False, chain=None):
 
 
 def plot_species_model(chain):
-    df = pd.DataFrame(columns=['x', 'N', 'species', 'reactor'])
-    i = 0
+    dfs = []
     for c in chain.chain:
         for name, specie in c.species.items():
-            for x, y in zip(specie.xs, specie.ys):
-                df.loc[i] = [x, y, name, c.name]
-                i += 1
-    print(df)
-    fig = px.line(df, x='x', y='N', facet_col='reactor', color='species')
+            df = pd.DataFrame(columns=['x', 'N', 'species', 'reactor'])
+            df['x'] = chain.xs
+            df['N'] = specie.ys
+            df['species'] = name
+            df['reactor'] = c.name
+            dfs.append(df)
+        df = pd.DataFrame(columns=['x', 'N', 'species', 'reactor'])
+        df['x'] = chain.xs
+        df['N'] = c.total
+        df['species'] = 'total'
+        df['reactor'] = c.name
+        dfs.append(df)
+    dfs = pd.concat(dfs)
+    fig = px.line(dfs, x='x', y='N', facet_col='reactor', color='species')
     return fig
 
 
