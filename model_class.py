@@ -6,6 +6,7 @@ class Chemostat():
     def __init__(self, params, name):
         # Model paramters are stored in chemostat class
         self.K = params['K']
+        self.K_init = self.K
         self.r = params['r']
         self.N = params['N']
 
@@ -24,9 +25,9 @@ class Chain():
     def __init__(self, temps):
         # We can create chains by passing temperatures of chemostasts
         # cs = Chain([28.0,33.0,380.43.0]) for example
-        params = {28.0: {'r': 0.32,
-                         'K': 1.1,
-                         'N': 0.03},
+        params = {28.0: {'r': 0.3,
+                         'K': 2,
+                         'N': 0.08},
                   33.0: {'r': 0.32,
                          'K': 0.85,
                          'N': 0.06},
@@ -63,6 +64,17 @@ class Chain():
             c.N = (N_in * self.v_trans + c.N * self.volume) / \
                 (self.v_trans + self.volume)
 
+    def carrying_capacity(self):
+        self.v_trans = self.dilution_rate * self.volume / self.transfer_rate
+        for counter, c in enumerate(self.chain):
+            if counter == 0:
+                K_in = c.K_init
+            else:
+                K_in = self.chain[counter - 1].K
+
+            c.K = (K_in * self.v_trans + c.K * self.volume) / \
+                (self.v_trans + self.volume)
+
     def experiment(self, exp_time):
         if self.transfer_rate != 0:
             # Stores how many transfers are done in one experiment
@@ -70,7 +82,10 @@ class Chain():
             # Time between two dilutions
             interval = 1 / self.transfer_rate
             for i in range(intervals):
-                for c in self.chain:
+                if i != 0:
+                    self.dilute()
+                    self.carrying_capacity()
+                for counter,c in enumerate(self.chain):
                     # Simulated time scale
                     xs = interval * i + np.arange(0, interval, 0.25)
                     xs = np.append(xs, interval+interval*i)
@@ -80,7 +95,9 @@ class Chain():
                     c.ys = np.concatenate([c.ys, ys])
                     # Storing latest OD
                     c.N = c.ys[-1]
-                self.dilute()
+                    net_N = ys[-1] - ys[0]
+                    c.K = c.K - net_N
+                    
         if self.transfer_rate == 0:
             for c in self.chain:
                 c.xs = np.arange(0, exp_time, 0.5)
