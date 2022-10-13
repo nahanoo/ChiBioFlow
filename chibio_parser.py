@@ -29,7 +29,7 @@ def cfu_parser(e):
     counts = []
     for count, dilution in zip(df['count'], df['dilution']):
         # Conversion to CFUs/mL sample volume 5 uL
-        counts.append([(int(n)/10**dilution) * 200 for n in count.split('|')])
+        counts.append([(int(n)/10**dilution) * 50 for n in count.split('|')])
     # Calculating average and stdev
     df['average'] = [mean(count) for count in counts]
     df['stdev'] = [stdev(count) for count in counts]
