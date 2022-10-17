@@ -8,24 +8,17 @@ class Chemostat():
         self.K = 1.5
         self.K_init = self.K
         self.Ks = [self.K]
-        self.r = 0.273
+        self.r = 0.30475
         self.N = 0.08
 
         # Modelling values
         self.ys = np.ndarray(0)
         self.name = name
-        self.dilution_factors = None
+        self.dilution_factors = []
 
     def model(self, N, t):
         # Simple logistic model
         return self.r * N * (1 - N/self.K)
-
-    def get_dilution_factor(self, xs, x_dilutions):
-        # Calcualtes dilution factor for every transfer
-        x_dilution_index = [list(xs).index(x_dilution)
-                            for x_dilution in x_dilutions[:-1]]
-        self.dilution_factors = [self.ys[i] / self.ys[i + 1]
-                                 for i in x_dilution_index]
 
 
 class Chain():
@@ -58,8 +51,10 @@ class Chain():
             else:
                 # Other reactors also cells
                 N_in = self.chain[counter - 1].N
+            N0 = c.N
             c.N = (N_in * self.v_trans + c.N * self.volume) / \
                 (self.v_trans + self.volume)
+            c.dilution_factors.append(N0/c.N)
 
     def carrying_capacity(self):
         # Recalculates carrying capacity for every reactor
@@ -91,6 +86,7 @@ class Chain():
                     self.carrying_capacity()
                 for c in self.chain:
                     # Modelled OD values
+                    N0 = c.N
                     ys = [e[0] for e in odeint(c.model, c.N, xs)]
                     c.ys = np.concatenate([c.ys, ys])
                     # Storing latest OD
