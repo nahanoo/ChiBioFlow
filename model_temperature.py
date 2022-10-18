@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import odeint
+from math import exp
 
 
 class Chemostat():
@@ -18,7 +19,10 @@ class Chemostat():
 
     def model(self, N, t):
         # Simple logistic model
-        return self.r * N * (1 - N/self.K)
+        # Optional lag term
+        # v = 0.5
+        # (v / (v + exp(-t))) *
+        return  self.r * N * (1 - N/self.K)
 
 
 class Chain():
@@ -26,8 +30,8 @@ class Chain():
         # We can create chains by passing temperatures of chemostasts
         # cs = Chain([28.0,33.0,380.43.0]) for example
         params = {28.0: {'r': 0.3,
-                         'K': 2,
-                         'N': 0.08},
+                         'K': 1.5,
+                         'N': 0.05},
                   33.0: {'r': 0.32,
                          'K': 0.85,
                          'N': 0.06},
@@ -43,8 +47,7 @@ class Chain():
         self.volume = 20
         # Transfer rates are dilutions per hour default is 2
         self.transfer_rate = 2
-        self.dilution_rate = 0.31395
-        
+        self.dilution_rate = 0.3
 
     def get_dilution(self):
         c1 = self.chain[0]
@@ -85,7 +88,7 @@ class Chain():
                 if i != 0:
                     self.dilute()
                     self.carrying_capacity()
-                for counter,c in enumerate(self.chain):
+                for counter, c in enumerate(self.chain):
                     # Simulated time scale
                     xs = interval * i + np.arange(0, interval, 0.25)
                     xs = np.append(xs, interval+interval*i)
@@ -97,7 +100,7 @@ class Chain():
                     c.N = c.ys[-1]
                     net_N = ys[-1] - ys[0]
                     c.K = c.K - net_N
-                    
+
         if self.transfer_rate == 0:
             for c in self.chain:
                 c.xs = np.arange(0, exp_time, 0.5)
