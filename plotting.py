@@ -86,17 +86,11 @@ def plot_species_model(chain):
     dfs = []
     for c in chain.chain:
         for name, specie in c.species.items():
-            df = pd.DataFrame(columns=['x', 'N', 'species', 'reactor'])
-            df['x'] = chain.xs
-            df['N'] = specie.ys
-            df['species'] = name
-            df['reactor'] = c.name
+            df = pd.DataFrame({'x': chain.xs, 'N': specie.ys,
+                              'species': name, 'reactor': c.name})
             dfs.append(df)
-        df = pd.DataFrame(columns=['x', 'N', 'species', 'reactor'])
-        df['x'] = chain.xs
-        df['N'] = c.total
-        df['species'] = 'total'
-        df['reactor'] = c.name
+        df = pd.DataFrame({'x': chain.xs, 'N': c.total,
+                          'species': 'total', 'reactor': c.name})
         dfs.append(df)
     dfs = pd.concat(dfs)
     fig = px.line(dfs, x='x', y='N', facet_col='reactor', color='species')
@@ -106,10 +100,8 @@ def plot_species_model(chain):
 def plot_dilution_factors(chain):
     dfs = []
     for c in chain.chain:
-        df = pd.DataFrame(columns=['x', 'dilution factors',  'reactor'])
-        df['x'] = chain.x_dilutions
-        df['dilution factors'] = c.dilution_factors
-        df['reactor'] = c.name
+        df = pd.DataFrame(
+            {'x': chain.x_dilutions, 'dilution factors': c.dilution_factors, 'reactor': c.name})
         dfs.append(df)
     dfs = pd.concat(dfs)
     fig = px.line(dfs, x='x', y='dilution factors', facet_col='reactor')
@@ -118,12 +110,10 @@ def plot_dilution_factors(chain):
 
 def plot_carrying_capacity(chain):
     dfs = []
-    chain.x_dilutions.insert(0,0)
+    chain.x_dilutions.insert(0, 0)
     for c in chain.chain:
-        df = pd.DataFrame(columns=['x', 'carrying capacity',  'reactor'])
-        df['x'] = chain.x_dilutions
-        df['carrying capacity'] = c.Ks
-        df['reactor'] = c.name
+        df = pd.DataFrame(
+            {'x': chain.x_dilutions, 'carrying capacity': c.Ks, 'reactor': c.name})
         dfs.append(df)
     dfs = pd.concat(dfs)
     fig = px.line(dfs, x='x', y='carrying capacity', facet_col='reactor')
