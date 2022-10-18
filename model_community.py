@@ -9,7 +9,7 @@ class Chemostat():
         self.K_init = self.K
         self.Ks = [self.K]
         self.r = 0.30475
-        self.N = 0.08
+        self.N = 0
 
         # Modelling values
         self.ys = np.ndarray(0)
