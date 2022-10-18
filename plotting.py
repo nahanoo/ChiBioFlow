@@ -1,4 +1,3 @@
-
 from genericpath import exists
 import plotly.express as px
 import plotly.graph_objects as go
@@ -7,7 +6,7 @@ from os.path import join
 from chibio_parser import cfu_parser
 from chibio_parser import chibio_parser
 import numpy as np
-from model_class import Chain
+from model_temperature import Chain
 import pandas as pd
 
 
