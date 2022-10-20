@@ -8,7 +8,7 @@ class Chemostat():
         self.K = 1.5
         self.K_init = self.K
         self.Ks = [self.K]
-        self.r = 0.30475
+        self.r = 0.303129065
         self.N = 0
 
         # Modelling values
@@ -16,9 +16,13 @@ class Chemostat():
         self.name = name
         self.dilution_factors = []
 
-    def model(self, N, t):
+    def model_logistic(self, N, t):
         # Simple logistic model
         return self.r * N * (1 - N/self.K)
+
+    def model_exponential(self, N, t):
+        # Simple logistic model
+        return self.r * N 
 
 
 class Chain():
@@ -32,6 +36,7 @@ class Chain():
         # Storing time related data points
         self.xs = np.ndarray(0)
         self.x_dilutions = []
+        self.model = 'logistic'
 
     def get_dilution(self):
         # This function calculates the dilution rate for steady state
@@ -76,7 +81,7 @@ class Chain():
             interval = 1 / self.transfer_rate
             for i in range(intervals):
                 # Simulated time scale
-                xs = interval * i + np.arange(0, interval, 0.5)
+                xs = interval * i + np.arange(0, interval, 1)
                 xs = np.append(xs, interval+interval*i)
                 self.xs = np.concatenate([self.xs, xs])
                 if i != 0:
@@ -87,7 +92,10 @@ class Chain():
                 for c in self.chain:
                     # Modelled OD values
                     N0 = c.N
-                    ys = [e[0] for e in odeint(c.model, c.N, xs)]
+                    if self.model == 'logistic':
+                        ys = [e[0] for e in odeint(c.model_logistic, c.N, xs)]
+                    else:
+                        ys = [e[0] for e in odeint(c.model_exponential, c.N, xs)]
                     c.ys = np.concatenate([c.ys, ys])
                     # Storing latest OD
                     c.N = c.ys[-1]
