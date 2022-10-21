@@ -25,7 +25,6 @@ def plot_od_temp(e, multi=True, model=False, chain=None):
         fig = px.line(df, x="exp_time", y='od_measured', color='temp',
                       hover_data=['exp_time'],)
 
-
     if model:
         temps = df[['reactor', 'temp']].drop_duplicates()['temp'].to_list()
         chain.experiment(int(max(df['exp_time'])))
@@ -40,7 +39,7 @@ def plot_od_temp(e, multi=True, model=False, chain=None):
     return df, fig
 
 
-def plot_od(e,df=False,order=False, multi=True, model=False, chain=None):
+def plot_od(e, df=False, order=False, multi=True, model=False, chain=None):
     """Creates lineplot for parsed column e.g. od_measured.
     Plots every reactor as subplot.
     """
@@ -50,7 +49,6 @@ def plot_od(e,df=False,order=False, multi=True, model=False, chain=None):
 
     else:
         df, order = chibio_parser(e)
-    
 
     if multi:
         fig = px.line(df, x="exp_time", y='od_measured', facet_col="reactor",  hover_data=[
@@ -60,7 +58,6 @@ def plot_od(e,df=False,order=False, multi=True, model=False, chain=None):
     if not multi:
         fig = px.line(df, x="exp_time", y='od_measured',
                       hover_data=['exp_time'],)
-
 
     if model:
         chain.experiment(int(max(df['exp_time'])))
@@ -84,6 +81,7 @@ def plot_community_model(chain):
         dfs.append(df)
     dfs = pd.concat(dfs)
     fig = px.line(dfs, x='x', y='N', facet_col='reactor')
+    #fig = style_plot(None, fig, 'od_measured')
     return fig
 
 
@@ -110,6 +108,12 @@ def plot_dilution_factors(chain):
         dfs.append(df)
     dfs = pd.concat(dfs)
     fig = px.line(dfs, x='x', y='dilution factors', facet_col='reactor')
+    fig.for_each_xaxis(
+        lambda axis: axis.title.update(text='Time in hours'))
+    fig.for_each_yaxis(lambda axis: axis.title.update(text='Dilution factor'))
+    fig.update_layout(font={'size': 14})
+    fig.update_layout(height=300)
+
     return fig
 
 
@@ -202,19 +206,21 @@ def style_plot(e, fig, style, fontsize=14):
                 data.line.color = model_color
             else:
                 data.line.color = od_measured
-        
+
         fig.for_each_xaxis(
             lambda axis: axis.title.update(text='Time in hours'))
         fig.for_each_yaxis(lambda axis: axis.title.update(text='OD'))
 
         # If file exists with sample times vlines are added
-        f_times = join('data', e, 'sample_times.txt')
-        if exists(f_times):
-            with open(f_times, 'r') as handle:
-                sample_times = handle.read().rstrip().split(',')
+        if False:
+            f_times = join('data', e, 'sample_times.txt')
+            if exists(f_times):
+                with open(f_times, 'r') as handle:
+                    sample_times = handle.read().rstrip().split(',')
 
-            for sample_time in sample_times:
-                fig.add_vline(x=sample_time)
+                for sample_time in sample_times:
+                    fig.add_vline(x=sample_time)
+
         fig.update_layout(height=350)
 
     if style == 'od_measured_temp':
@@ -228,7 +234,6 @@ def style_plot(e, fig, style, fontsize=14):
                         '43.0 model': '#F675A8'}
         for data in fig['data']:
             name = data['name']
-            print(name)
             if 'model' in name:
                 data.line.color = model_colors[name]
             else:
