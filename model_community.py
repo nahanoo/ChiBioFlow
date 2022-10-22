@@ -37,14 +37,16 @@ class Chain():
         self.xs = np.ndarray(0)
         self.x_dilutions = []
         self.model = 'logistic'
+        self.reduce_carrying_capacity = False
+
 
     def get_dilution(self):
         # This function calculates the dilution rate for steady state
         # Only helper function not necessary for modelling
         c1 = self.chain[0]
         # Calculating OD after 1 hour to calculate necessary dilution
-        N1 = [e[0] for e in odeint(c1.model, c1.N, [0, 0.5])][-1]
-        return ((2 * self.volume * (N1 - c1.N)) / c1.N) / self.volume
+        N1 = [e[0] for e in odeint(c1.model_logistic, c1.N, [0, 1])][-1]
+        return  (self.volume * (N1 - c1.N) / c1.N) / self.volume
 
     def dilute(self):
         # Function that simulates a dilution row
@@ -88,7 +90,8 @@ class Chain():
                     # No transfers in the first cycle
                     self.dilute()
                     self.x_dilutions.append(xs[0])
-                    self.carrying_capacity()
+                    if self.carrying_capacity:
+                        self.carrying_capacity()
                 for c in self.chain:
                     # Modelled OD values
                     N0 = c.N
@@ -100,8 +103,9 @@ class Chain():
                     # Storing latest OD
                     c.N = c.ys[-1]
                     # Carrying capacity reduces by neto growth
-                    net_N = ys[-1] - ys[0]
-                    c.K = c.K - net_N
+                    if self.reduce_carrying_capacity:
+                        net_N = ys[-1] - ys[0]
+                        c.K = c.K - net_N
 
         if self.transfer_rate == 0:
             # Models growth curves with no dilutions
