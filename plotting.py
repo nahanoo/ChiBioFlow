@@ -108,12 +108,6 @@ def plot_dilution_factors(chain):
         dfs.append(df)
     dfs = pd.concat(dfs)
     fig = px.line(dfs, x='x', y='dilution factors', facet_col='reactor')
-    fig.for_each_xaxis(
-        lambda axis: axis.title.update(text='Time in hours'))
-    fig.for_each_yaxis(lambda axis: axis.title.update(text='Dilution factor'))
-    fig.update_layout(font={'size': 14})
-    fig.update_layout(height=300)
-
     return fig
 
 
