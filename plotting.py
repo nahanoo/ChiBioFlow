@@ -92,11 +92,13 @@ def plot_species_model(chain):
             df = pd.DataFrame({'x': chain.xs, 'N': specie.ys,
                               'species': name, 'reactor': c.name})
             dfs.append(df)
-        df = pd.DataFrame({'x': chain.xs, 'N': c.total,
-                          'species': 'total', 'reactor': c.name})
-        dfs.append(df)
+    #    df = pd.DataFrame({'x': chain.xs, 'N': c.total,
+    #                      'species': 'total', 'reactor': c.name})
+    #    dfs.append(df)
     dfs = pd.concat(dfs)
+    
     fig = px.line(dfs, x='x', y='N', facet_col='reactor', color='species')
+    fig = style_plot(None, fig, 'cfus')
     return fig
 
 
