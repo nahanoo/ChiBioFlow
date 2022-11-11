@@ -47,8 +47,8 @@ sysData = {'M0': {
     'LASER650': {'name': 'LASER650', 'default': 0.5, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0},
     'UV': {'WL': 'UV', 'default': 0.5, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0},
     'Heat': {'default': 0.0, 'target': 0.0, 'max': 1.0, 'min': 0.0, 'ON': 0, 'record': []},
-    'Thermostat': {'default': 37.0, 'target': 0.0, 'max': 50.0, 'min': 0.0, 'ON': 0, 'record': [], 'cycleTime': 30, 'Integral': 0.0, 'last': -1},
-    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 120, 'threadCount': 0},
+    'Thermostat': {'default': 37.0, 'target': 0.0, 'max': 50.0, 'min': 0.0, 'ON': 0, 'record': [], 'cycleTime': 60, 'Integral': 0.0, 'last': -1},
+    'Experiment': {'indicator': 'USR0', 'startTime': 'Waiting', 'startTimeRaw': 0, 'ON': 0, 'cycles': 0, 'cycleTime': 60, 'threadCount': 0},
     'Terminal': {'text': ''},
     'AS7341': {
         'spectrum': {'nm410': 0, 'nm440': 0, 'nm470': 0, 'nm510': 0, 'nm550': 0, 'nm583': 0, 'nm620': 0, 'nm670': 0, 'CLEAR': 0, 'NIR': 0, 'DARK': 0, 'ExtGPIO': 0, 'ExtINT': 0, 'FLICKER': 0},
@@ -400,7 +400,7 @@ def initialise(M):
     sysData[M]['exp_fit']['t'] = float(lines[1][1])
 
     scanDevices(M)
-    if(sysData[M]['present'] == 1):
+    if (sysData[M]['present'] == 1):
         turnEverythingOff(M)
         print(str(datetime.now()) + " Initialised " +
               str(M) + ', Device ID: ' + sysData[M]['DeviceID'])
@@ -592,7 +592,7 @@ def SetOutputTarget(M, item, value):
     sysData[M][item]['target'] = value
 
     # Checking to see if our item is already running, in which case
-    if(sysData[M][item]['ON'] == 1 and not(item == 'OD' or item == 'Thermostat')):
+    if (sysData[M][item]['ON'] == 1 and not (item == 'OD' or item == 'Thermostat')):
         # we turn it off and on again to restart at new rate.
         SetOutputOn(M, item, 0)
         SetOutputOn(M, item, 1)
@@ -615,7 +615,7 @@ def SetOutputOn(M, item, force):
         SetOutput(M, item)
         return ('', 204)
 
-    elif(force == 0):
+    elif (force == 0):
         sysData[M][item]['ON'] = 0
         SetOutput(M, item)
         return ('', 204)
@@ -639,7 +639,7 @@ def SetOutput(M, item):
     global sysDevices
     M = str(M)
     # We go through each different item and set it going as appropriate.
-    if(item == 'Stir'):
+    if (item == 'Stir'):
         # Stirring is initiated at a high speed for a couple of seconds to prevent the stir motor from stalling (e.g. if it is started at an initial power of 0.3)
         if (sysData[M][item]['target']*float(sysData[M][item]['ON']) > 0):
             # This line is to just get stirring started briefly.
@@ -662,10 +662,10 @@ def SetOutput(M, item):
         setPWM(M, 'PWM', sysItems[item], sysData[M][item]
                ['target']*float(sysData[M][item]['ON']), 0)
 
-    elif(item == 'Heat'):
+    elif (item == 'Heat'):
         setPWM(M, 'PWM', sysItems[item], sysData[M][item]
                ['target']*float(sysData[M][item]['ON']), 0)
-    elif(item == 'UV'):
+    elif (item == 'UV'):
         setPWM(M, 'PWM', sysItems[item], sysData[M][item]
                ['target']*float(sysData[M][item]['ON']), 0)
     elif (item == 'Thermostat'):
@@ -774,7 +774,7 @@ def PumpModulation(M, item):
     time.sleep(Ontime)
 
     # Turning off pumps at appropriate time.
-    if(abs(sysData[M][item]['target']) != 1 and currentThread == sysDevices[M][item]['threadCount']):
+    if (abs(sysData[M][item]['target']) != 1 and currentThread == sysDevices[M][item]['threadCount']):
         sysDevices[M][item]['active'] = 1
         setPWM(M, 'Pumps', sysItems[item]['In1'],
                0.0*float(sysData[M][item]['ON']), 0)
@@ -845,7 +845,7 @@ def Thermostat(M, item):
     # This resets integrator if we make a big jump in set point.
     if (abs(TargetTemp-LastTemp) > 2.0):
         I = 0.0
-    elif(I < 0.0):
+    elif (I < 0.0):
         I = 0.0
     elif (I > 1.0):
         I = 1.0
@@ -854,11 +854,11 @@ def Thermostat(M, item):
 
     U = P+I+MPC
 
-    if(U > 1.0):
+    if (U > 1.0):
         U = 1.0
         sysData[M]['Heat']['target'] = U
         sysData[M]['Heat']['ON'] = 1
-    elif(U < 0):
+    elif (U < 0):
         U = 0
         sysData[M]['Heat']['target'] = U
         sysData[M]['Heat']['ON'] = 0
@@ -1113,7 +1113,22 @@ def SetCustom(Program, Status):
         sysData[M][item]['param1'] = 0.0
         sysData[M][item]['param2'] = 0.0
         sysData[M][item]['param3'] = 0.0
-    return('', 204)
+    return ('', 204)
+
+
+def pump_communication(reactor, pump, state):
+    global sysDevices
+    global sysItems
+    registers = {
+                         'Pump1': 0x0A,
+                         'Pump2': 0x12,
+                         'Pump3': 0x1A,
+                         'Pump4': 0x22
+                     }
+    sysItems['Multiplexer']['device'].write8(
+        int(0x00), int(sysItems['Multiplexer'][reactor], 2))
+    sysDevices[reactor]['Pumps']['device'].write8(int(registers[pump]),state)
+    sysItems['Multiplexer']['device'].write8(int(0x00),int(0x00))
 
 
 def CustomProgram(M):
@@ -1173,20 +1188,19 @@ def CustomProgram(M):
         run_time = 0.3
         pump_in = 'Pump1'
         pump_out = 'Pump2'
-        SetOutputOn(M,pump_in,1)
+        SetOutputOn(M, pump_in, 1)
         time.sleep(run_time)
-        SetOutputOn(M,pump_in,0)
+        SetOutputOn(M, pump_in, 0)
         time.sleep(0.5)
-        SetOutputOn(M,pump_out,1)
+        SetOutputOn(M, pump_out, 1)
         time.sleep(run_time)
-        SetOutputOn(M,pump_out,0)
+        SetOutputOn(M, pump_out, 0)
 
-        SetFPMeasurement('FP1',"LEDB",'nm550','nm550','x512')
-        SetFPMeasurement('FP2',"LEDE",'nm670','nm670','x512')
+        SetFPMeasurement('FP1', "LEDB", 'nm550', 'nm550', 'x512')
+        SetFPMeasurement('FP2', "LEDE", 'nm670', 'nm670', 'x512')
         MeasureFP(M)
-        print('GFP emmission:',sysData[M]['FP1']['Emit1'])
-        print('RFP emmission:',sysData[M]['FP2']['Emit1'])
-
+        print('GFP emmission:', sysData[M]['FP1']['Emit1'])
+        print('RFP emmission:', sysData[M]['FP2']['Emit1'])
 
     elif (program == "C3"):  # UV Integral Control Program Mk 2
         # Integral in integral controller
@@ -1202,13 +1216,13 @@ def CustomProgram(M):
         KI = float(Params[1])  # Past data suggest value of ~2e-5
         KI2 = float(Params[2])
         integral = sysData[M]['Custom']['param2']+error*KI
-        if(integral > 0):
+        if (integral > 0):
             integral = 0.0
 
         # This is a second high-gain integrator which only gets cranking along when we are close to the target.
-        if(abs(error) < 0.3):
+        if (abs(error) < 0.3):
             integral2 = sysData[M]['Custom']['param3']+error*KI2
-        if(integral2 > 0):
+        if (integral2 > 0):
             integral2 = 0.0
 
         sysData[M]['Custom']['param2'] = integral
@@ -1223,18 +1237,13 @@ def CustomProgram(M):
         addTerminal(M, 'Program = ' + str(program) + ' UV= ' +
                     str(UV) + ' integral= ' + str(integral))
     elif (program == "C4"):  # UV Integral Control Program Mk 4
-        rategain = float(Params[0])
-        # This is the timestep as we follow in minutes
-        timept = sysData[M]['Custom']['Status']
-
-        # So we just exponentialy increase UV over time!
-        UV = 0.001*math.exp(timept*rategain)
-        sysData[M]['Custom']['param1'] = UV
-        SetOutputTarget(M, 'UV', UV)
-        SetOutputOn(M, 'UV', 1)
-
-        timept = timept+1
-        sysData[M]['Custom']['Status'] = timept
+        i = 0
+        while i <= 6:
+            pump_communication(M,'Pump1',1)
+            time.sleep(0.1)
+            pump_communication(M,'Pump1',0)
+            time.sleep(5)
+            i += 1
 
     elif (program == "C5"):  # UV Dosing program
         if Params[0] != 'transfer':
@@ -1242,14 +1251,14 @@ def CustomProgram(M):
 
         control_reactor = sysItems['chain'][0]
         cycle = sysData[control_reactor]['Experiment']['cycles']
-        print('Cycle',cycle)
+        print('Cycle', cycle)
         for reactor in sysItems['chain']:
             print('OD of reactor', reactor+':',
                   sysData[reactor]['OD']['current'])
 
         for chain, (control_reactor, pump) in sysItems['chains'].items():
             sysData[control_reactor][pump]['target'] = -1
-        
+
         injections = 0
         registers = {
                          'Pump1': 0x0A,
@@ -1257,7 +1266,7 @@ def CustomProgram(M):
                          'Pump3': 0x1A,
                          'Pump4': 0x22
                      }
-                     
+
         while injections < 24:
             print(injections)
             for chain, (control_reactor, pump) in sysItems['chains'].items():
@@ -1265,23 +1274,22 @@ def CustomProgram(M):
                 if source == 'Media':
                     run_time = 0.01
                 else:
-                    run_time = float(Params[-1])    
+                    run_time = float(Params[-1])
                 I2CCom(control_reactor, 'Pumps', 0, 8, registers[pump], 1, 0)
                 time.sleep(run_time)
                 I2CCom(control_reactor, 'Pumps', 0, 8, registers[pump], 0, 0)
                 time.sleep(float(Params[1]))
             injections += 1
-        
+
             """if cycle%5 == 0:
             for chain, (control_reactor, pump) in sysItems['chains'].items():
                 source, target = chain.split('-')
                 if source == 'Media':
-                    break 
+                    break
                 SetOutputOn(control_reactor, pump, 1)
                 time.sleep(1)
                 SetOutputOn(control_reactor, pump, 0)
                 time.sleep(0.5)"""
-
 
     elif (program == "C6"):  # UV Dosing program 2 - constant value!
         if Params[0] != 'transfer':
@@ -1289,9 +1297,9 @@ def CustomProgram(M):
 
         control_reactor = sysItems['chain'][0]
         cycle = sysData[control_reactor]['Experiment']['cycles']
-        print('Cycle',cycle)
+        print('Cycle', cycle)
         transfer = False
-        if cycle%15 == 0:
+        if cycle % 15 == 0:
             transfer = True
 
         for reactor in sysItems['chain']:
@@ -1395,7 +1403,7 @@ def SetLightActuation(Excite):
     else:
         sysData[M][item]['Excite'] = str(Excite)
         sysData[M][item]['ON'] = 1
-        return('', 204)
+        return ('', 204)
 
 
 def LightActuation(M, toggle):
@@ -1420,7 +1428,7 @@ def CharacteriseDevice(M, Program):
         cthread.setDaemon(True)
         cthread.start()
 
-    return('', 204)
+    return ('', 204)
 
 
 def CharacteriseDevice2(M):
@@ -1472,151 +1480,131 @@ def CharacteriseDevice2(M):
     return
 
 
-def I2CCom(M, device, rw, hl, data1, data2, SMBUSFLAG):
-    # Function used to manage I2C bus communications for ALL devices.
-    M = str(M)  # Turbidostat to write to
-    device = str(device)  # Name of device to be written to
-    rw = int(rw)  # 1 if read, 0 if write
-    hl = int(hl)  # 8 or 16
-    # If this flag is set to 1 it means we are communuicating with an SMBUs device.
-    SMBUSFLAG = int(SMBUSFLAG)
-    data1 = int(data1)  # First data/register
-    if hl < 20:
-        data2 = int(data2)  # First data/register
+def I2CCom(M,device,rw,hl,data1,data2,SMBUSFLAG):
+    #Function used to manage I2C bus communications for ALL devices.
+    M=str(M) #Turbidostat to write to
+    device=str(device) #Name of device to be written to
+    rw=int(rw) #1 if read, 0 if write
+    hl=int(hl) #8 or 16
+    SMBUSFLAG=int(SMBUSFLAG) # If this flag is set to 1 it means we are communuicating with an SMBUs device.
+    data1=int(data1) #First data/register 
+    if hl<20:
+        data2=int(data2) #First data/register 
     global sysItems
     global sysData
-
+    
     global sysDevices
-    if(sysData[M]['present'] == 0):  # Something stupid has happened in software if this is the case!
-        print(str(datetime.now()) +
-              ' Trying to communicate with absent device - bug in software!. Disabling hardware and software!')
-        # Basically this will crash all the electronics and the software.
-        sysItems['Watchdog']['ON'] = 0
-        out = 0
-        tries = -1
+    if(sysData[M]['present']==0): #Something stupid has happened in software if this is the case!
+        print(str(datetime.now()) + ' Trying to communicate with absent device - bug in software!. Disabling hardware and software!')
+        sysItems['Watchdog']['ON']=0 #Basically this will crash all the electronics and the software. 
+        out=0
+        tries=-1
         os._exit(4)
-
-    # cID=str(M)+str(device)+'d'+str(data1)+'d'+str(data2)  # This is an ID string for the communication that we are trying to send - not used at present
-    # Any time a thread gets to this point it will wait until the lock is free. Then, only one thread at a time will advance.
+    
+    #cID=str(M)+str(device)+'d'+str(data1)+'d'+str(data2)  # This is an ID string for the communication that we are trying to send - not used at present
+    #Any time a thread gets to this point it will wait until the lock is free. Then, only one thread at a time will advance. 
     lock.acquire()
 
-    # We now connect the multiplexer to the appropriate device to allow digital communications.
-    tries = 0
-    while(tries != -1):
+    
+    #We now connect the multiplexer to the appropriate device to allow digital communications.
+    tries=0
+    while(tries!=-1):
         try:
-            # We have established connection to correct device.
-            sysItems['Multiplexer']['device'].write8(
-                int(0x00), int(sysItems['Multiplexer'][M], 2))
-            # We check that the Multiplexer is indeed connected to the correct channel.
-            check = (sysItems['Multiplexer']['device'].readRaw8())
-            if(check == int(sysItems['Multiplexer'][M], 2)):
-                tries = -1
+            sysItems['Multiplexer']['device'].write8(int(0x00),int(sysItems['Multiplexer'][M],2)) #We have established connection to correct device. 
+            check=(sysItems['Multiplexer']['device'].readRaw8()) #We check that the Multiplexer is indeed connected to the correct channel.
+            if(check==int(sysItems['Multiplexer'][M],2)):
+                tries=-1
             else:
-                tries = tries+1
+                tries=tries+1
                 time.sleep(0.02)
-                print(str(datetime.now()) + ' Multiplexer didnt switch ' +
-                      str(tries) + " times on " + str(M))
-        except:  # If there is an error in the above.
-            tries = tries+1
+                print(str(datetime.now()) + ' Multiplexer didnt switch ' + str(tries) + " times on " + str(M))
+        except: #If there is an error in the above.
+            tries=tries+1
             time.sleep(0.02)
-            print(str(datetime.now()) +
-                  ' Failed Multiplexer Comms ' + str(tries) + " times")
-            if (tries > 2):
+            print(str(datetime.now()) + ' Failed Multiplexer Comms ' + str(tries) + " times")
+            if (tries>2):
                 try:
-                    # Disconnect multiplexer.
-                    sysItems['Multiplexer']['device'].write8(
-                        int(0x00), int(0x00))
-                    print(str(datetime.now()) + 'Disconnected multiplexer on ' +
-                          str(M) + ', trying to connect again.')
+                    sysItems['Multiplexer']['device'].write8(int(0x00),int(0x00)) #Disconnect multiplexer. 
+                    print(str(datetime.now()) + 'Disconnected multiplexer on ' + str(M) + ', trying to connect again.')
                 except:
-                    print(str(datetime.now()) +
-                          'Failed to recover multiplexer on device ' + str(M))
-            if (tries == 5 or tries == 10 or tries == 15):
-                # Flip the watchdog pin to ensure it is working.
-                toggleWatchdog()
-                # Flip the Multiplexer RESET pin. Note this reset function works on Control Board V1.2 and later.
-                GPIO.output('P8_15', GPIO.LOW)
+                    print(str(datetime.now()) + 'Failed to recover multiplexer on device ' + str(M))
+            if (tries==5 or tries==10 or tries==15):
+                toggleWatchdog()  #Flip the watchdog pin to ensure it is working.
+                GPIO.output('P8_15', GPIO.LOW) #Flip the Multiplexer RESET pin. Note this reset function works on Control Board V1.2 and later.
                 time.sleep(0.1)
                 GPIO.output('P8_15', GPIO.HIGH)
                 time.sleep(0.1)
-                print(str(datetime.now()) +
-                      'Did multiplexer hard-reset on ' + str(M))
-
-        if tries > 20:  # If it has failed a number of times then likely something is seriously wrong, so we crash the software.
-            # Basically this will crash all the electronics and the software.
-            sysItems['Watchdog']['ON'] = 0
-            out = 0
-            print(str(datetime.now(
-            )) + 'Failed to communicate to Multiplexer 20 times. Disabling hardware and software!')
-            tries = -1
+                print(str(datetime.now()) + 'Did multiplexer hard-reset on ' + str(M))
+                
+        if tries>20: #If it has failed a number of times then likely something is seriously wrong, so we crash the software.
+            sysItems['Watchdog']['ON']=0 #Basically this will crash all the electronics and the software. 
+            out=0
+            print(str(datetime.now()) + 'Failed to communicate to Multiplexer 20 times. Disabling hardware and software!')
+            tries=-1
             os._exit(4)
+    
+    
 
+    
     time.sleep(0.0005)
-    out = 0
-    tries = 0
-
-    while(tries != -1):  # We now do appropriate read/write on the bus.
+    out=0;
+    tries=0
+    
+    while(tries!=-1): #We now do appropriate read/write on the bus.
         try:
-            if SMBUSFLAG == 0:
-                if rw == 1:
-                    if hl == 8:
-                        out = int(sysDevices[M][device]
-                                  ['device'].readU8(data1))
-                    elif(hl == 16):
-                        out = int(sysDevices[M][device]
-                                  ['device'].readU16(data1, data2))
+            if SMBUSFLAG==0:
+                if rw==1:
+                    if hl==8:
+                        out=int(sysDevices[M][device]['device'].readU8(data1))
+                    elif(hl==16):
+                        out=int(sysDevices[M][device]['device'].readU16(data1,data2))
                 else:
-                    if hl == 8:
-                        sysDevices[M][device]['device'].write8(data1, data2)
-                        out = 1
-                    elif(hl == 16):
-                        sysDevices[M][device]['device'].write16(data1, data2)
-                        out = 1
-
-            elif SMBUSFLAG == 1:
-                out = sysDevices[M][device]['device'].read_word_data(
-                    sysDevices[M][device]['address'], data1)
-            tries = -1
-        # If the above fails then we can try again (a limited number of times)
-        except:
-            tries = tries+1
-
-            if (device != "ThermometerInternal"):
-                print(str(datetime.now()) + ' Failed ' + str(device) +
-                      ' comms ' + str(tries) + " times on device " + str(M))
+                    if hl==8:
+                        sysDevices[M][device]['device'].write8(data1,data2)
+                        out=1
+                    elif(hl==16):
+                        sysDevices[M][device]['device'].write16(data1,data2)
+                        out=1
+                    
+            elif SMBUSFLAG==1:
+                out=sysDevices[M][device]['device'].read_word_data(sysDevices[M][device]['address'],data1)
+            tries=-1
+        except: #If the above fails then we can try again (a limited number of times)
+            tries=tries+1
+            
+            if (device!="ThermometerInternal"):
+                print(str(datetime.now()) + ' Failed ' + str(device) + ' comms ' + str(tries) + " times on device " + str(M) )
                 time.sleep(0.02)
-            if (device == 'AS7341'):
-                print(str(datetime.now()) + ' Failed  AS7341 in I2CCom while trying to send ' +
-                      str(data1) + " and " + str(data2))
-                out = -1
-                tries = -1
+            if (device=='AS7341'):
+                print(str(datetime.now()) + ' Failed  AS7341 in I2CCom while trying to send ' + str(data1)  + " and " + str(data2))
+                out=-1
+                tries=-1
 
-        # We don't allow the internal thermometer to fail, since this is what we are using to see if devices are plugged in at all.
-        if (tries > 2 and device == "ThermometerInternal"):
-            out = 0
-            sysData[M]['present'] = 0
-            tries = -1
-        if tries > 10:  # In this case something else has gone wrong, so we panic.
-            # Basically this will crash all the electronics and the software.
-            sysItems['Watchdog']['ON'] = 0
-            out = 0
-            sysData[M]['present'] = 0
-            print(str(datetime.now(
-            )) + 'Failed to communicate to a device 10 times. Disabling hardware and software!')
-            tries = -1
+        if (tries>2 and device=="ThermometerInternal"): #We don't allow the internal thermometer to fail, since this is what we are using to see if devices are plugged in at all.
+            out=0
+            sysData[M]['present']=0
+            tries=-1
+        if tries>10: #In this case something else has gone wrong, so we panic.
+            sysItems['Watchdog']['ON']=0 #Basically this will crash all the electronics and the software. 
+            out=0
+            sysData[M]['present']=0
+            print(str(datetime.now()) + 'Failed to communicate to a device 10 times. Disabling hardware and software!')
+            tries=-1
             os._exit(4)
-
+                
     time.sleep(0.0005)
+    
 
+    
     try:
-        # Disconnect multiplexer with each iteration.
-        sysItems['Multiplexer']['device'].write8(int(0x00), int(0x00))
+        sysItems['Multiplexer']['device'].write8(int(0x00),int(0x00)) #Disconnect multiplexer with each iteration. 
     except:
-        print(str(datetime.now()) +
-              'Failed to disconnect multiplexer on device ' + str(M))
+        print(str(datetime.now()) + 'Failed to disconnect multiplexer on device ' + str(M))
 
-    lock.release()  # Bus lock is released so next command can occur.
 
+    
+    lock.release() #Bus lock is released so next command can occur.
+    
     return(out)
 
 
