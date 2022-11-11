@@ -163,12 +163,12 @@ sysItems = {
         '0x12' : {'A' : 'DARK', 'B' : 'U'},
         '0x13' : {'A' : 'FLICKER', 'B' : 'NIR'},
     },
-    'chain': ['M0', 'M1', 'M4', 'M5'],
+    'chain': ['M0', 'M1', 'M2', 'M3'],
     'chains': {'Media-M0': ('M0', 'Pump2'),
                'M0-M1': ('M0', 'Pump1'),
-               'M1-M4': ('M1', 'Pump2'),
-               'M4-M5': ('M1', 'Pump1'),
-               'M5-Waste': ('M4', 'Pump2')}
+               'M1-M2': ('M1', 'Pump2'),
+               'M2-M3': ('M1', 'Pump1'),
+               'M3-Waste': ('M2', 'Pump2')}
 }
    
 
@@ -1086,7 +1086,7 @@ def CustomProgram(M):
     #Subsequent few lines reads in external parameters from a file if you are using any.
     fname='config.csv'
 	
-    with open(fname, 'rb') as f:
+    with open(fname, 'r') as f:
         reader = csv.reader(f)
         listin = list(reader)
     Params=listin[0]
