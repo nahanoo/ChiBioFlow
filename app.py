@@ -1103,6 +1103,20 @@ def CustomProgram(M):
                 time.sleep(pump_time+0.5*counter)
                 pump_communication(reactor, pump, 0)
                 time.sleep(0.5)
+
+    if (program == "C2"):
+        # Chain mode
+        if Params[1] == 'transfer':
+            for chain, (reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    pump_time = float(Params[2])
+                else:
+                    pump_time = float(Params[2]) + 1
+                pump_communication(reactor, pump, 1)
+                time.sleep(pump_time)
+                pump_communication(reactor, pump, 0)
+                time.sleep(float(Params[3]))
     
     return
 
