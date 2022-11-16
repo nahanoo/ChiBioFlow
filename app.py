@@ -80,6 +80,7 @@ sysData = {'M0' : {
                 'LEDG' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}}
    }}
+}
 
 
 
@@ -162,7 +163,13 @@ sysItems = {
         '0x11' : {'A' : 'CLEAR', 'B' : 'ExtINT'},
         '0x12' : {'A' : 'DARK', 'B' : 'U'},
         '0x13' : {'A' : 'FLICKER', 'B' : 'NIR'},
-    }
+    },
+    'chain': ['M0', 'M1', 'M2', 'M3'],
+    'chains': {'Media-M0': ('M0', 'Pump2'),
+               'M0-M1': ('M0', 'Pump1'),
+               'M1-M2': ('M1', 'Pump2'),
+               'M2-M3': ('M1', 'Pump1'),
+               'M3-Waste': ('M2', 'Pump2')}
 }
    
 
@@ -1057,6 +1064,19 @@ def SetCustom(Program,Status):
         sysData[M][item]['param3']=0.0
     return('',204)
 		
+def pump_communication(reactor, pump, state):
+    global sysDevices
+    global sysItems
+    registers = {
+                         'Pump1': 0x0A,
+                         'Pump2': 0x12,
+                         'Pump3': 0x1A,
+                         'Pump4': 0x22
+                     }
+    sysItems['Multiplexer']['device'].write8(
+        int(0x00), int(sysItems['Multiplexer'][reactor], 2))
+    sysDevices[reactor]['Pumps']['device'].write8(int(registers[pump]),state)
+    sysItems['Multiplexer']['device'].write8(int(0x00),int(0x00))
         
 def CustomProgram(M):
     #Runs a custom program, some examples are included. You can remove/edit this function as you see fit.
@@ -1065,162 +1085,39 @@ def CustomProgram(M):
     M=str(M)
     program=sysData[M]['Custom']['Program']
     #Subsequent few lines reads in external parameters from a file if you are using any.
-    fname='InputParameters_' + str(M)+'.csv'
+    fname='config.csv'
 	
-    with open(fname, 'rb') as f:
+    with open(fname, 'r') as f:
         reader = csv.reader(f)
         listin = list(reader)
     Params=listin[0]
     addTerminal(M,'Running Program = ' + str(program) + ' on device ' + str(M))
 	
 	
-    if (program=="C1"): #Optogenetic Integral Control Program
-        integral=0.0 #Integral in integral controller
-        green=0.0 #Intensity of Green actuation 
-        red=0.0 #Intensity of red actuation.
-        GFPNow=sysData[M]['FP1']['Emit1']
-        GFPTarget=sysData[M]['Custom']['Status'] #This is the controller setpoint.
-        error=GFPTarget-GFPNow
-        if error>0.0075:
-            green=1.0
-            red=0.0
-            sysData[M]['Custom']['param3']=0.0 
-        elif error<-0.0075:
-            green=0.0
-            red=1.0
-            sysData[M]['Custom']['param3']=0.0
-        else:
-            red=1.0
-            balance=float(Params[0]) #our guess at green light level to get 50% expression.
-            KI=float(Params[1])
-            KP=float(Params[2])
-            integral=sysData[M]['Custom']['param3']+error*KI
-            green=balance+KP*error+integral
-            sysData[M]['Custom']['param3']=integral
-        
+    if (program == "C1"):
+        # Sterilizing mode
+        sysData[M]['Experiment']['cycleTime'] = 30
+        pump_time = 2
+        if Params[1] == 'transfer':
+            for counter, (chain, (reactor, pump)) in enumerate(sysItems['chains'].items()):
+                pump_communication(reactor, pump, 1)
+                time.sleep(pump_time+0.5*counter)
+                pump_communication(reactor, pump, 0)
+                time.sleep(0.5)
 
-        GreenThread=Thread(target = CustomLEDCycle, args=(M,'LEDD',green))
-        GreenThread.setDaemon(True)
-        GreenThread.start();
-        RedThread=Thread(target = CustomLEDCycle, args=(M,'LEDF',red))
-        RedThread.setDaemon(True)
-        RedThread.start();
-        sysData[M]['Custom']['param1']=green
-        sysData[M]['Custom']['param2']=red
-        addTerminal(M,'Program = ' + str(program) + ' green= ' + str(green)+ ' red= ' + str(red) + ' integral= ' + str(integral))
-	
-    elif (program=="C2"): #UV Integral Control Program
-        integral=0.0 #Integral in integral controller
-        UV=0.0 #Intensity of Green actuation 
-        GrowthRate=sysData[M]['GrowthRate']['current']
-        GrowthTarget=sysData[M]['Custom']['Status'] #This is the controller setpoint.
-        error=GrowthTarget-GrowthRate
-        KP=float(Params[0]) #Past data suggest value of ~0.005
-        KI=float(Params[1]) #Past data suggest value of ~2e-5
-        integral=sysData[M]['Custom']['param2']+error*KI
-        if(integral>0):
-            integral=0.0
-        sysData[M]['Custom']['param2']=integral
-        UV=-1.0*(KP*error+integral)
-        sysData[M]['Custom']['param1']=UV
-        SetOutputTarget(M,'UV',UV)
-        SetOutputOn(M,'UV',1)
-        addTerminal(M,'Program = ' + str(program) + ' UV= ' + str(UV)+  ' integral= ' + str(integral))
-        
-    elif (program=="C3"): #UV Integral Control Program Mk 2
-        integral=sysData[M]['Custom']['param2'] #Integral in integral controller
-        integral2=sysData[M]['Custom']['param3'] #Second integral controller
-        UV=0.0 #Intensity of UV
-        GrowthRate=sysData[M]['GrowthRate']['current']
-        GrowthTarget=sysData[M]['Custom']['Status'] #This is the controller setpoint.
-        error=GrowthTarget-GrowthRate
-        KP=float(Params[0]) #Past data suggest value of ~0.005
-        KI=float(Params[1]) #Past data suggest value of ~2e-5
-        KI2=float(Params[2])
-        integral=sysData[M]['Custom']['param2']+error*KI
-        if(integral>0):
-            integral=0.0
-            
-        if(abs(error)<0.3): #This is a second high-gain integrator which only gets cranking along when we are close to the target.
-            integral2=sysData[M]['Custom']['param3']+error*KI2
-        if(integral2>0):
-            integral2=0.0
-            
-        sysData[M]['Custom']['param2']=integral
-        sysData[M]['Custom']['param3']=integral2
-        UV=-1.0*(KP*error+integral+integral2)
-        m=50.0
-        UV=(1.0/m)*(math.exp(m*UV)-1.0) #Basically this is to force the UV level to increase exponentially!
-        sysData[M]['Custom']['param1']=UV
-        SetOutputTarget(M,'UV',UV)
-        SetOutputOn(M,'UV',1)
-        addTerminal(M,'Program = ' + str(program) + ' UV= ' + str(UV)+  ' integral= ' + str(integral))
-    elif (program=="C4"): #UV Integral Control Program Mk 4
-        rategain=float(Params[0]) 
-        timept=sysData[M]['Custom']['Status'] #This is the timestep as we follow in minutes
-        
-        UV=0.001*math.exp(timept*rategain) #So we just exponentialy increase UV over time!
-        sysData[M]['Custom']['param1']=UV
-        SetOutputTarget(M,'UV',UV)
-        SetOutputOn(M,'UV',1)
-        
-        timept=timept+1
-        sysData[M]['Custom']['Status']=timept
-            
-    elif (program=="C5"): #UV Dosing program
-        timept=int(sysData[M]['Custom']['Status']) #This is the timestep as we follow in minutes
-        sysData[M]['Custom']['Status']=timept+1 #Increment time as we have entered the loop another time!
-        
-        Pump2Ontime=sysData[M]['Experiment']['cycleTime']*1.05*abs(sysData[M]['Pump2']['target'])*sysData[M]['Pump2']['ON']+0.5 #The amount of time Pump2 is going to be on for following RegulateOD above.
-        time.sleep(Pump2Ontime) #Pause here is to prevent output pumping happening at the same time as stirring.
-        
-        timelength=300 #Time between doses in minutes
-        if(timept%timelength==2): #So this happens every 5 hours!
-            iters=(timept//timelength)
-            Dose0=float(Params[0])
-            Dose=Dose0*(2.0**float(iters)) #UV Dose, in terms of amount of time UV shoudl be left on at 1.0 intensity.
-            print(str(datetime.now()) + ' Gave dose ' + str(Dose) + " at iteration " + str(iters) + " on device " + str(M))
-            
-            if (Dose<30.0):  
-                powerlvl=Dose/30.0
-                SetOutputTarget(M,'UV',powerlvl)
-                Dose=30.0
-            else:    
-                SetOutputTarget(M,'UV',1.0) #Ensure UV is on at aopropriate intensity
-                
-            SetOutputOn(M,'UV',1) #Activate UV
-            time.sleep(Dose) #Wait for dose to be administered
-            SetOutputOn(M,'UV',0) #Deactivate UV
-            
-    elif (program=="C6"): #UV Dosing program 2 - constant value!
-        timept=int(sysData[M]['Custom']['Status']) #This is the timestep as we follow in minutes
-        sysData[M]['Custom']['Status']=timept+1 #Increment time as we have entered the loop another time!
-        
-        Pump2Ontime=sysData[M]['Experiment']['cycleTime']*1.05*abs(sysData[M]['Pump2']['target'])*sysData[M]['Pump2']['ON']+0.5 #The amount of time Pump2 is going to be on for following RegulateOD above.
-        time.sleep(Pump2Ontime) #Pause here is to prevent output pumping happening at the same time as stirring.
-    
-        timelength=300 #Time between doses in minutes
-        if(timept%timelength==2): #So this happens every 5 hours!
-            iters=(timept//timelength)
-            if iters>3:
-                iters=3
-                
-            Dose0=float(Params[0])
-            Dose=Dose0*(2.0**float(iters)) #UV Dose, in terms of amount of time UV shoudl be left on at 1.0 intensity.
-            print(str(datetime.now()) + ' Gave dose ' + str(Dose) + " at iteration " + str(iters) + " on device " + str(M))
-              
-            if (Dose<30.0):  
-                powerlvl=Dose/30.0
-                SetOutputTarget(M,'UV',powerlvl)
-                Dose=30.0
-            else:    
-                SetOutputTarget(M,'UV',1.0) #Ensure UV is on at aopropriate intensity
-            
-            SetOutputOn(M,'UV',1) #Activate UV
-            time.sleep(Dose) #Wait for dose to be administered
-            SetOutputOn(M,'UV',0) #Deactivate UV
-                
-                
+    if (program == "C2"):
+        # Chain mode
+        if Params[1] == 'transfer':
+            for chain, (reactor, pump) in sysItems['chains'].items():
+                source, target = chain.split('-')
+                if source == 'Media':
+                    pump_time = float(Params[2])
+                else:
+                    pump_time = float(Params[2]) + 1
+                pump_communication(reactor, pump, 1)
+                time.sleep(pump_time)
+                pump_communication(reactor, pump, 0)
+                time.sleep(float(Params[3]))
     
     return
 
@@ -2010,7 +1907,7 @@ def Zigzag(M):
     #Subsequent section is for growth estimation.
 	
     TimeSinceSwitch=iteration-sysData[M]['Zigzag']['SwitchPoint']
-    if (iteration>6 and TimeSinceSwitch>5 and current > 0 and last > 0): #The reason we wait a few minutes after starting growth is that new media may still be introduced, it takes a while for the growth to get going.
+    if (iteration>6 and TimeSinceSwitch>5 and current > 0 and last > 0 and sysData[M]['Zigzag']['target']==5.0): #The reason we wait a few minutes after starting growth is that new media may still be introduced, it takes a while for the growth to get going.
         dGrowthRate=(math.log(current)-math.log(last))*60.0 #Converting to units of 1/hour
         sysData[M]['GrowthRate']['current']=sysData[M]['GrowthRate']['current']*0.95 + dGrowthRate*0.05 #We are essentially implementing an online growth rate estimator with learning rate 0.05
 
@@ -2077,6 +1974,13 @@ def runExperiment(M,placeholder):
     global sysData
     global sysItems
     global sysDevices
+
+    fname = 'config.csv'
+
+    with open(fname, 'r') as f:
+        reader = csv.reader(f)
+        listin = list(reader)
+    Params = listin[0]
     
     sysData[M]['Experiment']['threadCount']=(sysData[M]['Experiment']['threadCount']+1)%100
     currentThread=sysData[M]['Experiment']['threadCount']
@@ -2100,12 +2004,15 @@ def runExperiment(M,placeholder):
     sysData[M]['OD']['Measuring']=1 #Begin measuring - this flag is just to indicate that a measurement is currently being taken.
     
     #We now meausre OD 4 times and take the average to reduce noise when in auto mode!
-    ODV=0.0
-    for i in [0, 1, 2, 3]:
-        MeasureOD(M)
-        ODV=ODV+sysData[M]['OD']['current']
-        time.sleep(0.25)
-    sysData[M]['OD']['current']=ODV/4.0
+    if Params[0] == 'measure_od':
+        ODV=0.0
+        for i in [0, 1, 2, 3]:
+            MeasureOD(M)
+            ODV=ODV+sysData[M]['OD']['current']
+            time.sleep(0.25)
+        sysData[M]['OD']['current']=ODV/4.0
+    else:
+        print('Stopping OD measurements for sampling')
     
     MeasureTemp(M,'Internal') #Measuring all temperatures
     MeasureTemp(M,'External')
