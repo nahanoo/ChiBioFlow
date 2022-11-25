@@ -47,13 +47,22 @@ def logistic_model(N, t, k, K):
 
 
 def plot_dilution(t, n_reactors):
-    D = 0.28
-    chain = get_chain(t, D, n_reactors,transfer_rate=2)
+    D = 0.3
+    chain = get_chain(t, D, n_reactors, transfer_rate=1)
     fig = plot_dilution_factors(chain)[1]
-    fig = update_labels(fig, 'Time in hours',
-                        'Dilution factor', None,size=[300,750],width=3,font_size=16)
-    fig.update_yaxes(dtick=0.1)
-    fig.update_xaxes(dtick=5)
+    fig = update_labels(fig, 'Time [h]',
+                        'Dilution rate', None, size=[200, 450], width=3, font_size=16)
+    for i, d in enumerate(fig.data):
+        Fd = str(chain.chain[i].dilution_factors[-1])[:4]
+        fig.add_trace(go.Scatter(x=[20], y=[Fd],
+                                 mode='markers+text',
+                                 text=Fd,
+                                 textposition='middle right',
+                                 marker=dict(color=d.line.color, size=12),
+                                 legendgroup=d.name,
+                                 showlegend=False), row=1, col=i + 1)
+    # fig.update_yaxes(dtick=0.25)
+    # fig.update_xaxes(dtick=5)
     return fig
 
 
@@ -77,7 +86,7 @@ def get_chain(t, D, n_reactors, transfer_rate=1):
     # Steady state D = 0.32899
     chain = Chain(n_reactors)
     chain.transfer_rate = transfer_rate
-    chain.chain[0].N = 0.08
+    chain.chain[0].N = 0.1
     chain.dilution_rate = D
     chain.experiment(t)
     return chain
@@ -93,7 +102,7 @@ def gradients():
     for D in Ds:
         chain = get_chain(60, D, 4)
         for c in chain.chain:
-            Df.loc[i] = [c.name, c.dilution_factors[-1]-1, D]
+            Df.loc[i] = [c.name, c.dilution_factors[-1], D]
             Ks.loc[i] = [c.name, c.Ks[-1], D]
             Ns.loc[i] = [c.name, c.N, D]
             i += 1
@@ -137,8 +146,7 @@ def plot_species_chain(t, D, n_reactors):
 
 
 def plot_chain(t, D, n_reactors):
-    chain = get_chain(t, D, n_reactors,transfer_rate=2)
-    chain.chain[0].N = 0.1
+    chain = get_chain(t, D, n_reactors, transfer_rate=2)
     fig = plot_community_model(chain)
     fig = update_labels(fig, 'Time in hours', 'OD', "$D < \mu$")
     return fig
@@ -164,17 +172,18 @@ def specific_growth_rate(t, k, K, N):
     return (exp(f * dNdt) - 1)
 
 
-def growth_rate_community(t):
-    xs = np.arange(0, t, 0.1)
+def growth_rate_community(t,K=1.5):
+    xs = np.arange(0, t, 0.5)
     Ns = [N[0]
-          for N in odeint(logistic_model, 0.1, xs, args=(0.28, 1.5))]
-    rs = [specific_growth_rate(t, 0.28, 1.5, 0.1) for t in xs]
-    fig = px.line(x=xs, y=rs)
+          for N in odeint(logistic_model, 0.1, xs, args=(0.28, K))]
+    rs = [specific_growth_rate(t, 0.28, K, 0.1) for t in xs]
+    fig = px.line(x=Ns, y=rs)
     fig = update_labels(
-        fig, 'Time [h]', '$\large{\mu\space [h^{-1}]}$', None)
+        fig, 'OD', '$\large{\mu\space [h^{-1}]}$', None)
     fig.update_layout(
         margin=dict(l=100, r=10, t=50, b=10),
     )
+    fig.update_xaxes(dtick=0.2, tick0=0.1)
     return fig
 
 
@@ -204,19 +213,18 @@ def growth_rate_species(t):
     fig = px.line(df, x='N', y='rate', color='specie')
     fig = style_plot(None, fig, 'cfus')
     fig = update_labels(fig, 'Time [h]', '$\mu\space [h^{-1}]$',
-                        None, size=[250, 450], style_colors=False,font_size=18)
+                        None, size=[250, 450], style_colors=False, font_size=18)
     fig.update_layout(
         margin=dict(l=100, r=10, t=50, b=10),
     )
     return fig
 
-
-def ms_extinct(t):
-    chain = get_species_chain(t, 4, D=0.15, transfer_rate=1)
+def plot_species_chain(t,D,n_reactors):
+    chain = get_species_chain(t, n_reactors, D=D, transfer_rate=1)
     fig = plot_species_model(chain)
     fig = style_plot(None, fig, 'cfus')
     fig = update_labels(fig, 'Time [h]', 'OD 600nm',
-                        'Species model', size=[250, 800])
+                        str(D   ), size=[250, 750],style_colors=False)
 
     return fig
 
@@ -261,12 +269,12 @@ def species_composition(t):
     fig, df = plot_species_model_composition(chain)
     fig = style_plot(None, fig, 'cfus')
     fig = update_labels(
-        fig, 'Time [h]', 'Species composition', 'Species composition', size=[250, 750],style_colors=False,width=3)
+        fig, 'Time [h]', 'Species composition', 'Species composition', size=[250, 750], style_colors=False, width=3)
     fig.show()
 
 
 def species_composition_D():
-    t = 10000
+    t = 72
     ds = np.arange(0.05, 0.45, 0.05)
     dfs = []
     for d in ds:
@@ -279,8 +287,8 @@ def species_composition_D():
     fig = px.line(out, x='Dilution rate', y='ratio', color='species',
                   facet_col='reactor', facet_col_spacing=0.05)
     fig = style_plot(None, fig, 'cfus')
-    """fig = update_labels(fig, '$D\space h^{-1}', 'Community composition',
-                        'Community compositions dilution rate 0.05 - 0.45', size=[250, 750])"""
+    fig = update_labels(fig, '$D\space h^{-1}$', 'Composition',
+                        None, size=[250, 750],style_colors=False,width=3)
     return fig
 
 
@@ -297,10 +305,10 @@ def log_community():
 
 def plot_experiment_model():
     e = 'c1'
-    chain = get_chain(52, 0.28, 4, transfer_rate=2)
+    chain = get_chain(52, 0.3, 4, transfer_rate=2)
     df, fig = plot_od(e, model=True, chain=chain)
     fig = update_labels(fig, 'Time [h]', 'OD',
-                        'D = 0.28', size=[250, 750], width=2)
+                        'D = 0.3', size=[250, 750], width=2)
     for data in fig['data']:
         if data['name'] == 'Model':
             data['name'] = 'model'
