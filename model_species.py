@@ -5,22 +5,23 @@ from math import exp
 
 class Specie():
     # Species class with modelling parameters
-    def __init__(self, r, K, N, v):
+    def __init__(self, r, K, N, v, q):
         self.K_init = K
         self.K = self.K_init
         self.r = r
         self.N = N
         self.v = v
+        self.q = q
         self.ys = np.ndarray(0)
 
 
 class Chemostat():
     # Chemostat class
     def __init__(self, name):
-        self.species = {'at': Specie(0.4, 0.4, 0.02, None),
-                        'ct': Specie(0.273, 0.2, 0.02, None),
-                        'ms': Specie(0.173, 0.1, 0.02, None),
-                        'oa': Specie(0.373, 0.3, 0.02, None)}
+        self.species = {'at': Specie(3, 0.27, 0.025, 0.08, 1),
+                        'ct': Specie(0.09, 0.01, 0.025, 1, 1),
+                        'ms': Specie(0.38, 0.062, 0.025, 1, 1),
+                        'oa': Specie(0.28, 0.65, 0.025, 1, 0.1)}
 
         self.name = name
         # Concentrations of species are summed in total
@@ -38,6 +39,7 @@ class Chemostat():
         total = sum([specie.ys for specie in self.species.values()])
         self.total = np.concatenate([self.total, total])
         return
+
 
 class Chain():
     def __init__(self, chems):
@@ -57,6 +59,13 @@ class Chain():
 
         if v is not None:
             return (v / (v + exp(-t))) * r * N * (1 - N/K)
+
+    def lag(self, t, q, v):
+        return q/(q + exp(-v*t))
+
+    def curved_lag(self, N, t, k, K, v, q):
+        a = self.lag(t, q, v)
+        return a * k * N * (1 - (N/K)**v)
 
     def get_dilution_rate(self, specie):
         # Calculates dilution rate for keeping one species steady state
@@ -105,7 +114,7 @@ class Chain():
             # Time between two dilutions
             interval = 1 / self.transfer_rate
             for i in range(intervals):
-                xs = interval * i + np.arange(0, interval, 1/30)
+                xs = interval * i + np.arange(0, interval, 1/5)
                 xs = np.append(xs, interval+interval*i)
                 self.xs = np.concatenate([self.xs, xs])
                 if i != 0:
@@ -119,12 +128,12 @@ class Chain():
                         # Modelled OD values
                         K = c.K * specie.K
                         ys = [e[0] for e in odeint(
-                            self.model, specie.N, xs, args=(specie.r, K, specie.v))]
+                            self.curved_lag, specie.N, xs, args=(specie.r, K, specie.v, specie.q))]
                         specie.ys = np.concatenate([specie.ys, ys])
                         # Storing latest OD
                         specie.N = specie.ys[-1]
                         net_N += ys[-1] - ys[0]
-                    c.K = c.K - net_N
+                    #c.K = c.K - net_N
 
         if self.transfer_rate == 0:
             self.xs = np.arange(0, exp_time, 1/30)
@@ -135,7 +144,7 @@ class Chain():
                         self.model, specie.N, self.xs, args=(specie.r, K, specie.v))]
                     specie.ys = np.concatenate([specie.ys, ys])
                     # Storing latest OD
-                    specie.N = specie.ys[-1]
+                    #specie.N = specie.ys[-1]
 
         for c in self.chain:
             c.sum_N()
