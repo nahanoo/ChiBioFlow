@@ -46,7 +46,7 @@ sysData = {'M0' : {
    'UV' : {'WL' : 'UV', 'default': 0.5, 'target' : 0.0, 'max': 1.0, 'min' : 0.0,'ON' : 0},
    'Heat' : {'default': 0.0, 'target' : 0.0, 'max': 1.0, 'min' : 0.0,'ON' : 0,'record' : []},
    'Thermostat' : {'default': 37.0, 'target' : 0.0, 'max': 50.0, 'min' : 0.0,'ON' : 0,'record' : [],'cycleTime' : 30.0, 'Integral' : 0.0,'last' : -1},
-   'Experiment' : {'indicator' : 'USR0', 'startTime' : 'Waiting', 'startTimeRaw' : 0, 'ON' : 0,'cycles' : 0, 'cycleTime' : 60.0,'threadCount' : 0},
+   'Experiment' : {'indicator' : 'USR0', 'startTime' : 'Waiting', 'startTimeRaw' : 0, 'ON' : 0,'cycles' : 0, 'cycleTime' : 120.0,'threadCount' : 0},
    'Terminal' : {'text' : ''},
    'AS7341' : {
         'spectrum' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0, 'NIR' : 0,'DARK' : 0,'ExtGPIO' : 0, 'ExtINT' : 0, 'FLICKER' : 0},
@@ -1092,30 +1092,39 @@ def CustomProgram(M):
     Params=listin[0]
     addTerminal(M,'Running Program = ' + str(program) + ' on device ' + str(M))
 	
+    registers = {
+                'Pump1': 0x0A,
+                'Pump2': 0x12,
+                'Pump3': 0x1A,
+                'Pump4': 0x22
+            }
 	
     if (program == "C1"):
         # Sterilizing mode
         sysData[M]['Experiment']['cycleTime'] = 30
         pump_time = 2
+        print('Cycle ',sysData[sysItems['chain'][0]]['Experiment']['cycles'])
         if Params[1] == 'transfer':
             for counter, (chain, (reactor, pump)) in enumerate(sysItems['chains'].items()):
-                pump_communication(reactor, pump, 1)
+                I2CCom(reactor, 'Pumps', 0, 8, registers[pump], 1, 0)
                 time.sleep(pump_time+0.5*counter)
-                pump_communication(reactor, pump, 0)
+                I2CCom(reactor, 'Pumps', 0, 8, registers[pump], 0, 0)
                 time.sleep(0.5)
 
     if (program == "C2"):
         # Chain mode
-        if Params[1] == 'transfer':
+        cycle = sysData[sysItems['chain'][0]]['Experiment']['cycles']
+        print('Cycle',cycle)
+        if (Params[1] == 'transfer') & (cycle % 30 == 0):
             for chain, (reactor, pump) in sysItems['chains'].items():
                 source, target = chain.split('-')
                 if source == 'Media':
                     pump_time = float(Params[2])
                 else:
                     pump_time = float(Params[2]) + 1
-                pump_communication(reactor, pump, 1)
+                I2CCom(reactor, 'Pumps', 0, 8, registers[pump], 1, 0)
                 time.sleep(pump_time)
-                pump_communication(reactor, pump, 0)
+                I2CCom(reactor, 'Pumps', 0, 8, registers[pump], 0, 0)
                 time.sleep(float(Params[3]))
     
     return
