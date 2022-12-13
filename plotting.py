@@ -1,4 +1,3 @@
-
 from genericpath import exists
 import plotly.express as px
 import plotly.graph_objects as go
@@ -7,11 +6,11 @@ from os.path import join
 from chibio_parser import cfu_parser
 from chibio_parser import chibio_parser
 import numpy as np
-from model_class import Chain
+from model_temperature import Chain
 import pandas as pd
 
 
-def plot_od(e, multi=True, model=False, chain=None):
+def plot_od_temp(e, multi=True, model=False, chain=None):
     """Creates lineplot for parsed column e.g. od_measured.
     Plots every reactor as subplot.
     """
@@ -26,8 +25,6 @@ def plot_od(e, multi=True, model=False, chain=None):
         fig = px.line(df, x="exp_time", y='od_measured', color='temp',
                       hover_data=['exp_time'],)
 
-    fig = style_plot(e, fig, 'od_measured')
-
     if model:
         temps = df[['reactor', 'temp']].drop_duplicates()['temp'].to_list()
         chain.experiment(int(max(df['exp_time'])))
@@ -37,21 +34,94 @@ def plot_od(e, multi=True, model=False, chain=None):
             name = str(temps[counter]) + ' model'
             fig.add_trace(go.Scatter(x=xs, y=ys, name=name, opacity=0.8),
                           row=1, col=counter + 1)
-        fig = style_plot(e, fig, 'od_measured')
+    fig = style_plot(e, fig, 'od_measured_temp')
 
     return df, fig
 
 
+def plot_od(e, df=False, order=False, multi=True, model=False, chain=None):
+    """Creates lineplot for parsed column e.g. od_measured.
+    Plots every reactor as subplot.
+    """
+
+    if isinstance(df, pd.DataFrame):
+        pass
+
+    else:
+        df, order = chibio_parser(e)
+
+    if multi:
+        fig = px.line(df, x="exp_time", y='od_measured', facet_col="reactor",  hover_data=[
+                      'exp_time'], category_orders={'reactor': order}, title=None)
+        fig.update_traces(opacity=0.8)
+
+    if not multi:
+        fig = px.line(df, x="exp_time", y='od_measured',
+                      hover_data=['exp_time'],)
+
+    if model:
+        chain.experiment(int(max(df['exp_time'])))
+        legend = True
+        for counter, f in enumerate(fig['data']):
+            xs = chain.xs
+            ys = chain.chain[counter].ys
+            fig.add_trace(go.Scatter(x=xs, y=ys, name='Model', opacity=0.8, showlegend=legend),
+                          row=1, col=counter + 1)
+            legend = False
+
+    fig = style_plot(e, fig, 'od_measured')
+
+    return df, fig
+
+
+def plot_community_model(chain):
+    dfs = []
+    for c in chain.chain:
+        df = pd.DataFrame({'x': chain.xs, 'N': c.ys, 'reactor': c.name})
+        dfs.append(df)
+    dfs = pd.concat(dfs)
+    fig = px.line(dfs, x='x', y='N', facet_col='reactor')
+    #fig = style_plot(None, fig, 'od_measured')
+    return fig
+
+
 def plot_species_model(chain):
-    df = pd.DataFrame(columns=['x', 'N', 'species', 'reactor'])
-    i = 0
+    dfs = []
     for c in chain.chain:
         for name, specie in c.species.items():
-            for x, y in zip(specie.xs, specie.ys):
-                df.loc[i] = [x, y, name, c.name]
-                i += 1
-    print(df)
-    fig = px.line(df, x='x', y='N', facet_col='reactor', color='species')
+            df = pd.DataFrame({'x': chain.xs, 'N': specie.ys,
+                              'species': name, 'reactor': c.name})
+            dfs.append(df)
+    #    df = pd.DataFrame({'x': chain.xs, 'N': c.total,
+    #                      'species': 'total', 'reactor': c.name})
+    #    dfs.append(df)
+    dfs = pd.concat(dfs)
+    
+    fig = px.line(dfs, x='x', y='N', facet_col='reactor', color='species')
+    fig = style_plot(None, fig, 'cfus')
+    return fig
+
+
+def plot_dilution_factors(chain):
+    dfs = []
+    for c in chain.chain:
+        df = pd.DataFrame(
+            {'x': chain.x_dilutions, 'dilution factors': c.dilution_factors, 'reactor': c.name})
+        dfs.append(df)
+    dfs = pd.concat(dfs)
+    fig = px.line(dfs, x='x', y='dilution factors', facet_col='reactor')
+    return fig
+
+
+def plot_carrying_capacity(chain):
+    dfs = []
+    chain.x_dilutions.insert(0, 0)
+    for c in chain.chain:
+        df = pd.DataFrame(
+            {'x': chain.x_dilutions, 'carrying capacity': c.Ks, 'reactor': c.name})
+        dfs.append(df)
+    dfs = pd.concat(dfs)
+    fig = px.line(dfs, x='x', y='carrying capacity', facet_col='reactor')
     return fig
 
 
@@ -74,7 +144,7 @@ def plot_species(e):
     df['average'] = df['average'].replace(0, np.nan)
     fig = px.line(df, x="sample_time", y='average', facet_col="reactor",
                   facet_col_wrap=4, category_orders={'reactor': order},
-                  error_y='stdev', color='species', log_y=True, markers=True)
+                  error_y='stdev', color='species', log_y=False, markers=True)
     fig = style_plot(e, fig, 'cfus')
     for annotation, temp in zip(fig.layout.annotations, df[['reactor', 'temp']].drop_duplicates()['temp']):
         annotation['text'] = temp
@@ -122,6 +192,34 @@ def style_plot(e, fig, style, fontsize=14):
         return fig
 
     if style == 'od_measured':
+        fig['data'][0]['showlegend'] = True
+        fig['data'][0]['name'] = 'OD measured'
+        od_measured = '#2c8c5a'
+        model_color = '#82A284'
+        for data in fig['data']:
+            name = data['name']
+            if 'Model' in name:
+                data.line.color = model_color
+            else:
+                data.line.color = od_measured
+
+        fig.for_each_xaxis(
+            lambda axis: axis.title.update(text='Time in hours'))
+        fig.for_each_yaxis(lambda axis: axis.title.update(text='OD'))
+
+        # If file exists with sample times vlines are added
+        if False:
+            f_times = join('data', e, 'sample_times.txt')
+            if exists(f_times):
+                with open(f_times, 'r') as handle:
+                    sample_times = handle.read().rstrip().split(',')
+
+                for sample_time in sample_times:
+                    fig.add_vline(x=sample_time)
+
+        fig.update_layout(height=350)
+
+    if style == 'od_measured_temp':
         temp_colors = {'28.0': '#446A46',
                        '33.0': '#1C3879',
                        '38.0': '#F29393',
@@ -209,11 +307,18 @@ def main():
         df, fig = plot_od(e, multi=False)
         fig.show()
 
-    if mode == 'chibio_model':
+    if mode == 'chibio_model_temp':
         df, order = chibio_parser(e)
         temps = df[['reactor', 'temp']].drop_duplicates()['temp'].to_list()
         chain = Chain(temps)
-        df, fig = plot_od(e, model=True, chain=chain)
+        df, fig = plot_od_temp(e, model=True, chain=chain)
+        fig.show()
+        return df, fig
+
+    if mode == 'chibio_model':
+        df, order = chibio_parser(e)
+        chain = Chain(4)
+        df, fig = plot_od_temp(e, model=True, chain=chain)
         fig.show()
         return df, fig
 
