@@ -1459,10 +1459,14 @@ def CalibrateOD(M,item,value,value2):
         
     return ('', 204)    
     
-    
+def get_od(raw):
+    m = 20088.326750128977
+    t = 2.8021837480524256
+    return np.log(raw/m)/-t
         
 @application.route("/MeasureOD/<M>",methods=['POST'])
 def MeasureOD(M):
+    od_fit = True
     #Measures laser transmission and calculates calibrated OD from this.
     global sysData
     global sysItems
@@ -1473,15 +1477,17 @@ def MeasureOD(M):
     if (device=='LASER650'):
         out=GetTransmission(M,'LASER650',['CLEAR'],1,255)
         sysData[M]['OD0']['raw']=float(out[0])
-    
-        a=sysData[M]['OD0']['LASERa']#Retrieve the calibration factors for OD.
-        b=sysData[M]['OD0']['LASERb'] 
-        try:
-            raw=math.log10(sysData[M]['OD0']['target']/sysData[M]['OD0']['raw'])
-            sysData[M]['OD']['current']=raw*b + raw*raw*a
-        except:
-            sysData[M]['OD']['current']=0;
-            print(str(datetime.now()) + ' OD Measurement exception on ' + str(device))
+        if od_fit:
+            sysData[M]['OD']['current'] = get_od(float(out[0]))
+        else:
+            a=sysData[M]['OD0']['LASERa']#Retrieve the calibration factors for OD.
+            b=sysData[M]['OD0']['LASERb'] 
+            try:
+                raw=math.log10(sysData[M]['OD0']['target']/sysData[M]['OD0']['raw'])
+                sysData[M]['OD']['current']=raw*b + raw*raw*a
+            except:
+                sysData[M]['OD']['current']=0;
+                print(str(datetime.now()) + ' OD Measurement exception on ' + str(device))
     elif (device=='LEDF'):
         out=GetTransmission(M,'LEDF',['CLEAR'],7,255)
 
