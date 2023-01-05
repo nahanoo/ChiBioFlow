@@ -406,15 +406,19 @@ def initialiseAll():
   
     
 def turnEverythingOff(M):
+    no_pumps = True
     # Function which turns off all actuation/hardware.
     for LED in ['LEDA','LEDB','LEDC','LEDD','LEDE','LEDF','LEDG']:
         sysData[M][LED]['ON']=0
         
     sysData[M]['LASER650']['ON']=0
-    sysData[M]['Pump1']['ON']=0
-    sysData[M]['Pump2']['ON']=0
-    sysData[M]['Pump3']['ON']=0
-    sysData[M]['Pump4']['ON']=0
+    if no_pumps:
+        pass
+    else:
+        sysData[M]['Pump1']['ON']=0
+        sysData[M]['Pump2']['ON']=0
+        sysData[M]['Pump3']['ON']=0
+        sysData[M]['Pump4']['ON']=0
     sysData[M]['Stir']['ON']=0
     sysData[M]['Heat']['ON']=0
     sysData[M]['UV']['ON']=0
