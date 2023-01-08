@@ -46,7 +46,7 @@ sysData = {'M0' : {
    'UV' : {'WL' : 'UV', 'default': 0.5, 'target' : 0.0, 'max': 1.0, 'min' : 0.0,'ON' : 0},
    'Heat' : {'default': 0.0, 'target' : 0.0, 'max': 1.0, 'min' : 0.0,'ON' : 0,'record' : []},
    'Thermostat' : {'default': 37.0, 'target' : 0.0, 'max': 50.0, 'min' : 0.0,'ON' : 0,'record' : [],'cycleTime' : 30.0, 'Integral' : 0.0,'last' : -1},
-   'Experiment' : {'indicator' : 'USR0', 'startTime' : 'Waiting', 'startTimeRaw' : 0, 'ON' : 0,'cycles' : 0, 'cycleTime' : 120.0,'threadCount' : 0},
+   'Experiment' : {'indicator' : 'USR0', 'startTime' : 'Waiting', 'startTimeRaw' : 0, 'ON' : 0,'cycles' : 0, 'cycleTime' : 60.0,'threadCount' : 0},
    'Terminal' : {'text' : ''},
    'AS7341' : {
         'spectrum' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0, 'NIR' : 0,'DARK' : 0,'ExtGPIO' : 0, 'ExtINT' : 0, 'FLICKER' : 0},
@@ -80,7 +80,6 @@ sysData = {'M0' : {
                 'LEDG' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}}
    }}
-}
 
 
 
@@ -407,15 +406,19 @@ def initialiseAll():
   
     
 def turnEverythingOff(M):
+    no_pumps = True
     # Function which turns off all actuation/hardware.
     for LED in ['LEDA','LEDB','LEDC','LEDD','LEDE','LEDF','LEDG']:
         sysData[M][LED]['ON']=0
         
     sysData[M]['LASER650']['ON']=0
-    sysData[M]['Pump1']['ON']=0
-    sysData[M]['Pump2']['ON']=0
-    sysData[M]['Pump3']['ON']=0
-    sysData[M]['Pump4']['ON']=0
+    if no_pumps:
+        pass
+    else:
+        sysData[M]['Pump1']['ON']=0
+        sysData[M]['Pump2']['ON']=0
+        sysData[M]['Pump3']['ON']=0
+        sysData[M]['Pump4']['ON']=0
     sysData[M]['Stir']['ON']=0
     sysData[M]['Heat']['ON']=0
     sysData[M]['UV']['ON']=0
@@ -1116,7 +1119,7 @@ def CustomProgram(M):
         # Chain mode
         cycle = sysData[sysItems['chain'][0]]['Experiment']['cycles']
         print('Cycle',cycle)
-        if (Params[1] == 'transfer') & (cycle % 30 == 0):
+        if (Params[1] == 'transfer') & (cycle % 1 == 0):
             for chain, (reactor, pump) in sysItems['chains'].items():
                 source, target = chain.split('-')
                 if source == 'Media':
@@ -1460,10 +1463,14 @@ def CalibrateOD(M,item,value,value2):
         
     return ('', 204)    
     
-    
+def get_od(raw):
+    m = 20088.326750128977
+    t = 2.8021837480524256
+    return np.log(raw/m)/-t
         
 @application.route("/MeasureOD/<M>",methods=['POST'])
 def MeasureOD(M):
+    od_fit = True
     #Measures laser transmission and calculates calibrated OD from this.
     global sysData
     global sysItems
@@ -1474,15 +1481,17 @@ def MeasureOD(M):
     if (device=='LASER650'):
         out=GetTransmission(M,'LASER650',['CLEAR'],1,255)
         sysData[M]['OD0']['raw']=float(out[0])
-    
-        a=sysData[M]['OD0']['LASERa']#Retrieve the calibration factors for OD.
-        b=sysData[M]['OD0']['LASERb'] 
-        try:
-            raw=math.log10(sysData[M]['OD0']['target']/sysData[M]['OD0']['raw'])
-            sysData[M]['OD']['current']=raw*b + raw*raw*a
-        except:
-            sysData[M]['OD']['current']=0;
-            print(str(datetime.now()) + ' OD Measurement exception on ' + str(device))
+        if od_fit:
+            sysData[M]['OD']['current'] = get_od(float(out[0]))
+        else:
+            a=sysData[M]['OD0']['LASERa']#Retrieve the calibration factors for OD.
+            b=sysData[M]['OD0']['LASERb'] 
+            try:
+                raw=math.log10(sysData[M]['OD0']['target']/sysData[M]['OD0']['raw'])
+                sysData[M]['OD']['current']=raw*b + raw*raw*a
+            except:
+                sysData[M]['OD']['current']=0;
+                print(str(datetime.now()) + ' OD Measurement exception on ' + str(device))
     elif (device=='LEDF'):
         out=GetTransmission(M,'LEDF',['CLEAR'],7,255)
 
