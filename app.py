@@ -412,29 +412,30 @@ def turnEverythingOff(M):
         sysData[M][LED]['ON']=0
         
     sysData[M]['LASER650']['ON']=0
-    if no_pumps:
-        pass
-    else:
-        sysData[M]['Pump1']['ON']=0
-        sysData[M]['Pump2']['ON']=0
-        sysData[M]['Pump3']['ON']=0
-        sysData[M]['Pump4']['ON']=0
+    sysData[M]['Pump1']['ON']=0
+    sysData[M]['Pump2']['ON']=0
+    sysData[M]['Pump3']['ON']=0
+    sysData[M]['Pump4']['ON']=0
     sysData[M]['Stir']['ON']=0
     sysData[M]['Heat']['ON']=0
     sysData[M]['UV']['ON']=0
     
     I2CCom(M,'DAC',0,8,int('00000000',2),int('00000000',2),0)#Sets all DAC Channels to zero!!! 
     setPWM(M,'PWM',sysItems['All'],0,0)
-    setPWM(M,'Pumps',sysItems['All'],0,0)
+    if no_pumps:
+        pass
+    else:
+        setPWM(M,'Pumps',sysItems['All'],0,0)
+        SetOutputOn(M,'Pump1',0)
+        SetOutputOn(M,'Pump2',0)
+        SetOutputOn(M,'Pump3',0)
+        SetOutputOn(M,'Pump4',0)
     
     SetOutputOn(M,'Stir',0)
     SetOutputOn(M,'Thermostat',0)
     SetOutputOn(M,'Heat',0)
     SetOutputOn(M,'UV',0)
-    SetOutputOn(M,'Pump1',0)
-    SetOutputOn(M,'Pump2',0)
-    SetOutputOn(M,'Pump3',0)
-    SetOutputOn(M,'Pump4',0)
+    
     
 
 
