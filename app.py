@@ -1465,9 +1465,30 @@ def CalibrateOD(M,item,value,value2):
     return ('', 204)    
     
 def get_od(raw):
-    m = 16839.396879487187
-    t = 3.711037240403797
-    return np.log(raw/m)/-t
+    a = {
+        "average": {
+            0: 13772.666666666666,
+            1: 11260.166666666666,
+            2: 5349.0,
+            3: 1366.8333333333335,
+            4: 447.33333333333337,
+            5: 89.83333333333334,
+            6: 27.5,
+            7: 10.0,
+        },
+        "od": {0: 0.06, 1: 0.11, 2: 0.3, 3: 0.72, 4: 1.1, 5: 2.0, 6: 3.7, 7: 6.0},
+    }
+    if raw >= a.at[0,'average']:
+        return 0.05
+    elif raw <= a.at[len(a) - 1,'average'] :
+        return 7
+    for i,r in enumerate(a['average']):
+        if raw > r:
+            xs = [a.at[i,'average'],a.at[i -1,'average']]
+            ys = [a.at[i,'od'],a.at[i -1,'od']]
+            m = (ys[1] - ys[0]) / (xs[1] - xs[0])
+            b = ys[0] - m * xs[0]
+            return m * raw + b
         
 @application.route("/MeasureOD/<M>",methods=['POST'])
 def MeasureOD(M):
