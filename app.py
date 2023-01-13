@@ -78,7 +78,17 @@ sysData = {'M0' : {
                 'LEDE' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDF' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDG' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
-                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}}
+                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}},
+    'raw_ods'  : [
+        (13772.666666666666, 0.06),
+        (11260.166666666666, 0.11),
+        (5349.0, 0.3),
+        (1366.8333333333335, 0.72),
+        (447.33333333333337, 1.1),
+        (89.83333333333334, 2.0),
+        (27.5, 3.7),
+        (10.0, 6.0),
+        ]  
    }}
 
 
@@ -412,16 +422,21 @@ def turnEverythingOff(M):
         sysData[M][LED]['ON']=0
         
     sysData[M]['LASER650']['ON']=0
-    sysData[M]['Pump1']['ON']=0
-    sysData[M]['Pump2']['ON']=0
-    sysData[M]['Pump3']['ON']=0
-    sysData[M]['Pump4']['ON']=0
     sysData[M]['Stir']['ON']=0
     sysData[M]['Heat']['ON']=0
     sysData[M]['UV']['ON']=0
+    if no_pumps:
+        pass
+    else:
+        setPWM(M,'PWM',sysItems['All'],0,0)
+        sysData[M]['Pump1']['ON']=0
+        sysData[M]['Pump2']['ON']=0
+        sysData[M]['Pump3']['ON']=0
+        sysData[M]['Pump4']['ON']=0
+    
     
     I2CCom(M,'DAC',0,8,int('00000000',2),int('00000000',2),0)#Sets all DAC Channels to zero!!! 
-    setPWM(M,'PWM',sysItems['All'],0,0)
+    
     if no_pumps:
         pass
     else:
@@ -1465,27 +1480,15 @@ def CalibrateOD(M,item,value,value2):
     return ('', 204)    
     
 def get_od(raw):
-    a = {
-        "average": {
-            0: 13772.666666666666,
-            1: 11260.166666666666,
-            2: 5349.0,
-            3: 1366.8333333333335,
-            4: 447.33333333333337,
-            5: 89.83333333333334,
-            6: 27.5,
-            7: 10.0,
-        },
-        "od": {0: 0.06, 1: 0.11, 2: 0.3, 3: 0.72, 4: 1.1, 5: 2.0, 6: 3.7, 7: 6.0},
-    }
-    if raw >= a.at[0,'average']:
+    raw_ods = sysData[M]['raw_ods']
+    if raw >= raw_ods[0][0]:
         return 0.05
-    elif raw <= a.at[len(a) - 1,'average'] :
+    elif raw <= raw_ods[-1][0] :
         return 7
-    for i,r in enumerate(a['average']):
+    for i,(r,od) in enumerate(raw_ods):
         if raw > r:
-            xs = [a.at[i,'average'],a.at[i -1,'average']]
-            ys = [a.at[i,'od'],a.at[i -1,'od']]
+            xs = [r,raw_ods[i - 1][0]]
+            ys = [od,raw_ods[i - 1][1]]
             m = (ys[1] - ys[0]) / (xs[1] - xs[0])
             b = ys[0] - m * xs[0]
             return m * raw + b
