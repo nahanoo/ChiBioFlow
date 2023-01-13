@@ -1465,8 +1465,8 @@ def CalibrateOD(M,item,value,value2):
     return ('', 204)    
     
 def get_od(raw):
-    m = 20088.326750128977
-    t = 2.8021837480524256
+    m = 16839.396879487187
+    t = 3.711037240403797
     return np.log(raw/m)/-t
         
 @application.route("/MeasureOD/<M>",methods=['POST'])
