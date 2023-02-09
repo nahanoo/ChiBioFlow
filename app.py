@@ -78,7 +78,17 @@ sysData = {'M0' : {
                 'LEDE' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDF' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
                 'LEDG' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0},
-                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}}
+                'LASER650' : {'nm410' : 0, 'nm440' : 0, 'nm470' : 0, 'nm510' : 0, 'nm550' : 0, 'nm583' : 0, 'nm620' : 0, 'nm670' : 0,'CLEAR' : 0,'NIR' : 0}},
+    'raw_ods'  : [
+        (12946.666666666666, 0.06),
+        (10381.0, 0.11),
+        (5177.0, 0.3),
+        (1298.2222222222224, 0.72),
+        (425.5555555555556, 1.1),
+        (84.8888888888889, 2.0),
+        (26.11111111111111, 3.7),
+        (10.0, 6.0),
+        ]  
    }}
 
 
@@ -412,29 +422,35 @@ def turnEverythingOff(M):
         sysData[M][LED]['ON']=0
         
     sysData[M]['LASER650']['ON']=0
+    sysData[M]['Stir']['ON']=0
+    sysData[M]['Heat']['ON']=0
+    sysData[M]['UV']['ON']=0
     if no_pumps:
         pass
     else:
+        setPWM(M,'PWM',sysItems['All'],0,0)
         sysData[M]['Pump1']['ON']=0
         sysData[M]['Pump2']['ON']=0
         sysData[M]['Pump3']['ON']=0
         sysData[M]['Pump4']['ON']=0
-    sysData[M]['Stir']['ON']=0
-    sysData[M]['Heat']['ON']=0
-    sysData[M]['UV']['ON']=0
+    
     
     I2CCom(M,'DAC',0,8,int('00000000',2),int('00000000',2),0)#Sets all DAC Channels to zero!!! 
-    setPWM(M,'PWM',sysItems['All'],0,0)
-    setPWM(M,'Pumps',sysItems['All'],0,0)
+    
+    if no_pumps:
+        pass
+    else:
+        setPWM(M,'Pumps',sysItems['All'],0,0)
+        SetOutputOn(M,'Pump1',0)
+        SetOutputOn(M,'Pump2',0)
+        SetOutputOn(M,'Pump3',0)
+        SetOutputOn(M,'Pump4',0)
     
     SetOutputOn(M,'Stir',0)
     SetOutputOn(M,'Thermostat',0)
     SetOutputOn(M,'Heat',0)
     SetOutputOn(M,'UV',0)
-    SetOutputOn(M,'Pump1',0)
-    SetOutputOn(M,'Pump2',0)
-    SetOutputOn(M,'Pump3',0)
-    SetOutputOn(M,'Pump4',0)
+    
     
 
 
@@ -1464,9 +1480,18 @@ def CalibrateOD(M,item,value,value2):
     return ('', 204)    
     
 def get_od(raw):
-    m = 20088.326750128977
-    t = 2.8021837480524256
-    return np.log(raw/m)/-t
+    raw_ods = sysData[M]['raw_ods']
+    if raw >= raw_ods[0][0]:
+        return 0.05
+    elif raw <= raw_ods[-1][0] :
+        return 7
+    for i,(r,od) in enumerate(raw_ods):
+        if raw > r:
+            xs = [r,raw_ods[i - 1][0]]
+            ys = [od,raw_ods[i - 1][1]]
+            m = (ys[1] - ys[0]) / (xs[1] - xs[0])
+            b = ys[0] - m * xs[0]
+            return m * raw + b
         
 @application.route("/MeasureOD/<M>",methods=['POST'])
 def MeasureOD(M):

@@ -2253,7 +2253,7 @@ def runExperiment(M, placeholder):
     global sysItems
     global sysDevices
 
-    fname = 'InputParameters_M0.csv'
+    fname = 'config.csv'
 
     with open(fname, 'r') as f:
         reader = csv.reader(f)
