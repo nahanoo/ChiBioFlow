@@ -29,7 +29,7 @@ def cfu_parser(e):
     counts = []
     for count, dilution in zip(df['count'], df['dilution']):
         # Conversion to CFUs/mL sample volume 5 uL
-        counts.append([(int(n)/10**dilution) * 50 for n in count.split('|')])
+        counts.append([(int(n)/10**dilution) * 100 for n in count.split('|')])
     # Calculating average and stdev
     df['average'] = [mean(count) for count in counts]
     df['stdev'] = [stdev(count) for count in counts]
@@ -46,7 +46,7 @@ def cfu_parser(e):
                 df.at[i, 'total'] = total
     # Adding composition
     df.insert(len(df.columns), 'composition', None)
-    df['composition'] = 100 / df['total'] * df['average']
+    df['composition'] = df['average'] / df['total']
 
     df.insert(len(df.columns),'temp',None)
     temps = {}
@@ -63,7 +63,7 @@ def cfu_parser(e):
     return df, order
 
 
-def chibio_parser(e, c='od_measured', down_sample=True, sample_size=5):
+def chibio_parser(e, c='od_measured', down_sample=False, sample_size=5):
     def average(df):
         out = pd.DataFrame(columns=['exp_time', 'od_measured'])
         i = 0
