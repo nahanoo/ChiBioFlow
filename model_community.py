@@ -8,7 +8,7 @@ class Chemostat():
         self.K = 1.5
         self.K_init = self.K
         self.Ks = [self.K]
-        self.r = 0.303129065
+        self.r = 0.28
         self.N = 0
 
         # Modelling values
@@ -22,7 +22,7 @@ class Chemostat():
 
     def model_exponential(self, N, t):
         # Simple logistic model
-        return self.r * N 
+        return self.r * N
 
 
 class Chain():
@@ -37,8 +37,6 @@ class Chain():
         self.xs = np.ndarray(0)
         self.x_dilutions = []
         self.model = 'logistic'
-        self.reduce_carrying_capacity = False
-
 
     def get_dilution(self):
         # This function calculates the dilution rate for steady state
@@ -46,7 +44,7 @@ class Chain():
         c1 = self.chain[0]
         # Calculating OD after 1 hour to calculate necessary dilution
         N1 = [e[0] for e in odeint(c1.model_logistic, c1.N, [0, 1])][-1]
-        return  (self.volume * (N1 - c1.N) / c1.N) / self.volume
+        return (self.volume * (N1 - c1.N) / c1.N) / self.volume
 
     def dilute(self):
         # Function that simulates a dilution row
@@ -61,7 +59,7 @@ class Chain():
             N0 = c.N
             c.N = (N_in * self.v_trans + c.N * self.volume) / \
                 (self.v_trans + self.volume)
-            c.dilution_factors.append(N0/c.N)
+            c.dilution_factors.append(self.transfer_rate*(N0/c.N - 1))
 
     def carrying_capacity(self):
         # Recalculates carrying capacity for every reactor
@@ -90,22 +88,21 @@ class Chain():
                     # No transfers in the first cycle
                     self.dilute()
                     self.x_dilutions.append(xs[0])
-                    if self.carrying_capacity:
-                        self.carrying_capacity()
+                    self.carrying_capacity()
                 for c in self.chain:
                     # Modelled OD values
                     N0 = c.N
                     if self.model == 'logistic':
                         ys = [e[0] for e in odeint(c.model_logistic, c.N, xs)]
                     else:
-                        ys = [e[0] for e in odeint(c.model_exponential, c.N, xs)]
+                        ys = [e[0]
+                              for e in odeint(c.model_exponential, c.N, xs)]
                     c.ys = np.concatenate([c.ys, ys])
                     # Storing latest OD
                     c.N = c.ys[-1]
                     # Carrying capacity reduces by neto growth
-                    if self.reduce_carrying_capacity:
-                        net_N = ys[-1] - ys[0]
-                        c.K = c.K - net_N
+                    net_N = ys[-1] - ys[0]
+                    #c.K = c.K - net_N
 
         if self.transfer_rate == 0:
             # Models growth curves with no dilutions
