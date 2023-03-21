@@ -20,19 +20,19 @@ class Chemostat():
         self.ys = None
         self.xs = np.arange(0, self.t, 0.5)
         self.Rs = None"""
-        """# Ct citrate
-        self.N0 = 0.1
-        self.Ks = 13129.815784939075
-        self.M = 11553.3127304115
+        # Ct citrate
+        self.N0 = 25.333333333333332E8
+        self.Ks = 13089.999999999996
+        self.M = 9550
         self.r = 0.24
         self.D = 0.1
-        self.t = 72
-        self.q = 7.387404930499518e-05
+        self.t = 200
+        self.q = 1072727.2727272727
         self.ys = None
-        self.xs = np.arange(0, self.t, 0.5)"""
+        self.xs = np.arange(0, self.t, 0.5)
         self.Rs = None
         # Oa citrate
-        self.N0 = 0.1
+        """self.N0 = 0.1
         self.Ks = 21924
         self.M = 11553.3127304115
         self.r = 0.38
@@ -41,7 +41,7 @@ class Chemostat():
         self.q = 7.387404930499518e-05/1.3
         self.ys = None
         self.xs = np.arange(0, self.t, 0.5)
-        self.Rs = None
+        self.Rs = None"""
     def model_steady_state(self):
         return self.q * (self.M - self.Ks * self.D / (self.r - self.D))
 
