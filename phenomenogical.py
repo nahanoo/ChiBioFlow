@@ -10,18 +10,18 @@ rTOa = 0.32
 rGOa = 0.32
 rGAt = 0.27
 KCOa = 7027
-KGOa = 7027
+KGOa = 8000
 KCCt = 6874
 KGAt = 6500
 KTOa = 0.015
-qCCt = 909280 / 4
-qCOa = 4321535 / 4
-qGOa = 4321535 / 8
-qGAt = 4321535 / 4
+qCCt = 909280 / 2
+qCOa = 4321535 / 2
+qGOa = 4321535 / 4
+qGAt = 4321535 / 8
 qTOa = 1E15
 MC = 10000
 MG = 15000
-xs = np.arange(0, 2000, 0.5)
+xs = np.arange(0, 400, 0.5)
 D = 0.15
 
 
@@ -47,12 +47,12 @@ def thiamin(y, t):
     return [dC, dG, dT, dCt, dOa, dAt]
 
 
-y = odeint(thiamin, [MC, MG, 10, 1E9, 10E9, 10E9], xs)
+y = odeint(thiamin, [MC/2, MG/2,0, 1E7, 7E7, 5E7], xs)
 C, G, T, Ct, Oa, At = y[:, 0], y[:, 1], y[:, 2], y[:, 3], y[:, 4], y[:, 5]
 i = len(y)
 df = pd.DataFrame()
-df['x'], df['y'], df['species'] = np.concatenate([xs, xs, xs, xs]), np.concatenate([Ct, Oa, At, Ct + Oa + At]),\
-    np.concatenate([i * ['Ct'], i*['Oa'], i*['At'], i*['total']])
+df['x'], df['y'], df['species'] = np.concatenate([xs, xs, xs]), np.concatenate([Ct, Oa, At]),\
+    np.concatenate([i * ['Ct'], i*['Oa'], i*['At']]) # , i*['total'] , Ct + Oa + At , xs
 
 fig = px.line(df, x='x', y='y', color='species', log_y=True)
 fig.show()
