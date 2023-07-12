@@ -55,47 +55,130 @@ def merge():
 
 
 def competition():
-    out = pd.DataFrame(columns=['D', 'cond', 'CFUs', 'sample_time'])
+    figs = []
+    dfs = []
+    out = pd.DataFrame(
+        columns=['D', 'cond', 'CFUs', 'sample_time', 'total', 'species'])
     df, o = cfu_parser('citrate_thiamine_merged')
     # df.astype({'sample_time':'float'})
     df = df[df['sample_time'] < 213]
     conditions = {'M0': 'mono_thiamine', 'M2': 'mono',
                   'M4': 'comm', 'M5': 'comm_thiamine'}
-    for r, s, c, t in zip(df['reactor'], df['species'], df['average'], df['sample_time']):
-        if (r in conditions.keys()) & (s == 'ct'):
-            out.loc[len(out)] = [0.04, conditions[r], c, t]
+    for r, s, c, t, a in zip(df['reactor'], df['species'], df['average'], df['sample_time'], df['total']):
+        if (r in conditions.keys()):
+            out.loc[len(out)] = [0.04, conditions[r], c, t, a, s]
+    out.loc[len(out)] = [0.04, 'mono_thiamine', 1.43E9, 115, None, 'oa']
+    out.loc[len(out)] = [0.04, 'mono_thiamine', 1.4E9, 120, None, 'oa']
 
-    fig = px.box(out, x='cond', hover_data=['sample_time'], y='CFUs', log_y=True, category_orders={
-        'cond': ['mono', 'comm', 'mono_thiamine', 'comm_thiamine']}, points='all', height=250, width=400)
+    out.loc[len(out)] = [0.04, 'mono', 7E8, 115, None, 'oa']
+    out.loc[len(out)] = [0.04, 'mono', 6.3E8, 120, None, 'oa']
+
+    fig = px.box(out, x='cond', hover_data=['sample_time'], y='CFUs', log_y=True, title='ct_04', category_orders={
+        'cond': ['mono', 'comm', 'mono_thiamine', 'comm_thiamine']}, points='all', height=250, width=400, color='species')
     fig.update_traces(boxmean=True, quartilemethod="exclusive",
                       pointpos=0, jitter=1)
-    fig.show()
+    fig.update_layout(boxgroupgap=0, boxgap=0.2, boxmode='overlay')
+    dfs.append(out)
+    figs.append(fig)
 
-    out = pd.DataFrame(columns=['D', 'cond', 'CFUs'])
+    out = pd.DataFrame(columns=['D', 'cond', 'CFUs', 'total', 'species'])
     df, o = cfu_parser('citrate_thiamine_merged')
     # df.astype({'sample_time':'float'})
-    df = df[df['sample_time'] > 213]
+    df = df[(df['sample_time'] > 213) & (df['sample_time'] < 381)]
     conditions = {'M0': 'mono_thiamine', 'M2': 'mono',
                   'M4': 'comm', 'M5': 'comm_thiamine'}
-    for r, s, c in zip(df['reactor'], df['species'], df['average']):
+    for r, s, c, a in zip(df['reactor'], df['species'], df['average'], df['total']):
         if (r in conditions.keys()) & (s == 'ct'):
-            out.loc[len(out)] = [0.04, conditions[r], c]
+            out.loc[len(out)] = [0.15, conditions[r], c, a, s]
 
-    fig = px.box(out, x='cond', y='CFUs', log_y=True,  category_orders={
+    fig = px.box(out, x='cond', y='CFUs', log_y=True, title='ct_0.15', color='species', category_orders={
         'cond': ['mono', 'comm', 'mono_thiamine', 'comm_thiamine']}, points='all', height=250, width=400)
     fig.update_traces(boxmean=True, quartilemethod="exclusive",
                       pointpos=0, jitter=1)
-    fig.show()
+    figs.append(fig)
+    dfs.append(out)
 
+    out = pd.DataFrame(columns=['D', 'cond', 'CFUs', 'total', 'species'])
+    df, o = cfu_parser('citrate_thiamine_merged')
+    # df.astype({'sample_time':'float'})
+    df = df[df['sample_time'] > 381]
+    conditions = {'M0': 'mono_thiamine', 'M2': 'mono',
+                  'M4': 'comm', 'M5': 'comm_thiamine'}
+    for r, s, c, a in zip(df['reactor'], df['species'], df['average'], df['total']):
+        if (r in conditions.keys()) & (s == 'ct'):
+            out.loc[len(out)] = [0.085, conditions[r], c, a, s]
 
-titles = ['Oa', 'Ct + Oa', 'Ct + Oa + Thiamine',
-          'Ct + Thiamine', 'Oa + Thiamine', 'Ct']
+    fig = px.box(out, x='cond', y='CFUs', log_y=True, title='ct_0.085', color='species', category_orders={
+        'cond': ['mono', 'comm', 'mono_thiamine', 'comm_thiamine']}, points='all', height=250, width=400)
+    fig.update_traces(boxmean=True, quartilemethod="exclusive",
+                      pointpos=0, jitter=1)
+    dfs.append(out)
+    figs.append(fig)
+    df = pd.concat(dfs)
+    ct = df[df['species'] == 'ct']
+    fig = px.box(ct, x='D', y='CFUs', log_y=True, title='ct_ds', color='species', height=250, width=600, category_orders={
+                 'D': [0.04, 0.085, 0.15]}, points='all', facet_col='cond')
+    fig.update_traces(boxmean=True, quartilemethod="exclusive",
+                      pointpos=0, jitter=1)
+    fig.update_layout(boxgroupgap=0, boxgap=0.2, boxmode='overlay')
+    fig.update_xaxes(type='category')
+    figs.append(fig)
+    total = df[(df['cond'] == 'comm') | (
+        df['cond'] == 'comm_thiamine')].drop_duplicates()
+    fig = fig = px.box(total, x='D', y='total', log_y=True, title='total_comm', height=250, width=600, category_orders={
+        'D': [0.04, 0.085, 0.15]}, points='all', facet_col='cond')
+    fig.update_traces(boxmean=True, quartilemethod="exclusive",
+                      pointpos=0, jitter=1)
+    fig.update_layout(boxgroupgap=0, boxgap=0.2, boxmode='overlay')
+    fig.update_xaxes(type='category')
+    figs.append(fig)
+    return figs
 
+def competition_line():
+    figs = []
+    out = pd.DataFrame(
+        columns=['D', 'cond', 'CFUs', 'sample_time', 'total', 'species', 'media', 'mono'])
+    df, o = cfu_parser('citrate_thiamine_merged')
+    # df.astype({'sample_time':'float'})
+    conditions = {'M0': 'mono_thiamine', 'M2': 'mono',
+                'M4': 'comm', 'M5': 'comm_thiamine'}
+    for r, s, c, t, a in zip(df['reactor'], df['species'], df['average'], df['sample_time'], df['total']):
+        if (r in conditions.keys()):
+            if 'thiamine' in conditions[r]:
+                m = 'Citric acid + Thiamine'
+            else:
+                m = 'Citric acid'
+            if 'mono' in conditions[r]:
+                presence = 'mono'
+            else:
+                presence = 'co'
+            out.loc[len(out)] = [0.04, conditions[r], c, t, a, s, m, presence]
+    out.loc[len(out)] = [0.04, 'mono_thiamine', 1.43E9, 115,
+                        None, 'oa', 'Citric acid + Thiamine', 'mono']
+    out.loc[len(out)] = [0.04, 'mono_thiamine', 1.4E9, 120,
+                        None, 'oa', 'Citric acid + Thiamine', 'mono']
+
+    out.loc[len(out)] = [0.04, 'mono', 7E8, 115, None, 'oa', 'Citric acid', 'mono']
+    out.loc[len(out)] = [0.04, 'mono', 6.3E8, 120,
+                        None, 'oa', 'Citric acid', 'mono']
+    df04 = out[out['sample_time'] < 213]
+    fig = px.line(df04, x='sample_time', category_orders={'media': ['Citric acid', 'Citric acid + Thiamine']} hover_data=[
+                'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+
+    df15 = out[(out['sample_time'] > 213) & (out['sample_time'] < 381)]
+    fig = px.line(df15, x='sample_time', hover_data=[
+                'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+
+    df085 = out[out['sample_time'] > 381]
+    fig = px.line(df085, x='sample_time', hover_data=[
+                'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+
+    figs.append(fig)
+    return figs
 
 dilution_rates = {0.04: [45.5, 212.97], 0.15: [
-    212.97, 381.466], 0.085: [381.466, 481.89], 'all': [45.4, 481.89]}
+    212.97, 381.466], 0.085: [381.466, 619], 'all': [45.4, 619]}
 reactors = {'M0': ['ct'], 'M2': ['ct'], 'M4': ['ct', 'oa'], 'M5': ['ct', 'oa']}
-
 
 def dump_dfs():
     od = chibio_parser('citrate_thiamine_merged', down_sample=True)[0]
@@ -119,23 +202,27 @@ def dump_dfs():
 
 
 def plot():
+    base_dir = join('/', 'home', 'eric', 'ChiBioFlow',
+                    'data', 'citrate_thiamine_merged')
     colors = ['#8872cd', '#e27e50']
-    names = {'ct':'Ct',
-           'oa':'Oa',
-           'OD':'OD'}
+    names = {'ct': 'Ct',
+             'oa': 'Oa',
+             'OD': 'OD'}
+    title = ['Ct, C + T', 'Ct, C', 'Ct + Oa, C', 'Ct + Oa, C + T']
+    figs = []
     for dr, period in dilution_rates.items():
         y_od = []
         y_cfus = []
         fig = make_subplots(rows=2, cols=len(reactors.keys()))
         for j, (r, species) in enumerate(reactors.items()):
             dr = str(dr)
-            od = pd.read_csv(join('dfs', r, dr, 'od.csv'))
+            od = pd.read_csv(join(base_dir, 'dfs', r, dr, 'od.csv'))
             fig.add_trace(go.Scatter(x=od['exp_time'], y=od['measurement'],
                                      marker=dict(color='#454242'), name='OD', mode="lines", yaxis='y1'), row=1, col=1+j)
             y_od.append(fig['data'][-1]['yaxis'])
             for i, s in enumerate(species):
-                cfus = pd.read_csv(join('dfs', r, dr, s + '.csv'))
-                fig.add_trace(go.Scatter(x=cfus['sample_time'],
+                cfus = pd.read_csv(join(base_dir, 'dfs', r, dr, s + '.csv'))
+                fig.add_trace(go.Scatter(x=cfus['sample_time'], error_y=dict(type='data', array=cfus['stdev'], visible=True),
                                          y=cfus['average'], marker=dict(color=colors[i]), name=s), row=2, col=1+j)
                 y_cfus.append(fig['data'][-1]['yaxis'])
         for axis in fig['layout']:
@@ -157,4 +244,5 @@ def plot():
         for t in ts:
             fig.add_vline(x=t, opacity=0.3)
         fig.show()
-        return fig
+        figs.append(fig)
+    return figs
