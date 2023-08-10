@@ -134,15 +134,20 @@ def competition():
     figs.append(fig)
     return figs
 
+
+dilution_rates = {0.04: [45.5, 212.97], 0.15: [
+    212.97, 381.466], 0.085: [381.466, 619], 'all': [45.4, 619]}
+reactors = {'M0': ['ct'], 'M2': ['ct'], 'M4': ['ct', 'oa'], 'M5': ['ct', 'oa']}
+
 def competition_line():
     figs = []
     out = pd.DataFrame(
-        columns=['D', 'cond', 'CFUs', 'sample_time', 'total', 'species', 'media', 'mono'])
+        columns=['D', 'cond', 'CFUs', 'sample_time', 'total', 'species', 'media', 'mono', 'reactor','error'])
     df, o = cfu_parser('citrate_thiamine_merged')
     # df.astype({'sample_time':'float'})
     conditions = {'M0': 'mono_thiamine', 'M2': 'mono',
-                'M4': 'comm', 'M5': 'comm_thiamine'}
-    for r, s, c, t, a in zip(df['reactor'], df['species'], df['average'], df['sample_time'], df['total']):
+                  'M4': 'comm', 'M5': 'comm_thiamine'}
+    for r, s, c, t, a,e in zip(df['reactor'], df['species'], df['average'], df['sample_time'], df['total'],df['stdev']):
         if (r in conditions.keys()):
             if 'thiamine' in conditions[r]:
                 m = 'Citric acid + Thiamine'
@@ -152,33 +157,37 @@ def competition_line():
                 presence = 'mono'
             else:
                 presence = 'co'
-            out.loc[len(out)] = [0.04, conditions[r], c, t, a, s, m, presence]
+            out.loc[len(out)] = [0.04, conditions[r], c,
+                                 t, a, s, m, presence, r,e]
     out.loc[len(out)] = [0.04, 'mono_thiamine', 1.43E9, 115,
-                        None, 'oa', 'Citric acid + Thiamine', 'mono']
+                         None, 'oa', 'Citric acid + Thiamine', 'mono', 'M1',4.16E8]
     out.loc[len(out)] = [0.04, 'mono_thiamine', 1.4E9, 120,
-                        None, 'oa', 'Citric acid + Thiamine', 'mono']
+                         None, 'oa', 'Citric acid + Thiamine', 'mono', 'M1',2.64E8]
 
-    out.loc[len(out)] = [0.04, 'mono', 7E8, 115, None, 'oa', 'Citric acid', 'mono']
+    out.loc[len(out)] = [0.04, 'mono', 7E8, 115, None,
+                         'oa', 'Citric acid', 'mono', 'M3',3E8]
     out.loc[len(out)] = [0.04, 'mono', 6.3E8, 120,
-                        None, 'oa', 'Citric acid', 'mono']
+                         None, 'oa', 'Citric acid', 'mono', 'M3',1.5E8]
     df04 = out[out['sample_time'] < 213]
-    fig = px.line(df04, x='sample_time', category_orders={'media': ['Citric acid', 'Citric acid + Thiamine']} hover_data=[
-                'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+    fig = px.line(df04, x='sample_time',error_y='error', category_orders={'media': ['Citric acid', 'Citric acid + Thiamine']}, hover_data=[
+        'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+    figs.append(fig)
 
     df15 = out[(out['sample_time'] > 213) & (out['sample_time'] < 381)]
-    fig = px.line(df15, x='sample_time', hover_data=[
-                'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+    fig = px.line(df15, x='sample_time',error_y='error', category_orders={'media': ['Citric acid', 'Citric acid + Thiamine']}, hover_data=[
+        'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+    figs.append(fig)
 
     df085 = out[out['sample_time'] > 381]
-    fig = px.line(df085, x='sample_time', hover_data=[
-                'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
-
+    fig = px.line(df085, x='sample_time', error_y='error',category_orders={'media': ['Citric acid', 'Citric acid + Thiamine']}, hover_data=[
+        'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
+    figs.append(fig)
+    fig = px.line(out, x='sample_time', error_y='error',category_orders={'media': ['Citric acid', 'Citric acid + Thiamine']}, hover_data=[
+        'sample_time'], y='CFUs', log_y=True, title='ct_04', facet_col='media', color='species', line_dash='mono')
     figs.append(fig)
     return figs
 
-dilution_rates = {0.04: [45.5, 212.97], 0.15: [
-    212.97, 381.466], 0.085: [381.466, 619], 'all': [45.4, 619]}
-reactors = {'M0': ['ct'], 'M2': ['ct'], 'M4': ['ct', 'oa'], 'M5': ['ct', 'oa']}
+
 
 def dump_dfs():
     od = chibio_parser('citrate_thiamine_merged', down_sample=True)[0]
