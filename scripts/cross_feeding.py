@@ -109,9 +109,7 @@ def constant_thiamine(D):
 
 def thiamine_cross_feeding(D,xs):
     colors = {'<i>O. anthropi</i> com': '#e27e50',
-              '<i>O. anthropi</i> mono': '#f25005',
-              '<i>C. testosteroni</i> com': '#8872cd',
-              '<i>C. testosteroni</i> mono': '#4725b0'}
+              '<i>C. testosteroni</i> com': '#8872cd'}
     dfs = []
     y0 = [M, 0, 1E8,1E8]
     y = odeint(fixed_thiamin, y0, xs, args=(None, 5E-6, D))
@@ -128,19 +126,7 @@ def thiamine_cross_feeding(D,xs):
     """df = pd.DataFrame(columns=['x', 'y', 'species', 'linegroup'])
     df['x'], df['y'], df['species'], df['linegroup'], df['T'], df['C'] = xs, y[:,
                                                                                3] + y[:, 2], 'total', None, y[:, 1], y[:, 0]"""
-    y0 = [M,1E8]
-    y = odeint(ct,y0,xs,args=(D,))
-    df = pd.DataFrame()
-    df['x'], df['y'], df['species'], df['linegroup'], df['T'], df['C'] = xs, y[:,1], '<i>C. testosteroni</i> mono', None, None, y[:, 0]
-    dfs.append(df)
-
-    y0 = [M,1E8]
-    y = odeint(oa,y0,xs,args=(D,1.5))
-    df = pd.DataFrame()
-    df['x'], df['y'], df['species'], df['linegroup'], df['T'], df['C'] = xs, y[:,1], '<i>O. anthropi</i> mono', None, None, y[:, 0]
-    dfs.append(df)
-
-
+    
 
     out = pd.concat(dfs)
     fig = px.line(out, x='x', y='y',
