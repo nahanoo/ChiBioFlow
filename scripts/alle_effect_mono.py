@@ -3,10 +3,12 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from os.path import join
+from matplotlib import pyplot as plt
+
 
 # Two resources species can only grow on one of them
 # Vector [R1_Ct,R2_Oa]
-r = [0.28,0.425]
+r = [0.28, 0.425]
 
 # [R1_Ct,R2_Oa,T_Oa]
 K = [7, 7, 1.5E-5]
@@ -26,8 +28,19 @@ u = [0, 0]
 a = 5E-6
 
 # Simulation parameters
-xs = np.arange(0, 2000, 0.5)
+xs = np.arange(0, 100, 1)
 y0 = M + N0
+
+
+def rates_model(y, t, D):
+    # Thiamine production rate j
+    # Thiamine consumtion rate w
+    R1, T, Ct, Oa = y
+    uCt = r[0] * R1 / (R1 + K[0])
+    uOa = min(r[1] * R1 / (R1 + K[1]), r[1] * T / (T + K[2]))
+    j = uCt
+    w = r[1] * T / (T + K[2])
+    return [uCt, uOa, j, w]
 
 
 def model(y, t, D):
@@ -44,13 +57,57 @@ def model(y, t, D):
     return [dR1, dT, dCt, dOa]
 
 
-def rates(y,t,D):
-    f = model(y,t,D)
-    return(f[2],f[3])
+D = 0
+y = odeint(model, y0, xs, args=(D,))
+rates = []
+for i, l in enumerate(y):
+    rates.append(rates_model(l, xs[i], D))
+rates = np.array(rates)
+uCt, uOa, j, w = rates[:, 0], rates[:, 1], rates[:, 2], rates[:, 3]
+plt.plot(xs,uCt)
+plt.plot(xs,uOa)
+#plt.show()
 
-def rates_chem(y,t,D):
-    f = model(y,t,D)
-    return(f[3],f[4])
+
+def simulation(D):
+    y = odeint(model, y0, xs, args=(D,))
+
+    Oa = pd.DataFrame()
+    Oa['N'], Oa['species'], Oa['x'] = y[:, 3], 'Oa', xs
+
+    Ct = pd.DataFrame()
+    Ct['N'], Ct['species'], Ct['x'] = y[:, 2], 'Ct', xs
+
+    df = pd.concat([Ct, Oa])
+    fig = px.line(df, x='x', y='N', color='species')
+    fig.show()
+
+
+def alle_effect():
+    df = pd.DataFrame(columns=['N', 'u', 'species'])
+    D = 0
+    y = odeint(model, y0, xs, args=(D,))
+    for j, i in enumerate(y):
+        N = i[3] + i[2]
+        uCt, uOa = rates(i, xs[j], D)
+        df.loc[len(df)] = [N, uCt/i[2], 'Ct']
+        df.loc[len(df)] = [N, uOa/i[3], 'Oa']
+
+    fig = px.line(df, x='N', y='u', color='species')
+    fig.show()
+
+
+def alle_effect_chemostat(D):
+    df = pd.DataFrame(columns=['N', 'u', 'species'])
+    y = odeint(model, y0, xs, args=(D,))
+    for j, i in enumerate(y):
+        N = i[3] + i[4]
+        dCt, dOa = rates_chem(i, xs[j], D)
+        df.loc[len(df)] = [N, dCt/i[3], 'Ct']
+        df.loc[len(df)] = [N, dOa/i[4], 'Oa']
+
+    fig = px.line(df, x='N', y='u', color='species')
+    fig.show()
 
 
 def simulations():
@@ -67,42 +124,3 @@ def simulations():
         df = pd.concat([Ct, Oa])
         fig = px.line(df, x='x', y='N', color='species')
         fig.show()
-
-def simulation(D):
-    y = odeint(model, y0, xs, args=(D,))
-
-    Oa = pd.DataFrame()
-    Oa['N'], Oa['species'], Oa['x'] = y[:, 3], 'Oa', xs
-
-    Ct = pd.DataFrame()
-    Ct['N'], Ct['species'], Ct['x'] = y[:, 2], 'Ct', xs
-
-    df = pd.concat([Ct, Oa])
-    fig = px.line(df, x='x', y='N', color='species')
-    fig.show()
-
-def alle_effect():
-    df = pd.DataFrame(columns=['N','u','species'])
-    D = 0
-    y = odeint(model, y0, xs, args=(D,))
-    for j,i in enumerate(y):
-        N = i[3] + i[2]
-        uCt,uOa = rates(i,xs[j],D)
-        df.loc[len(df)] = [N,uCt/i[2],'Ct']
-        df.loc[len(df)] = [N,uOa/i[3],'Oa']
-
-    fig = px.line(df,x='N',y='u',color='species')
-    fig.show()
-
-def alle_effect_chemostat(D):
-    df = pd.DataFrame(columns=['N','u','species'])
-    y = odeint(model, y0, xs, args=(D,))
-    for j,i in enumerate(y):
-        N = i[3] + i[4]
-        dCt,dOa = rates_chem(i,xs[j],D)
-        df.loc[len(df)] = [N,dCt/i[3],'Ct']
-        df.loc[len(df)] = [N,dOa/i[4],'Oa']
-
-    fig = px.line(df,x='N',y='u',color='species')
-    fig.show()
-
