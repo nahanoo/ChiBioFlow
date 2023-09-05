@@ -1,108 +1,129 @@
 from scipy.integrate import odeint
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
-from os.path import join
+from math import log
 
-# Two resources species can only grow on one of them
-# Vector [R1_Ct,R2_Oa]
-r = [0.28082191780821913,0.42549668874172186]
-
-# [R1_Ct,R2_Oa,T_Oa]
-K = [7, 7, 1.5E-5]
-
-# [R1_Ct,R2_Oa,T_Oa]
-q = [909280003.9898741, 4321534.902910041, 1E15]
-
-# [R1,R2,T]
-M = [15, 10, 0]
-
-# Cell densities
-N0 = [1E7, 1E7]
-
-u = [0, 0]
-
-# Production rate
-a = 1E-6
-
-# Simulation parameters
-xs = np.linspace(0,200,200)
-y0 = M + N0 + u
+rCt = 0.2
+rOa = 0.4
+KCt = 7
+KOa = 7
+qCt = 0.1
+qOa = 0.4
+M = 10
+T0 = 0
+T_max = 0.0015
+KT = T_max / 2
+Ct0 = 0.1
+Oa0 = 0.1
+a = 2 * T_max / M
 
 
 def model(y, t, D):
-    R1, R2, T, Ct, Oa, uCt, uOa = y
-    uCt = r[0] * R1 / (R1 + K[0])
-    uOa = min((r[1] * R2 / (R2 / K[1])), r[1] * T / (T + K[2]))
+    C, T, Ct, Oa = y[0], y[1], y[2], y[3]
+    J_Oa = C / (C + KOa) * T / (KT + T)
+    dC = D * M - rCt * C / (C + KCt) * Ct/qCt - rOa * J_Oa * Oa / qOa - D * C
+    dCt = rCt * C / (C + KCt) * Ct - D * Ct
+    dOa = rOa * J_Oa * Oa - D * Oa
+    dT = a * rCt * C / (C + KCt) * Ct / qCt - rOa * \
+        J_Oa * Oa / (1/T_max) - D * T
+    return dC, dT, dCt, dOa
 
-    dR1 = D * M[0] - D * R1 - uCt * Ct / q[0]
-    dR2 = D * M[1] - D * R2 - uOa * Oa / q[1]
-
-    dOa = Oa * uOa - D * Oa
-    dCt = Ct * uCt - D * Ct
-
-    dT = a * uCt * Ct / q[0] - D * T - Oa/q[2] * r[1] * T / (T + K[2])
-    return [dR1, dR2, dT, dCt, dOa, uCt, uOa]
-
-def rates(y,t,D):
-    f = model(y,t,D)
-    return(f[-2],f[-1])
-
-def rates_chem(y,t,D):
-    f = model(y,t,D)
-    return(f[3],f[4])
+def mac_arthur(y,t,D):
+    C, Ct, Oa = y[0], y[1], y[2]
+    J_Oa = C / (C + KOa)
+    dC = D * M - rCt * C / (C + KCt) * Ct/qCt - rOa * J_Oa * Oa / qOa - D * C
+    dCt = rCt * C / (C + KCt) * Ct - D * Ct
+    dOa = rOa * J_Oa * Oa - D * Oa
+    return dC,dCt, dOa
 
 
-def simulations():
-    Ds = np.arange(0.0, 0.11, 0.01)
-    for D in Ds:
-        y = odeint(model, y0, xs, args=(D,))
+def growth_rates(y, t, D):
+    C, T, Ct, Oa = y[0], y[1], y[2], y[3]
+    uCt = rCt * C / (C + KCt)
+    J_Oa = C / (C + KOa) * T / (KT + T)
+    uOa = rOa * J_Oa
+    return uCt, uOa
 
-        Oa = pd.DataFrame()
-        Oa['N'], Oa['species'], Oa['x'] = y[:, 4], 'Oa', xs
 
-        Ct = pd.DataFrame()
-        Ct['N'], Ct['species'], Ct['x'] = y[:, 3], 'Ct', xs
+def simulation(D,t1):
+    xs = np.linspace(0, t1, t1*10)
+    y = odeint(model, [M, T0, Ct0, Oa0], xs, args=(D,))
+    C, T, Ct, Oa = y[:, 0], y[:, 1], y[:, 2], y[:, 3]
+    dfs = []
+    df = pd.DataFrame(columns=['x','y','species'])
+    df['x'],df['y'],df['species'] = xs,Ct,'ct'
+    dfs.append(df)
+    df = pd.DataFrame(columns=['x','y','species'])
+    df['x'],df['y'],df['species'] = xs,Oa,'oa'
+    dfs.append(df)
+    fig = px.line(pd.concat(dfs),x='x',y='y',color='species')
+    return fig
 
-        df = pd.concat([Ct, Oa])
-        fig = px.line(df, x='x', y='N', color='species')
-        fig.show()
+def simulation_mac(D,t1):
+    xs = np.linspace(0, t1, t1*10)
+    y = odeint(mac_arthur, [M, Ct0, Oa0], xs, args=(D,))
+    C, Ct, Oa = y[:, 0], y[:, 1], y[:, 2]
+    dfs = []
+    df = pd.DataFrame(columns=['x','y','species'])
+    df['x'],df['y'],df['species'] = xs,Ct,'ct'
+    dfs.append(df)
+    df = pd.DataFrame(columns=['x','y','species'])
+    df['x'],df['y'],df['species'] = xs,Oa,'oa'
+    dfs.append(df)
+    fig = px.line(pd.concat(dfs),x='x',y='y',color='species')
+    return fig
 
-def simulation(D):
-    y = odeint(model, y0, xs, args=(D,))
 
-    Oa = pd.DataFrame()
-    Oa['N'], Oa['species'], Oa['x'] = y[:, 4], 'Oa', xs
 
-    Ct = pd.DataFrame()
-    Ct['N'], Ct['species'], Ct['x'] = y[:, 3], 'Ct', xs
-
-    df = pd.concat([Ct, Oa])
-    fig = px.line(df, x='x', y='N', color='species')
-    fig.show()
 
 def alle_effect():
-    df = pd.DataFrame(columns=['N','u','species'])
-    D = 0
-    y = odeint(model, y0, xs, args=(D,))
-    for j,i in enumerate(y):
-        N = i[3] + i[4]
-        uCt,uOa = rates(i,xs[j],D)
-        df.loc[len(df)] = [N,uCt,'Ct']
-        df.loc[len(df)] = [N,uOa,'Oa']
+    df = pd.DataFrame(columns=['N', 'u', 'species'])
+    D = 0.0
+    t1 = 100
+    xs = np.linspace(0, t1, t1*10)
+    y = odeint(model, [M, T0, Ct0, Oa0], xs, args=(D,))
 
-    fig = px.line(df,x='N',y='u',color='species')
-    fig.show()
+    for j, i in enumerate(y):
+        uCt, uOa = growth_rates(i, xs[j], D)
+        df.loc[len(df)] = [i[2]+i[3], uCt, 'Ct']
+        df.loc[len(df)] = [i[3]+i[2], uOa, 'Oa']
+    fig = px.line(df, x='N', y='u', color='species')
+    return fig
 
-def alle_effect_chemostat(D):
-    df = pd.DataFrame(columns=['N','u','species'])
-    y = odeint(model, y0, xs, args=(D,))
-    for j,i in enumerate(y):
-        N = i[3] + i[4]
-        dCt,dOa = rates_chem(i,xs[j],D)
-        df.loc[len(df)] = [N,dCt/i[3],'Ct']
-        df.loc[len(df)] = [N,dOa/i[4],'Oa']
 
-    fig = px.line(df,x='N',y='u',color='species')
-    fig.show()
+def wash_out(Ct, Oa, D):
+    def max_rate(N0, N, t, D):
+        return D + 1/t * log(N/N0)
+    uCt = max_rate(Ct[-100], Ct[-1], 99, D)
+    uOa = max_rate(Oa[-100], Oa[-1], 99, D)
+    return uCt, uOa
+
+
+def alle_threshold():
+    Ds = np.linspace(0.01, 0.15, 100)
+    t1 = 2000
+    xs = np.linspace(0, t1, t1*10)
+    df = pd.DataFrame(columns=['N', 'u', 'species', 'D'])
+    for D in Ds:
+        y = odeint(model, [M, T0, Ct0, Oa0], xs, args=(D,))
+        C, T, Ct, Oa = y[:, 0], y[:, 1], y[:, 2], y[:, 3]
+        df.loc[len(df)] = [Ct[-1] + Oa[-1], growth_rates(y[-1],xs[-1],D)[0], 'Ct', D]
+        df.loc[len(df)] = [Oa[-1] + Ct[-2], growth_rates(y[-1],xs[-1],D)[1], 'Oa', D]
+    fig = px.line(df, x='D', y='u', color='species')
+    return fig
+
+def composition():
+    Ds = np.linspace(0.01, 0.12, 500)
+    t1 = 2000
+    xs = np.linspace(0, t1, t1*10)
+    df = pd.DataFrame(columns=['D', 'comp', 'species'])
+    for D in Ds:
+        y = odeint(model, [M, T0, Ct0, Oa0], xs, args=(D,))
+        C, T, Ct, Oa = y[:, 0], y[:, 1], y[:, 2], y[:, 3]
+        df.loc[len(df)] = [D,Ct[-1] / (Ct[-1] + Oa[-1]),'ct']
+        df.loc[len(df)] = [D,Oa[-1] / (Ct[-1] + Oa[-1]),'oa']
+    fig = px.line(df, x='D', y='comp', color='species')
+    return fig
 
