@@ -40,40 +40,62 @@ dT = a * JCt * Ct / qCt - JOa * Oa / qOaT - D * T
 
 def growth_rates():
     C_values = np.linspace(0, 10, 50)
-    T_values = np.linspace(0, 0.02, 50)
+    D = 0.1
+    Cf = solve(Eq(D, JCt))[0]
+    Tf = solve(Eq(D, JOa), T)[0]
+    Ts = [Tf.subs({'C': C}) for C in C_values]
+    Cs = [Cf.subs({'C': C}) for C in C_values]
+    T_values = np.linspace(0, 0.00148, 50)
     C_grid, T_grid = np.meshgrid(C_values, T_values)
     dJCt = rCt * C_grid / (C_grid + KC)
-    dJOa = rCt * C_grid / (C_grid + KC) * T_grid / (T_grid + KT)
+    dJOa = rOa * C_grid / (C_grid + KC) * T_grid / (T_grid + KT)
+
+
     plt.figure(figsize=(w*2/3/dpi,h/dpi),dpi=dpi)
     plt.contourf(C_values,T_values,dJCt,levels=100,cmap='RdYlBu')
-    plt.colorbar(label='Per capita growth rate [1/h]')
+    plt.colorbar(label='J [1/h]')
+    line = plt.contour(C_values,T_values,dJCt,levels=[0.1],colors='black')
+    label = ['$\mu$ = 0.1']
+    plt.legend(line.collections,label,loc=1)
     plt.xlabel('Citric acid [mM]')
     plt.ylabel('Thiamine [mM]')
     plt.title(label='C. testosteroni',style='italic')
     plt.savefig(join('..','notebooks','mid_thesis_plots','jct.svg'), format='svg', bbox_inches='tight')
 
+
     plt.figure(figsize=(w*2/3/dpi,h/dpi),dpi=dpi)
     plt.contourf(C_values,T_values,dJOa,levels=100,cmap='RdYlBu')
-    plt.colorbar(label='Per capita growth rate [1/h]')
+    plt.colorbar(label='J [1/h]')
+    line = plt.contour(C_values,T_values,dJOa,levels=[0.1],colors='black')
+    label = ['$\mu$ = 0.1']
+    plt.legend(line.collections,label,loc=1)
     plt.xlabel('Citric acid [mM]')
     plt.ylabel('Thiamine [mM]')
-    plt.title(label='O. anthropi',style='italic')
+    plt.title(label='B. anthropi',style='italic')
     plt.savefig(join('..','notebooks','mid_thesis_plots','joa.svg'), format='svg', bbox_inches='tight')
 
 
+def stable():
+    D = 0.1
+    Cf = solve(Eq(D, JCt))[0]
+    Cs = np.linspace(0, 10, 50)
+    Tf = solve(Eq(D, JOa), T)[0]
+    Ts = []
+    Cx = []
+    for i,c in enumerate(Cs):
+        t = Tf.subs({'C': c})
+        if (t < 0.00148) & (t > 0):
+            Ts.append(t)
+            Cx.append(c)
 
-D = 0.1
-Cf = solve(Eq(D, JCt))[0]
-Cs = np.linspace(3, 10, 100)
-Tf = solve(Eq(D, JOa), T)[0]
-Ts = [Tf.subs({'C': C}) for C in Cs]
-plt.figure(figsize=(w*2/3/dpi,h/dpi),dpi=dpi)
-plt.plot(Cs, Ts,color='#D95F02',label='O. anthropi')
-plt.plot([Cf]*len(Cs), Ts,color='#7570B3',label='C. testosteroni')
-plt.xlabel('Citric acid [mM]')
-plt.ylabel('Thiamine [mM]')
-plt.title(label='D = 0.1 [1/h]')
-legend = plt.legend()
-legend.get_texts()[0].set_fontstyle('italic')
-legend.get_texts()[1].set_fontstyle('italic')
-plt.savefig(join('..','notebooks','mid_thesis_plots','jctjoa.svg'), format='svg', bbox_inches='tight')
+    plt.figure(figsize=(w*2/3/dpi,h/dpi),dpi=dpi)
+    plt.plot(Cx, Ts,color='#D95F02',label='B. anthropi')
+    plt.plot([Cf]*len(Ts), Ts,color='#7570B3',label='C. testosteroni')
+    plt.xlabel('Citric acid [mM]')
+    plt.ylabel('Thiamine [mM]')
+    plt.title(label='D = 0.1 [1/h]')
+    legend = plt.legend()
+    legend.get_texts()[0].set_fontstyle('italic')
+    legend.get_texts()[1].set_fontstyle('italic')
+    plt.savefig(join('..','notebooks','mid_thesis_plots','jctjoa.svg'), format='svg', bbox_inches='tight')
+
