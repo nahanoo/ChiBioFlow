@@ -7,12 +7,12 @@ import numpy as np
 
 
 def cfu_parser(e):
-    with open(join('/','home','eric','ChiBioFlow', 'data', e, 'order.txt'), 'r') as f:
+    with open(join('/', 'home', 'eric', 'ChiBioFlow', 'data', e, 'order.txt'), 'r') as f:
         order = f.read().rstrip().split(',')
 
     """Parses counted CFUs based on template xlsx"""
     # For eveery species there is one xlsx sheet
-    fs = glob(join('/','home','eric','ChiBioFlow', 'data', e, 'cfus*.xlsx'))
+    fs = glob(join('/', 'home', 'eric', 'ChiBioFlow', 'data', e, 'cfus*.xlsx'))
     # df for concatenating species sheets
     df = pd.DataFrame(
         columns=['species', 'reactor', 'sample_time', 'dilution', 'count', 'comment'])
@@ -67,11 +67,12 @@ def chibio_parser(e, down_sample=False, sample_size=10):
                 break
         return out
 
-    with open(join('/','home','eric','ChiBioFlow','data', e, 'order.txt'), 'r') as f:
+    with open(join('/', 'home', 'eric', 'ChiBioFlow', 'data', e, 'order.txt'), 'r') as f:
         order = f.read().rstrip().split(',')
     dfs = []
     for reactor in order:
-        f = glob(join('/','home','eric','ChiBioFlow','data', e, reactor, "*data.csv"))[0]
+        f = glob(join('/', 'home', 'eric', 'ChiBioFlow',
+                 'data', e, reactor, "*data.csv"))[0]
         data = pd.read_csv(
             f, usecols=["exp_time", 'od_measured', 'FP1_base', 'FP1_emit1', 'FP1_emit2'])
         if down_sample:
@@ -82,8 +83,9 @@ def chibio_parser(e, down_sample=False, sample_size=10):
 
     df = pd.concat(dfs)
     dfs = []
-    for c in ['od_measured', 'FP1_emit1', 'FP1_emit2','FP1_base']:
-        tmp = pd.DataFrame(columns=['exp_time','reactor','measurement','sensor'])
+    for c in ['od_measured', 'FP1_emit1', 'FP1_emit2', 'FP1_base']:
+        tmp = pd.DataFrame(
+            columns=['exp_time', 'reactor', 'measurement', 'sensor'])
         tmp['reactor'] = df['reactor']
         tmp['exp_time'] = df['exp_time']
         tmp['measurement'] = df[c]
@@ -91,6 +93,47 @@ def chibio_parser(e, down_sample=False, sample_size=10):
         dfs.append(tmp)
     df = pd.concat(dfs)
 
-
-
     return df, order
+
+def fluorescence_paresr(e,od_led_channel=False,od_led_converter=False):
+    with open(join('/', 'home', 'eric', 'ChiBioFlow', 'data', e, 'order.txt'), 'r') as f:
+        order = f.read().rstrip().split(',')
+    dfs = []
+    for reactor in order:
+        f = glob(join('/', 'home', 'eric', 'ChiBioFlow',
+                'data', e, reactor, "*data.csv"))[0]
+        columns = ["exp_time", 'od_measured', 'FP1_base', 'FP1_emit1', 'FP1_emit2',
+                'FP2_base', 'FP2_emit1', 'FP2_emit2', 'FP3_base', 'FP3_emit1', 'FP3_emit2',
+                'reactor', 'raw_FP1_emit1', 'raw_FP1_emit2', 'raw_FP2_emit1', 'raw_FP2_emit2',
+                'raw_FP3_emit1','raw_FP3_emit2', 'od_measured_led']
+        data_columns = columns[:11]
+        data = pd.read_csv(
+            f, usecols=["exp_time", 'od_measured', 'FP1_base', 'FP1_emit1', 'FP1_emit2',
+                        'FP2_base', 'FP2_emit1', 'FP2_emit2', 'FP3_base', 'FP3_emit1', 'FP3_emit2'])
+        df = pd.DataFrame(columns=columns)
+        for c in data_columns:
+            df[c] = data[c]
+        FP1_emit = columns[3:5]
+        FP1_emit_raw = columns[12:14]
+        for emit,raw in zip(FP1_emit,FP1_emit_raw):
+            df[raw] = data[emit] * data['FP1_base']
+
+        FP2_emit = columns[6:8]
+        FP2_emit_raw = columns[14:16]
+        for emit,raw in zip(FP2_emit,FP2_emit_raw):
+            df[raw] = data[emit] * data['FP2_base']
+
+        FP3_emit = columns[9:11]
+        FP3_emit_raw = columns[16:18]
+        for emit,raw in zip(FP3_emit,FP3_emit_raw):
+            df[raw] = data[emit] * data['FP3_base']
+
+        df['reactor'] = reactor
+        df["exp_time"] = df["exp_time"] / 60 / 60
+
+        if od_led_converter:
+            df['od_measured_led'] = data[od_led_channel] * od_led_converter
+
+        dfs.append(df)
+
+    return pd.concat(dfs)
