@@ -416,7 +416,6 @@ def initialiseAll():
   
     
 def turnEverythingOff(M):
-    no_pumps = True
     # Function which turns off all actuation/hardware.
     for LED in ['LEDA','LEDB','LEDC','LEDD','LEDE','LEDF','LEDG']:
         sysData[M][LED]['ON']=0
@@ -425,7 +424,7 @@ def turnEverythingOff(M):
     sysData[M]['Stir']['ON']=0
     sysData[M]['Heat']['ON']=0
     sysData[M]['UV']['ON']=0
-    if no_pumps:
+    if (M != 'M0'):
         pass
     else:
         setPWM(M,'PWM',sysItems['All'],0,0)
@@ -437,7 +436,7 @@ def turnEverythingOff(M):
     
     I2CCom(M,'DAC',0,8,int('00000000',2),int('00000000',2),0)#Sets all DAC Channels to zero!!! 
     
-    if no_pumps:
+    if (M != 'M0'):
         pass
     else:
         setPWM(M,'Pumps',sysItems['All'],0,0)
