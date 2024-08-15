@@ -5,6 +5,7 @@ from glob import glob
 from subprocess import call
 from os import symlink
 import plotly.express as px
+from scipy.signal import savgol_filter
 
 reactors = ["M0", "M1", "M2"]
 
@@ -48,16 +49,22 @@ def fix_M1():
     i = 20
     df.loc[538 : 538 + i, "FP1_base"] = df.loc[538, "FP1_base"]
     df.loc[538 : 538 + i, "FP1_emit1"] = df.loc[538, "FP1_emit1"]
+    df.loc[:, "od_measured"] = savgol_filter(df["od_measured"].to_numpy(), 10, 2)
+    df.loc[:, "FP1_base"] = savgol_filter(df["FP1_base"].to_numpy(), 10, 2)
+    df.loc[:, "FP1_emit1"] = savgol_filter(df["FP1_emit1"].to_numpy(), 10, 2)
+
     df.to_csv(f, index=False)
 
 
-def fix_M1():
+def fix_M0():
     f = glob(join("../240812_ct_oa_thiamine_curated", "M0", "*data.csv"))[0]
     df = pd.read_csv(f)
     for i, row in df[df["od_measured"] < 0.15].iterrows():
         df = df.drop(i)
     df.loc[:, "od_measured"] -= 0.03
-    # px.line(df, x="exp_time", y="od_measured").show()
+    df.loc[:, "od_measured"] = savgol_filter(df["od_measured"].to_numpy(), 10, 2)
+    df.loc[:, "FP1_base"] = savgol_filter(df["FP1_base"].to_numpy(), 10, 2)
+    df.loc[:, "FP1_emit1"] = savgol_filter(df["FP1_emit1"].to_numpy(), 10, 2)
     df.to_csv(f)
 
 
@@ -73,12 +80,16 @@ def fix_M2():
     i = 20
     df.loc[1388 : 1388 + i, "FP1_base"] = df.loc[1388, "FP1_base"]
     df.loc[1388 : 1388 + i, "FP1_emit1"] = df.loc[1388, "FP1_emit1"]
+    df.loc[:, "od_measured"] = savgol_filter(df["od_measured"].to_numpy(), 10, 2)
+    df.loc[:, "FP1_base"] = savgol_filter(df["FP1_base"].to_numpy(), 10, 2)
+    df.loc[:, "FP1_emit1"] = savgol_filter(df["FP1_emit1"].to_numpy(), 10, 2)
     df.to_csv(f)
 
 
 mask_data(1.71, 63.08)
-fix_M1()
+fix_M0()
 fix_M2()
+fix_M1()
 
 plot()
 
