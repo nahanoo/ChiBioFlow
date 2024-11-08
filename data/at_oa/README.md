@@ -25,3 +25,20 @@ At mono cultures to get max growth rate. Carbon limitted.
 
 **Corresponds to `12. 4 Ala-T, Ala, - Community experiment D=0.15`
 Community experiment, carbon limitted.
+
+### `240429_at_oa_mono_batch`
+
+Batch experiment, of At Ala, At Ala + T, Oa Ala + T, where the Chi.Bio crashed after 12 hours, due to bubbles causing to trigger the moisture sensore.
+
+### `240429_at_oa_mono`
+
+Experiment with At Ala, At Ala+T, Oa Ala+T on the same pump to assess competition and to get growth paramters
+
+### `240429_clement_thiamine`
+
+Data analysis of the experiment clement did with the students.
+
+
+### 240531_at_oa
+
+Triplicate At Oa community analysis without thiamine at 30 uL/min flow rate.
