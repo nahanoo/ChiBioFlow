@@ -145,6 +145,14 @@ def parse_data():
     M1_mcherry = mcherry[mcherry["species"] == "Community 2"]
     M2_mcherry = mcherry[mcherry["species"] == "Community 3"]
 
+    cfus = cfu_parser("at_oa/240531_at_oa")[0]
+    at_com1 = cfus[(cfus["reactor"] == "M0") & (cfus["species"] == "at")]
+    oa_com1 = cfus[(cfus["reactor"] == "M0") & (cfus["species"] == "oa")]
+    at_com2 = cfus[(cfus["reactor"] == "M1") & (cfus["species"] == "at")]
+    oa_com2 = cfus[(cfus["reactor"] == "M1") & (cfus["species"] == "oa")]
+    at_com3 = cfus[(cfus["reactor"] == "M2") & (cfus["species"] == "at")]
+    oa_com3 = cfus[(cfus["reactor"] == "M2") & (cfus["species"] == "oa")]
+
     return (
         df,
         M0,
@@ -159,6 +167,12 @@ def parse_data():
         M0_mcherry,
         M1_mcherry,
         M2_mcherry,
+        at_com1,
+        oa_com1,
+        at_com2,
+        oa_com2,
+        at_com3,
+        oa_com3,
     )
 
 
@@ -177,9 +191,15 @@ def plot_exp():
         M0_mcherry,
         M1_mcherry,
         M2_mcherry,
+        at_com1,
+        oa_com1,
+        at_com2,
+        oa_com2,
+        at_com3,
+        oa_com3,
     ) = parse_data()
     fig = make_subplots(
-        rows=3,
+        rows=4,
         cols=3,
         shared_yaxes=True,
         shared_xaxes=True,
@@ -281,12 +301,81 @@ def plot_exp():
         row=3,
         col=3,
     )
+    fig.add_trace(
+        go.Scatter(
+            x=at_com1["sample_time"],
+            y=at_com1["average"],
+            marker=dict(color="#1B9E77"),
+            error_y=dict(type="data", array=at_com1["stdev"].to_list(), visible=True),
+            showlegend=False,
+        ),
+        row=4,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=oa_com1["sample_time"],
+            y=oa_com1["average"],
+            marker=dict(color="#D95F02"),
+            error_y=dict(type="data", array=oa_com1["stdev"].to_list(), visible=True),
+            showlegend=False,
+        ),
+        row=4,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=at_com2["sample_time"],
+            y=at_com2["average"],
+            marker=dict(color="#1B9E77"),
+            error_y=dict(type="data", array=at_com2["stdev"].to_list(), visible=True),
+            showlegend=False,
+        ),
+        row=4,
+        col=2,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=oa_com2["sample_time"],
+            y=oa_com2["average"],
+            marker=dict(color="#D95F02"),
+            error_y=dict(type="data", array=oa_com2["stdev"].to_list(), visible=True),
+            showlegend=False,
+        ),
+        row=4,
+        col=2,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=at_com3["sample_time"],
+            y=at_com3["average"],
+            marker=dict(color="#1B9E77"),
+            error_y=dict(type="data", array=at_com3["stdev"].to_list(), visible=True),
+            showlegend=False,
+        ),
+        row=4,
+        col=3,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=oa_com3["sample_time"],
+            y=oa_com3["average"],
+            marker=dict(color="#D95F02"),
+            error_y=dict(type="data", array=oa_com3["stdev"].to_list(), visible=True),
+            showlegend=False,
+        ),
+        row=4,
+        col=3,
+    )
     fig["layout"]["xaxis7"]["title"]["text"] = "Time [h]"
     fig["layout"]["xaxis8"]["title"]["text"] = "Time [h]"
     fig["layout"]["xaxis9"]["title"]["text"] = "Time [h]"
-    fig = style_plot(fig, marker_size=1)
+    fig["layout"]["yaxis10"]["type"] = "log"
+    fig["layout"]["yaxis11"]["type"] = "log"
+    fig["layout"]["yaxis12"]["type"] = "log"
+    fig = style_plot(fig, marker_size=3)
     fig.show()
-
+plot_exp()
 
 def plot_triplicates():
     (
@@ -303,6 +392,12 @@ def plot_triplicates():
         M0_mcherry,
         M1_mcherry,
         M2_mcherry,
+        at_com1,
+        oa_com1,
+        at_com2,
+        oa_com2,
+        at_com3,
+        oa_com3,
     ) = parse_data()
     fig = make_subplots(
         rows=3,
@@ -435,6 +530,12 @@ def plot_plate_reader():
         M0_mcherry,
         M1_mcherry,
         M2_mcherry,
+        at_com1,
+        oa_com1,
+        at_com2,
+        oa_com2,
+        at_com3,
+        oa_com3,
     ) = parse_data()
     fig = make_subplots(
         rows=3,

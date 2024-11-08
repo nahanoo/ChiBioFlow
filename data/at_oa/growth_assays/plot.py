@@ -16,8 +16,10 @@ def dump_dfs():
     at.insert(len(at.columns), "name", "at")
     oa = pd.read_csv("oa.tsv", sep="\t")
     oa.insert(len(oa.columns), "name", "oa")
+    ct = pd.read_csv("ct.tsv", sep="\t")
+    ct.insert(len(ct.columns), "name", "ct")
 
-    df = pd.concat([at, oa])
+    df = pd.concat([at, oa, ct])
     dfs = []
 
     for i, c in enumerate(df.columns[1:-1]):
@@ -196,3 +198,8 @@ def regression_at():
     plt.show()
 
     print(f"The estimated growth rate (slope) is: {slope}")
+
+df = pd.read_csv('carbon_sources.csv')
+df = df[(df['well'] == 'G11') & (df['strain'] == 'oa')]
+df['time'] = np.linspace(0,75.5,len(df))
+px.line(df,x='time',y='OD').show()
