@@ -19,7 +19,7 @@ def competition():
     JOa = [p["v2_1"] * R / (R + p["K2_1"]) for R in Rs]
     R_star_1_1 = -p["D"] * p["K1_1"] / (p["D"] - p["v1_1"])
     R_star_2_1 = -p["D"] * p["K2_1"] / (p["D"] - p["v2_1"])
-    Rs_2_1 = np.linspace(0, R_star_2_1, 100)
+
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(x=Rs, y=JCt, marker=dict(color=colors["ct"]), name="<i>Ct</i>")
@@ -98,12 +98,11 @@ def mutual_cf():
             showscale=False,
             contours=dict(start=0.15, end=0.15, size=0.1, coloring="none"),
             line=dict(color=colors["ct"]),
-            name="<i>Ct</i>",
+            name="J <i>Ct</i>",
         )
     )
     fig.update_layout(height=height, width=width)
     fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(title="Thiamine [µM]")
-    fig = style_plot(fig)
     fig.write_image("plots/isoclines/mutual_cf.svg")
     J_ration = np.log10(JOa / JCt)
     custom_colorscale = [
@@ -156,8 +155,20 @@ def mutual_cf():
     )
     fig.update_layout(height=height, width=width)
     fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(title="Thiamine [µM]")
-    fig = style_plot(fig, font_size=8)
+    fig = style_plot(
+        fig,
+        font_size=8,
+        line_thickness=1.5,
+        buttom_margin=20,
+        left_margin=30,
+        right_margin=20,
+        top_margin=0,
+    )
+    fig.update_layout(legend_title_text="Isocline of<br>growth rate")
     fig.write_image("plots/isoclines/mutual_cf_ratio.svg")
+
+
+mutual_cf()
 
 
 def niche_creation():
