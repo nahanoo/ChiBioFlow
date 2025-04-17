@@ -1,1 +1,1 @@
-../style_plot.py
+/home/eric/notes/talks/241129_friday_seminar/style_plot.py

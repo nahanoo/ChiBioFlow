@@ -1,0 +1,4 @@
+project,exp_ID,linegroup,Experimenter,Experiment description,Date,Device,Temperature,Shaking,CO2,species,carbon_source,cs_conc,base_media,inhibitor,inhibitor_conc,comments
+240623_growth_phenotyping,240623_growth_phenotyping_oa,240623_growth_phenotyping_oa_A1,Snorre Sulheim,Growth phenotypying experiment with Ochrobactrum anthropi.,240623,Biotek Synergy 2408,28,Y,N,Ochrobactrum anthropi,Acetate,45.0,M9 + HMB,,0,
+240623_growth_phenotyping,240623_growth_phenotyping_oa,240623_growth_phenotyping_oa_A2,Snorre Sulheim,Growth phenotypying experiment with Ochrobactrum anthropi.,240623,Biotek Synergy 2408,28,Y,N,Ochrobactrum anthropi,Acetate,45.0,M9 + HMB,,0,
+240623_growth_phenotyping,240623_growth_phenotyping_oa,240623_growth_phenotyping_oa_A3,Snorre Sulheim,Growth phenotypying experiment with Ochrobactrum anthropi.,240623,Biotek Synergy 2408,28,Y,N,Ochrobactrum anthropi,Acetate,45.0,M9 + HMB,,0,

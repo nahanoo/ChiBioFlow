@@ -1,0 +1,1 @@
+/home/eric/ChiBioFlow/data/at_oa/240921_ct_mono_batch/max_growth_rate.py

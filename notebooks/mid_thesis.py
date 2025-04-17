@@ -15,9 +15,9 @@ colors = {'ct': '#7570B3',
          }
 
 abb = {'ct': '<i>C. testosteroni</i>',
-       'oa': '<i>B. anthropi</i>',
+       'oa': '<i>O. anthropi</i>',
        '<i>C. testosteroni</i>': 'ct',
-       '<i>B. anthropi</i>': 'oa',
+       '<i>O. anthropi</i>': 'oa',
        'OD': 'OD'
        }
 
@@ -146,6 +146,65 @@ def fig_2d():
     fig.write_image(join('mid_thesis_plots', '2db.svg'))
     return fig
 
+def fig_e2():
+    fig = simulation_supply()
+    for d in fig['data']:
+        strain = d['name'][:2]
+        D = d['name'][3:]
+        rename = abb[strain] + D
+        d['name'] = rename
+        d['line']['color'] = colors[strain]
+        d['marker']['color'] = colors[strain]
+    fig['layout']['legend']['title']['text'] = 'Species, D [1/h]'
+    fig['layout']['width'], fig['layout']['height'] = w, h
+    fig.update_xaxes(title='Time [h]')
+    fig.update_yaxes(title = 'OD')
+    fig = style_plot(fig)
+    fig.write_image(join('mid_thesis_plots', '2e.svg'))
+    return fig
+
+def fig_2f():
+    fig = simulation_supply_var_T()
+    for d in fig['data']:
+        strain = d['name'][:2]
+        T = d['name'][3:]
+        rename = abb[strain] + T
+        d['name'] = rename
+        d['line']['color'] = colors[strain]
+    fig['layout']['legend']['title']['text'] = 'Species, thiamine [mM]'
+    fig['layout']['width'], fig['layout']['height'] = w, h
+    fig.update_xaxes(title='Time [h]')
+    fig.update_yaxes(title = 'OD')
+    fig = style_plot(fig,marker_size=4)
+    fig.write_image(join('mid_thesis_plots', '2f.svg'))
+
+def fig_2g():
+    fig = simulation_Ds()[0]
+    for d in fig['data']:
+        strain = d['name'][:2]
+        D = d['name'][3:]
+        rename = abb[strain] + D
+        d['name'] = rename
+        d['line']['color'] = colors[strain]
+        d['marker']['color'] = colors[strain]
+    fig['layout']['legend']['title']['text'] = 'Species, D [1/h]'
+    fig['layout']['width'], fig['layout']['height'] = w, h
+    fig.update_xaxes(title='Time [h]')
+    fig.update_yaxes(title = 'OD')
+    fig = style_plot(fig)
+    fig.write_image(join('mid_thesis_plots', '2g.svg'))
+
+def fig_2h():
+    fig = simulation_Ds()[1]
+    fig['layout']['legend']['title']['text'] = 'D [1/h]'
+    fig['layout']['width'], fig['layout']['height'] = w*2/3, h
+    fig.update_xaxes(title='Time [h]')
+    fig.update_yaxes(title = 'Thiamine [mM]')
+    fig = style_plot(fig)
+    fig.write_image(join('mid_thesis_plots', '2h.svg'))
+
+fig_2g()
+fig_2h()
 
 def plotter_2():
     fig_2a()
@@ -355,14 +414,15 @@ def supp_fig_2_b():
         dN1 = J * N1 - D * N1
         return [dR, dT, dN1]
 
-    xs = df[df['species'] == 'ct']['time'].to_list()
+    xs = np.linspace(0,max(df[df['species'] == 'ct']['time'].to_list()),100)
+    
     N0 = df[df['species'] == 'ct']['OD'].to_list()[0]
     M = 10
     y = odeint(model, [M, N0], xs, args=(0.065, 0.24, 7, 0))
     ct = pd.DataFrame(columns=['OD', 'time', 'species'])
     ct['OD'], ct['time'], ct['species'] = y[:, 1], xs, 'ct_modelled'
 
-    xs = df[df['species'] == 'oa']['time'].to_list()
+    xs = np.linspace(0,max(df[df['species'] == 'oa']['time'].to_list()),100)
     N0 = df[df['species'] == 'oa']['OD'].to_list()[0]
     M = 10
     y = odeint(model_Oa, [M, 0.00148, N0], xs, args=(0.11, 0.43, 7, 0))
@@ -373,14 +433,14 @@ def supp_fig_2_b():
     fig = px.line(out, x='time', y='OD', color='species')
     l_names = {'ct': abb['ct'],
                 'oa': abb['oa'],
-                'ct_modelled': abb['ct'] + ' modeled',
-                'oa_modelled': abb['oa'] + ' modeled'}
+                'ct_modelled': 'Modeled',
+                'oa_modelled': 'Modeled'}
     for d in fig['data']:
         if (d['name'] == 'ct_modelled') | (d['name'] == 'oa_modelled'):
             d['line']['dash'] = 'dash'
         d['line']['color'] = colors[d['name'][:2]]
         d['name'] = l_names[d['name']]
-    fig['layout']['width'], fig['layout']['height'] = w, h
+    fig['layout']['width'], fig['layout']['height'] = w*2/3, h*2/3
     fig.update_xaxes(title='Time [h]')
     fig.update_yaxes(title='OD')
     fig['layout']['legend']['title']['text'] = 'Species'

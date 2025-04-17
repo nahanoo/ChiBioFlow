@@ -1,0 +1,779 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   class="main-svg"
+   width="400"
+   height="148.14814814814815"
+   style=""
+   viewBox="0 0 400 148.14814814814815"
+   version="1.1"
+   id="svg102"
+   sodipodi:docname="zoomin_inkscape.svg"
+   inkscape:version="1.4 (1:1.4+202410161351+e7c3feb100)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview102"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showguides="true"
+     inkscape:zoom="3.1236442"
+     inkscape:cx="234.82188"
+     inkscape:cy="47.700695"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg102">
+    <sodipodi:guide
+       position="77.3,58.648148"
+       orientation="0,-1"
+       id="guide102"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="314.64085,66.707146"
+       orientation="1,0"
+       id="guide103"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="135.41875,137.26343"
+       orientation="0,-1"
+       id="guide104"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="76.55,88.848148"
+       orientation="0,-1"
+       id="guide105"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <rect
+     x="0"
+     y="0"
+     width="400"
+     height="148.14814814814815"
+     style="fill: rgb(153, 153, 153); fill-opacity: 1;"
+     id="rect1" />
+  <defs
+     id="defs-07b494">
+    <g
+       class="clips"
+       id="g5">
+      <clipPath
+         id="clip07b494xyplot"
+         class="plotclip">
+        <rect
+           width="271"
+           height="78"
+           id="rect2" />
+      </clipPath>
+      <clipPath
+         class="axesclip"
+         id="clip07b494x">
+        <rect
+           x="60"
+           y="0"
+           width="271"
+           height="148.14814814814815"
+           id="rect3" />
+      </clipPath>
+      <clipPath
+         class="axesclip"
+         id="clip07b494y">
+        <rect
+           x="0"
+           y="20"
+           width="400"
+           height="78"
+           id="rect4" />
+      </clipPath>
+      <clipPath
+         class="axesclip"
+         id="clip07b494xy">
+        <rect
+           x="60"
+           y="20"
+           width="271"
+           height="78"
+           id="rect5" />
+      </clipPath>
+    </g>
+    <g
+       class="gradients"
+       id="g6" />
+    <g
+       class="patterns"
+       id="g7" />
+  </defs>
+  <g
+     class="bglayer"
+     id="g8" />
+  <g
+     class="layer-below"
+     id="g11">
+    <g
+       class="imagelayer"
+       id="g9" />
+    <g
+       class="shapelayer"
+       id="g10" />
+  </g>
+  <g
+     class="cartesianlayer"
+     id="g69">
+    <g
+       class="subplot xy"
+       id="g68">
+      <g
+         class="layer-subplot"
+         id="g14">
+        <g
+           class="shapelayer"
+           id="g12" />
+        <g
+           class="imagelayer"
+           id="g13" />
+      </g>
+      <g
+         class="minor-gridlayer"
+         id="g17">
+        <g
+           class="x"
+           id="g15" />
+        <g
+           class="y"
+           id="g16" />
+      </g>
+      <g
+         class="gridlayer"
+         id="g26">
+        <g
+           class="x"
+           id="g20">
+          <path
+             class="xgrid crisp"
+             transform="translate(137.55,0)"
+             d="M0,20v78"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path17" />
+          <path
+             class="xgrid crisp"
+             transform="translate(198.55,0)"
+             d="M0,20v78"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path18" />
+          <path
+             class="xgrid crisp"
+             transform="translate(259.55,0)"
+             d="M0,20v78"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path19" />
+          <path
+             class="xgrid crisp"
+             transform="translate(320.55,0)"
+             d="M0,20v78"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path20" />
+        </g>
+        <g
+           class="y"
+           id="g25">
+          <path
+             class="ygrid crisp"
+             transform="translate(0,89.5)"
+             d="M60,0h271"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path21" />
+          <path
+             class="ygrid crisp"
+             transform="translate(0,75.22999999999999)"
+             d="M60,0h271"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path22" />
+          <path
+             class="ygrid crisp"
+             transform="translate(0,56.35)"
+             d="M60,0h271"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path23" />
+          <path
+             class="ygrid crisp"
+             transform="translate(0,42.07)"
+             d="M60,0h271"
+             style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+             id="path24" />
+        </g>
+      </g>
+      <g
+         class="zerolinelayer"
+         id="g27">
+        <path
+           class="xzl zl crisp"
+           transform="translate(76.55,0)"
+           d="M0,20v78"
+           style="stroke: rgb(0, 0, 0); stroke-opacity: 1; stroke-width: 1px;"
+           id="path26" />
+      </g>
+      <g
+         class="layer-between"
+         id="g30">
+        <g
+           class="shapelayer"
+           id="g28" />
+        <g
+           class="imagelayer"
+           id="g29" />
+      </g>
+      <path
+         class="xlines-below"
+         id="path30" />
+      <path
+         class="ylines-below"
+         id="path31" />
+      <g
+         class="overlines-below"
+         id="g31" />
+      <g
+         class="xaxislayer-below"
+         id="g32" />
+      <g
+         class="yaxislayer-below"
+         id="g33" />
+      <g
+         class="overaxes-below"
+         id="g34" />
+      <g
+         class="overplot"
+         id="g53">
+        <g
+           class="xy"
+           transform="translate(60,20)"
+           clip-path="url(#clip07b494xyplot)"
+           id="g52">
+          <g
+             class="scatterlayer mlayer"
+             id="g51">
+            <g
+               class="trace scatter trace5e50c2"
+               style="stroke-miterlimit: 2; opacity: 1;"
+               id="g42">
+              <g
+                 class="fills"
+                 id="g35" />
+              <g
+                 class="errorbars"
+                 id="g38">
+                <g
+                   class="errorbar"
+                   id="g36">
+                  <path
+                     class="yerror"
+                     d="M12.55,37.9h8m-4,0V40.81m-4,0h8"
+                     style="vector-effect: none; stroke-width: 1.5px; stroke: rgb(117, 112, 179); stroke-opacity: 1;"
+                     id="path35" />
+                </g>
+                <g
+                   class="errorbar"
+                   id="g37">
+                  <path
+                     class="yerror"
+                     d="M250.45,5.85h8m-4,0V12.66m-4,0h8"
+                     style="vector-effect: none; stroke-width: 1.5px; stroke: rgb(117, 112, 179); stroke-opacity: 1;"
+                     id="path36" />
+                </g>
+              </g>
+              <g
+                 class="lines"
+                 id="g39">
+                <path
+                   class="js-line"
+                   d="M16.55,39.3L254.45,8.97"
+                   style="vector-effect: none; fill: none; stroke: rgb(117, 112, 179); stroke-opacity: 1; stroke-width: 1.5px; opacity: 1;"
+                   id="path38" />
+              </g>
+              <g
+                 class="points"
+                 id="g40">
+                <path
+                   class="point"
+                   transform="translate(16.55,39.3)"
+                   d="M0.75,0A0.75,0.75 0 1,1 0,-0.75A0.75,0.75 0 0,1 0.75,0Z"
+                   style="opacity: 1; stroke-width: 0px; fill: rgb(117, 112, 179); fill-opacity: 1;"
+                   id="path39" />
+                <path
+                   class="point"
+                   transform="translate(254.45,8.97)"
+                   d="M0.75,0A0.75,0.75 0 1,1 0,-0.75A0.75,0.75 0 0,1 0.75,0Z"
+                   style="opacity: 1; stroke-width: 0px; fill: rgb(117, 112, 179); fill-opacity: 1;"
+                   id="path40" />
+              </g>
+              <g
+                 class="text"
+                 id="g41" />
+            </g>
+            <g
+               class="trace scatter tracecc3986"
+               style="stroke-miterlimit: 2; opacity: 1;"
+               id="g50">
+              <g
+                 class="fills"
+                 id="g43" />
+              <g
+                 class="errorbars"
+                 id="g46">
+                <g
+                   class="errorbar"
+                   id="g44">
+                  <path
+                     class="yerror"
+                     d="M12.55,65.75h8m-4,0V74.1m-4,0h8"
+                     style="vector-effect: none; stroke-width: 1.5px; stroke: rgb(217, 95, 2); stroke-opacity: 1;"
+                     id="path43" />
+                </g>
+                <g
+                   class="errorbar"
+                   id="g45">
+                  <path
+                     class="yerror"
+                     d="M250.45,4.96h8m-4,0V9.04m-4,0h8"
+                     style="vector-effect: none; stroke-width: 1.5px; stroke: rgb(217, 95, 2); stroke-opacity: 1;"
+                     id="path44" />
+                </g>
+              </g>
+              <g
+                 class="lines"
+                 id="g47">
+                <path
+                   class="js-line"
+                   d="M16.55,69.5L254.45,6.9"
+                   style="vector-effect: none; fill: none; stroke: rgb(217, 95, 2); stroke-opacity: 1; stroke-width: 1.5px; opacity: 1;"
+                   id="path46" />
+              </g>
+              <g
+                 class="points"
+                 id="g48">
+                <path
+                   class="point"
+                   transform="translate(16.55,69.5)"
+                   d="M0.75,0A0.75,0.75 0 1,1 0,-0.75A0.75,0.75 0 0,1 0.75,0Z"
+                   style="opacity: 1; stroke-width: 0px; fill: rgb(217, 95, 2); fill-opacity: 1;"
+                   id="path47" />
+                <path
+                   class="point"
+                   transform="translate(254.45,6.9)"
+                   d="M0.75,0A0.75,0.75 0 1,1 0,-0.75A0.75,0.75 0 0,1 0.75,0Z"
+                   style="opacity: 1; stroke-width: 0px; fill: rgb(217, 95, 2); fill-opacity: 1;"
+                   id="path48" />
+              </g>
+              <g
+                 class="text"
+                 id="g49" />
+            </g>
+          </g>
+        </g>
+      </g>
+      <path
+         class="xlines-above crisp"
+         d="M0,0"
+         style="fill: none;"
+         id="path53" />
+      <path
+         class="ylines-above crisp"
+         d="M0,0"
+         style="fill: none;"
+         id="path54" />
+      <g
+         class="overlines-above"
+         id="g54" />
+      <g
+         class="xaxislayer-above"
+         id="g60">
+        <g
+           class="xtick"
+           id="g55">
+          <text
+             text-anchor="middle"
+             x="0"
+             y="113"
+             transform="translate(76.55,0)"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             id="text54">0</text>
+        </g>
+        <g
+           class="xtick"
+           id="g56">
+          <text
+             text-anchor="middle"
+             x="0"
+             y="113"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(137.55,0)"
+             id="text55">2</text>
+        </g>
+        <g
+           class="xtick"
+           id="g57">
+          <text
+             text-anchor="middle"
+             x="0"
+             y="113"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(198.55,0)"
+             id="text56">4</text>
+        </g>
+        <g
+           class="xtick"
+           id="g58">
+          <text
+             text-anchor="middle"
+             x="0"
+             y="113"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(259.55,0)"
+             id="text57">6</text>
+        </g>
+        <g
+           class="xtick"
+           id="g59">
+          <text
+             text-anchor="middle"
+             x="0"
+             y="113"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(320.55,0)"
+             id="text58">8</text>
+        </g>
+      </g>
+      <g
+         class="yaxislayer-above"
+         id="g66">
+        <g
+           class="ytick"
+           id="g61">
+          <text
+             text-anchor="end"
+             x="59"
+             y="4.8999999999999995"
+             transform="translate(0,89.5)"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             id="text60">10M</text>
+        </g>
+        <g
+           class="ytick"
+           id="g62">
+          <text
+             text-anchor="end"
+             x="59"
+             y="3.675"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 10.5px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(0,75.22999999999999)"
+             id="text61">2</text>
+        </g>
+        <g
+           class="ytick"
+           id="g63">
+          <text
+             text-anchor="end"
+             x="59"
+             y="3.675"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 10.5px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(0,56.35)"
+             id="text62">5</text>
+        </g>
+        <g
+           class="ytick"
+           id="g64">
+          <text
+             text-anchor="end"
+             x="59"
+             y="4.8999999999999995"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(0,42.07)"
+             id="text63">100M</text>
+        </g>
+        <g
+           class="ytick"
+           id="g65">
+          <text
+             text-anchor="end"
+             x="59"
+             y="3.675"
+             style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 10.5px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre; opacity: 1;"
+             transform="translate(0,27.8)"
+             id="text64">2</text>
+        </g>
+      </g>
+      <g
+         class="overaxes-above"
+         id="g67" />
+    </g>
+  </g>
+  <g
+     class="polarlayer"
+     id="g70" />
+  <g
+     class="smithlayer"
+     id="g71" />
+  <g
+     class="ternarylayer"
+     id="g72" />
+  <g
+     class="geolayer"
+     id="g73" />
+  <g
+     class="funnelarealayer"
+     id="g74" />
+  <g
+     class="pielayer"
+     id="g75" />
+  <g
+     class="iciclelayer"
+     id="g76" />
+  <g
+     class="treemaplayer"
+     id="g77" />
+  <g
+     class="sunburstlayer"
+     id="g78" />
+  <g
+     class="glimages"
+     id="g79" />
+  <defs
+     id="topdefs-07b494">
+    <g
+       class="clips"
+       id="g80" />
+    <clipPath
+       id="legend07b494">
+      <rect
+         width="64"
+         height="53"
+         x="0"
+         y="0"
+         id="rect80" />
+    </clipPath>
+  </defs>
+  <g
+     class="layer-above"
+     id="g83">
+    <g
+       class="imagelayer"
+       id="g81" />
+    <g
+       class="shapelayer"
+       id="g82" />
+  </g>
+  <g
+     class="infolayer"
+     id="g102">
+    <g
+       class="legend"
+       pointer-events="all"
+       transform="translate(336,20)"
+       id="g98">
+      <rect
+         class="bg"
+         shape-rendering="crispEdges"
+         width="64"
+         height="53"
+         x="0"
+         y="0"
+         style="stroke: rgb(68, 68, 68); stroke-opacity: 1; fill: rgb(153, 153, 153); fill-opacity: 1; stroke-width: 0px;"
+         id="rect83" />
+      <g
+         class="scrollbox"
+         transform=""
+         clip-path="url(#legend07b494)"
+         id="g97">
+        <g
+           class="groups"
+           id="g96">
+          <g
+             class="traces"
+             transform="translate(0,15.6)"
+             style="opacity: 1;"
+             id="g89">
+            <text
+               class="legendtext"
+               text-anchor="start"
+               x="40"
+               y="5.46"
+               style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;"
+               id="text83">Ct</text>
+            <g
+               class="layers"
+               style="opacity: 1;"
+               id="g88">
+              <g
+                 class="legendfill"
+                 id="g84" />
+              <g
+                 class="legendlines"
+                 id="g85">
+                <path
+                   class="js-line"
+                   d="M5,0h30"
+                   style="fill: none; stroke: rgb(117, 112, 179); stroke-opacity: 1; stroke-width: 1.5px;"
+                   id="path84" />
+              </g>
+              <g
+                 class="legendsymbols"
+                 id="g87">
+                <g
+                   class="legendpoints"
+                   id="g86">
+                  <path
+                     class="scatterpts"
+                     transform="translate(20,0)"
+                     d="M1,0A1,1 0 1,1 0,-1A1,1 0 0,1 1,0Z"
+                     style="opacity: 1; stroke-width: 0px; fill: rgb(117, 112, 179); fill-opacity: 1;"
+                     id="path85" />
+                </g>
+              </g>
+            </g>
+            <rect
+               class="legendtoggle"
+               x="0"
+               y="-10.6"
+               width="58.890625"
+               height="21.2"
+               style="fill: rgb(0, 0, 0); fill-opacity: 0;"
+               id="rect88" />
+          </g>
+          <g
+             class="traces"
+             transform="translate(0,36.8)"
+             style="opacity: 1;"
+             id="g95">
+            <text
+               class="legendtext"
+               text-anchor="start"
+               x="40"
+               y="5.46"
+               style="font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;"
+               id="text89">Oa</text>
+            <g
+               class="layers"
+               style="opacity: 1;"
+               id="g94">
+              <g
+                 class="legendfill"
+                 id="g90" />
+              <g
+                 class="legendlines"
+                 id="g91">
+                <path
+                   class="js-line"
+                   d="M5,0h30"
+                   style="fill: none; stroke: rgb(217, 95, 2); stroke-opacity: 1; stroke-width: 1.5px;"
+                   id="path90" />
+              </g>
+              <g
+                 class="legendsymbols"
+                 id="g93">
+                <g
+                   class="legendpoints"
+                   id="g92">
+                  <path
+                     class="scatterpts"
+                     transform="translate(20,0)"
+                     d="M1,0A1,1 0 1,1 0,-1A1,1 0 0,1 1,0Z"
+                     style="opacity: 1; stroke-width: 0px; fill: rgb(217, 95, 2); fill-opacity: 1;"
+                     id="path91" />
+                </g>
+              </g>
+            </g>
+            <rect
+               class="legendtoggle"
+               x="0"
+               y="-10.6"
+               width="58.890625"
+               height="21.2"
+               style="fill: rgb(0, 0, 0); fill-opacity: 0;"
+               id="rect94" />
+          </g>
+        </g>
+      </g>
+      <rect
+         class="scrollbar"
+         rx="20"
+         ry="3"
+         width="0"
+         height="0"
+         x="0"
+         y="0"
+         style="fill: rgb(128, 139, 164); fill-opacity: 1;"
+         id="rect97" />
+    </g>
+    <g
+       class="g-gtitle"
+       id="g99" />
+    <g
+       class="g-xtitle"
+       transform="translate(0,3.700000000000003)"
+       id="g100">
+      <text
+         class="xtitle"
+         x="195.5"
+         y="125.3"
+         text-anchor="middle"
+         style="opacity: 1; font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;"
+         id="text99">Time [h]</text>
+    </g>
+    <g
+       class="g-ytitle"
+       id="g101">
+      <text
+         class="ytitle"
+         transform="rotate(-90,19.56875,59)"
+         x="19.56875"
+         y="59"
+         text-anchor="middle"
+         style="opacity: 1; font-family: 'Open Sans', verdana, arial, sans-serif; font-size: 14px; fill: rgb(0, 0, 0); fill-opacity: 1; white-space: pre;"
+         id="text100">CFUs/mL</text>
+    </g>
+  </g>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 76.55,89.5 h 237.99485 l 0.096,-61.280002 m -238.1857,0.006 L 76.55,59"
+     id="path105"
+     sodipodi:nodetypes="ccccc" />
+  <path
+     style="fill:none;stroke:#008000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-dasharray:2,1;stroke-dashoffset:0"
+     d="M 77.3,89.5 H 314.64085 L 314.45,27"
+     id="path106" />
+  <path
+     style="fill:none;stroke:#800000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+     d="M 77.051514,58.280002 76.956664,27.506 315.14237,27.5"
+     id="path107" />
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#008000"
+     x="280.81674"
+     y="80.519989"
+     id="text107"><tspan
+       sodipodi:role="line"
+       id="tspan107"
+       x="280.81674"
+       y="80.519989">µ<tspan
+   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.6667px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';font-variant-ligatures:normal;font-variant-position:sub;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#008000"
+   id="tspan108">Oa</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#800000;stroke:none"
+     x="82.669128"
+     y="43.415352"
+     id="text107-6"><tspan
+       sodipodi:role="line"
+       id="tspan109"
+       x="82.669128"
+       y="43.415352">µ<tspan
+   style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.6667px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#800000;stroke:none"
+   id="tspan110">Ct</tspan></tspan></text>
+</svg>

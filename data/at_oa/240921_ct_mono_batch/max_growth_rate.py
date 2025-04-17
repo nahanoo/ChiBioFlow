@@ -8,6 +8,7 @@ from scipy.stats import linregress
 from scipy.signal import savgol_filter
 from scipy.integrate import odeint
 import scipy.optimize as optimize
+from style_plot import *
 
 
 def monod(y, t, v, Km, q):
@@ -85,10 +86,10 @@ def plot_ct_chibio_batch(plot_log=False):
             plot_y = y[:len(x[x < 6.6])]
         fig.add_trace(
             go.Scatter(
-                x=x[x < 8],
-                y=plot_y,
-                line=dict(color="#7570B3"),
-                opacity=0.5,
+                x=x[x < 8][::10],
+                y=plot_y[::10],
+                line=dict(color=colors['ct']),
+                opacity=1,
                 name="OD",
                 showlegend=legend,
             ),
@@ -110,7 +111,7 @@ def plot_ct_chibio_batch(plot_log=False):
     q = (0.4 - 0.085) / 7.5
     xs = np.average(np.array(xs), axis=0)
     ys = np.average(np.array(ys), axis=0)
-    r = 0.5
+    #r = 0.5
     Km = get_Km(xs, ys, 7.5, ys[0], r, q)
     Y = odeint(monod, [0.075, 7.5], np.linspace(0, 6.6, 100), args=(r, 0.2, q))
     print('v', r, 'Km', Km)
@@ -122,7 +123,7 @@ def plot_ct_chibio_batch(plot_log=False):
         go.Scatter(
             x=np.linspace(0, 6.6, 100),
             y=plot_y,
-            line=dict(color="#7570B3", dash="dash"),
+            line=dict(color=colors['total'], dash="dot"),
             name="Fit",
             showlegend=True,
         ),

@@ -59,5 +59,10 @@ def plot_exp():
         ),
         width=width,
         height=height)
-    fig = style_plot(fig)
+    fig.update_layout(width=width / 2, height=height / 1.8)
+    fig = style_plot(fig, marker_size=1.5)
+    fig.write_image('plot.png', scale=4)
     fig.show()
+
+
+plot_exp()

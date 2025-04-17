@@ -9,6 +9,7 @@ from scipy.signal import savgol_filter
 from scipy.integrate import odeint
 import scipy.optimize as optimize
 import plotly.graph_objects as go
+from style_plot import *
 
 
 def monod(y, t, v, Km, q):
@@ -81,7 +82,7 @@ def plot_oa_chibio_batch(plot_log=False):
     y_windows, x_windows = [], []
     ys, xs = [], []
     exp_phase = len(M1[M1["exp_time"] < 8])
-    stat_phase = len(M1[M1["exp_time"] < 10.5])
+    stat_phase = len(M1[M1["exp_time"] < 14])
     for i, r in enumerate(reactors):
         x, y = r["exp_time"].to_numpy(), r["FP3_emit1"].to_numpy()
         x = x[:stat_phase]
@@ -100,10 +101,10 @@ def plot_oa_chibio_batch(plot_log=False):
             plot_y = y
         fig.add_trace(
             go.Scatter(
-                x=x,
-                y=plot_y,
-                line=dict(color="#D95F02"),
-                opacity=0.5,
+                x=x[::10],
+                y=plot_y[::10],
+                line=dict(color=colors['oa']),
+                opacity=1,
                 name="OD",
                 showlegend=legend,
             ),
@@ -136,7 +137,7 @@ def plot_oa_chibio_batch(plot_log=False):
         go.Scatter(
             x=xs,
             y=plot_y,
-            line=dict(color="#D95F02", dash="dash"),
+            line=dict(color=colors['total'], dash="dot"),
             name="Fit",
             showlegend=True,
         ),
@@ -146,24 +147,3 @@ def plot_oa_chibio_batch(plot_log=False):
     fig.update_xaxes(title="Time [h]")
     fig.update_yaxes(title="OD")
     return fig
-
-
-dir = join("/", "home", "eric", "ChiBioFlow", "data")
-df = fluorescence_paresr(join(dir, "at_oa/240926_oa_mono_batch"))
-
-ods = [
-    (12946.666666666666, 0.06),
-    (10381.0, 0.11),
-    (5177.0, 0.3),
-    (1298.2222222222224, 0.72),
-    (425.5555555555556, 1.1),
-    (84.8888888888889, 2.0),
-    (26.11111111111111, 3.7),
-    (10.0, 6.0),
-]
-ods = np.array(ods)
-
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=ods[:, 1],
-                         y=np.log10(14864.7622196463 / ods[:, 0])))
-fig.show()

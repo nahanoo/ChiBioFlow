@@ -132,7 +132,7 @@ def competition():
     fig.update_layout(boxgroupgap=0, boxgap=0.2, boxmode='overlay')
     fig.update_xaxes(type='category')
     figs.append(fig)
-    return figs
+    return figs,df
 
 
 dilution_rates = {0.04: [45.5, 212.97], 0.15: [
@@ -251,7 +251,9 @@ def plot():
             legend.append(d['name'])
         ts = set(cfus['sample_time'])
         for t in ts:
-            fig.add_vline(x=t, opacity=0.3)
+            # Option to add sample time
+            pass
+            #fig.add_vline(x=t, opacity=0.3)
         fig.show()
         figs.append(fig)
     return figs

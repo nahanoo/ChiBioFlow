@@ -59,7 +59,7 @@ def fix_M1():
 def fix_M0():
     f = glob(join("../240812_ct_oa_thiamine_curated", "M0", "*data.csv"))[0]
     df = pd.read_csv(f)
-    for i, row in df[df["od_measured"] < 0.15].iterrows():
+    for i, row in df[df["od_measured"] < 0.1].iterrows():
         df = df.drop(i)
     df.loc[:, "od_measured"] -= 0.03
     df.loc[:, "od_measured"] = savgol_filter(df["od_measured"].to_numpy(), 10, 2)
@@ -86,7 +86,7 @@ def fix_M2():
     df.to_csv(f)
 
 
-mask_data(1.71, 63.08)
+mask_data(1.71, 60)
 fix_M0()
 fix_M2()
 fix_M1()

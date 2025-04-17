@@ -23,12 +23,10 @@ abb = {
 
 def style_plot(fig, marker_size=3, top_margin=20, font_size=14):
     """Style function for figures setting fot size and true black color."""
-    fig.update_layout(
-        {
-            "plot_bgcolor": "rgb(168, 168, 168)",
-            "paper_bgcolor": "rgb(207, 207, 207)",
-        }
-    )
+    fig.update_layout({
+        "plot_bgcolor": "rgb(168, 168, 168)",
+        "paper_bgcolor": "rgb(207, 207, 207)",
+    })
     for d in fig["data"]:
         d["marker"]["size"] = marker_size
         d["line"]["width"] = marker_size
@@ -42,14 +40,14 @@ def style_plot(fig, marker_size=3, top_margin=20, font_size=14):
     fig["layout"]["title"]["font"]["color"] = "black"
     fig["layout"]["legend"]["title"]["font"]["size"] = j
     fig["layout"]["legend"]["title"]["font"]["color"] = "black"
-    fig.for_each_xaxis(lambda axis: axis.title.update(font=dict(size=j, color="black")))
-    fig.for_each_xaxis(lambda axis: axis.title.update(font=dict(size=j, color="black")))
+    fig.for_each_xaxis(
+        lambda axis: axis.title.update(font=dict(size=j, color="black")))
+    fig.for_each_xaxis(
+        lambda axis: axis.title.update(font=dict(size=j, color="black")))
     fig.for_each_yaxis(lambda axis: axis.update(gridcolor="black"))
     fig.for_each_xaxis(lambda axis: axis.update(gridcolor="black"))
 
-    fig.update_layout(
-        margin=dict(l=60, r=20, t=top_margin, b=20),
-    )
+    fig.update_layout(margin=dict(l=60, r=20, t=top_margin, b=20), )
     fig.update_yaxes(title_standoff=10)
     fig.update_xaxes(title_standoff=10)
     return fig
@@ -57,9 +55,7 @@ def style_plot(fig, marker_size=3, top_margin=20, font_size=14):
 
 def parse_data():
     dir = join("/", "home", "eric", "ChiBioFlow", "data")
-    df = fluorescence_paresr(
-        join(dir, "at_oa/240607_at_oa"), down_sample=True, window_size=20, od_filter=1
-    )
+    df = fluorescence_paresr(join(dir, "at_oa/240607_at_oa"))
     to_pop = []
     df.index = range(len(df))
     for i, OD, time in zip(df.index, df["od_measured"], df["exp_time"]):
@@ -70,7 +66,8 @@ def parse_data():
     M0 = df[df["reactor"] == "M0"]
     M1 = df[df["reactor"] == "M1"]
     M2 = df[df["reactor"] == "M2"]
-    abs = pd.DataFrame(columns=["exp_time", "average", "stdev", "read", "species"])
+    abs = pd.DataFrame(
+        columns=["exp_time", "average", "stdev", "read", "species"])
     fs = listdir(join(dir, "at_oa/240607_at_oa", "plate_reader", "Absorbance"))
     for f in sorted(fs):
         t = float(f[:-5])
@@ -91,13 +88,14 @@ def parse_data():
         abs.loc[len(abs)] = [t, avg, stdev, "Absorbance", "Community 3"]
     abs = abs.sort_values(by="exp_time")
 
-    gfp = pd.DataFrame(columns=["exp_time", "average", "stdev", "read", "species"])
+    gfp = pd.DataFrame(
+        columns=["exp_time", "average", "stdev", "read", "species"])
     fs = listdir(join(dir, "at_oa/240607_at_oa", "plate_reader", "GFP"))
     for f in sorted(fs):
         t = float(f[:-5])
-        data = pd.read_excel(
-            join(dir, "at_oa/240607_at_oa", "plate_reader", "GFP", f), index_col=0
-        )
+        data = pd.read_excel(join(dir, "at_oa/240607_at_oa", "plate_reader",
+                                  "GFP", f),
+                             index_col=0)
         avg = np.average(data.loc["A", [1, 2, 3]])
         stdev = np.std(data.loc["A", [1, 2, 3]])
         gfp.loc[len(gfp)] = [t, avg, stdev, "Fluorescence", "Community 1"]
@@ -112,7 +110,8 @@ def parse_data():
 
     gfp = gfp.sort_values(by="exp_time")
 
-    mcherry = pd.DataFrame(columns=["exp_time", "average", "stdev", "read", "species"])
+    mcherry = pd.DataFrame(
+        columns=["exp_time", "average", "stdev", "read", "species"])
     fs = listdir(join(dir, "at_oa/240607_at_oa", "plate_reader", "mCherry"))
     for f in sorted(fs):
         t = float(f[:-5])
@@ -122,15 +121,21 @@ def parse_data():
         )
         avg = np.average(data.loc["A", [1, 2, 3]])
         stdev = np.std(data.loc["A", [1, 2, 3]])
-        mcherry.loc[len(mcherry)] = [t, avg, stdev, "Fluorescence", "Community 1"]
+        mcherry.loc[len(mcherry)] = [
+            t, avg, stdev, "Fluorescence", "Community 1"
+        ]
 
         avg = np.average(data.loc["A", [4, 5, 6]])
         stdev = np.std(data.loc["A", [4, 5, 6]])
-        mcherry.loc[len(mcherry)] = [t, avg, stdev, "Fluorescence", "Community 2"]
+        mcherry.loc[len(mcherry)] = [
+            t, avg, stdev, "Fluorescence", "Community 2"
+        ]
 
         avg = np.average(data.loc["A", [7, 8, 9]])
         stdev = np.std(data.loc["A", [7, 8, 9]])
-        mcherry.loc[len(mcherry)] = [t, avg, stdev, "Fluorescence", "Community 3"]
+        mcherry.loc[len(mcherry)] = [
+            t, avg, stdev, "Fluorescence", "Community 3"
+        ]
     mcherry = mcherry.sort_values(by="exp_time")
 
     M0_abs = abs[abs["species"] == "Community 1"]
@@ -306,7 +311,9 @@ def plot_exp():
             x=at_com1["sample_time"],
             y=at_com1["average"],
             marker=dict(color="#1B9E77"),
-            error_y=dict(type="data", array=at_com1["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=at_com1["stdev"].to_list(),
+                         visible=True),
             showlegend=False,
         ),
         row=4,
@@ -317,7 +324,9 @@ def plot_exp():
             x=oa_com1["sample_time"],
             y=oa_com1["average"],
             marker=dict(color="#D95F02"),
-            error_y=dict(type="data", array=oa_com1["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=oa_com1["stdev"].to_list(),
+                         visible=True),
             showlegend=False,
         ),
         row=4,
@@ -328,7 +337,9 @@ def plot_exp():
             x=at_com2["sample_time"],
             y=at_com2["average"],
             marker=dict(color="#1B9E77"),
-            error_y=dict(type="data", array=at_com2["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=at_com2["stdev"].to_list(),
+                         visible=True),
             showlegend=False,
         ),
         row=4,
@@ -339,7 +350,9 @@ def plot_exp():
             x=oa_com2["sample_time"],
             y=oa_com2["average"],
             marker=dict(color="#D95F02"),
-            error_y=dict(type="data", array=oa_com2["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=oa_com2["stdev"].to_list(),
+                         visible=True),
             showlegend=False,
         ),
         row=4,
@@ -350,7 +363,9 @@ def plot_exp():
             x=at_com3["sample_time"],
             y=at_com3["average"],
             marker=dict(color="#1B9E77"),
-            error_y=dict(type="data", array=at_com3["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=at_com3["stdev"].to_list(),
+                         visible=True),
             showlegend=False,
         ),
         row=4,
@@ -361,7 +376,9 @@ def plot_exp():
             x=oa_com3["sample_time"],
             y=oa_com3["average"],
             marker=dict(color="#D95F02"),
-            error_y=dict(type="data", array=oa_com3["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=oa_com3["stdev"].to_list(),
+                         visible=True),
             showlegend=False,
         ),
         row=4,
@@ -375,7 +392,10 @@ def plot_exp():
     fig["layout"]["yaxis12"]["type"] = "log"
     fig = style_plot(fig, marker_size=3)
     fig.show()
+
+
 plot_exp()
+
 
 def plot_triplicates():
     (
@@ -550,7 +570,9 @@ def plot_plate_reader():
             y=M0_abs["average"],
             marker=dict(color="blue"),
             showlegend=False,
-            error_y=dict(type="data", array=M0_abs["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=M0_abs["stdev"].to_list(),
+                         visible=True),
         ),
         row=1,
         col=1,
@@ -561,7 +583,9 @@ def plot_plate_reader():
             y=M1_abs["average"],
             marker=dict(color="blue"),
             showlegend=False,
-            error_y=dict(type="data", array=M1_abs["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=M1_abs["stdev"].to_list(),
+                         visible=True),
         ),
         row=1,
         col=2,
@@ -572,7 +596,9 @@ def plot_plate_reader():
             y=M2_abs["average"],
             marker=dict(color="blue"),
             showlegend=False,
-            error_y=dict(type="data", array=M2_abs["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=M2_abs["stdev"].to_list(),
+                         visible=True),
         ),
         row=1,
         col=3,
@@ -584,7 +610,9 @@ def plot_plate_reader():
             y=M0_gfp["average"],
             marker=dict(color=colors["at"]),
             showlegend=False,
-            error_y=dict(type="data", array=M0_gfp["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=M0_gfp["stdev"].to_list(),
+                         visible=True),
         ),
         row=2,
         col=1,
@@ -595,7 +623,9 @@ def plot_plate_reader():
             y=M1_gfp["average"],
             marker=dict(color=colors["at"]),
             showlegend=False,
-            error_y=dict(type="data", array=M1_gfp["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=M1_gfp["stdev"].to_list(),
+                         visible=True),
         ),
         row=2,
         col=2,
@@ -606,7 +636,9 @@ def plot_plate_reader():
             y=M2_gfp["average"],
             marker=dict(color=colors["at"]),
             showlegend=False,
-            error_y=dict(type="data", array=M2_gfp["stdev"].to_list(), visible=True),
+            error_y=dict(type="data",
+                         array=M2_gfp["stdev"].to_list(),
+                         visible=True),
         ),
         row=2,
         col=3,
@@ -618,9 +650,9 @@ def plot_plate_reader():
             y=M0_mcherry["average"],
             marker=dict(color=colors["oa"]),
             showlegend=False,
-            error_y=dict(
-                type="data", array=M0_mcherry["stdev"].to_list(), visible=True
-            ),
+            error_y=dict(type="data",
+                         array=M0_mcherry["stdev"].to_list(),
+                         visible=True),
         ),
         row=3,
         col=1,
@@ -631,9 +663,9 @@ def plot_plate_reader():
             y=M1_mcherry["average"],
             marker=dict(color=colors["oa"]),
             showlegend=False,
-            error_y=dict(
-                type="data", array=M1_mcherry["stdev"].to_list(), visible=True
-            ),
+            error_y=dict(type="data",
+                         array=M1_mcherry["stdev"].to_list(),
+                         visible=True),
         ),
         row=3,
         col=2,
@@ -644,14 +676,15 @@ def plot_plate_reader():
             y=M2_mcherry["average"],
             marker=dict(color=colors["oa"]),
             showlegend=False,
-            error_y=dict(
-                type="data", array=M2_mcherry["stdev"].to_list(), visible=True
-            ),
+            error_y=dict(type="data",
+                         array=M2_mcherry["stdev"].to_list(),
+                         visible=True),
         ),
         row=3,
         col=3,
     )
     fig = style_plot(fig)
     fig.show()
+
 
 plot_triplicates()

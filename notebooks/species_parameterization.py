@@ -1,9 +1,7 @@
 from plotting import *
 import plotly.express as px
-from chibio_parser import cfu_parser
+from chibio_parser import cfu_parser,chibio_parser
 from os.path import join
-from community_caller import update_labels
-from citrate import constant_thiamine
 
 
 def od_comm():
@@ -199,21 +197,21 @@ def oa_batch_cont():
 
 
 def ct_oa():
-    colors = {'<i>C. testosteroni</i>': '#8872cd',
-              '<i>O. anthropi</i>': '#e27e50'}
-    df, fig = plot_od('ct_oa_citrate_mono')
-
+    colors = {'<i>C. testosteroni</i>': '#7570b3ff',
+              '<i>O. anthropi</i>': '#d95f02ff'}
+    df,o = chibio_parser('ct_oa_citrate_mono')
+    df = df[df['sensor'] == 'od_measured']
+    df,fig = plot_od('ct_oa_citrate_mono',df=df)
     titles = ['Citric acid, D=0.05',
-              'Citric acid, D=0.05']
-    Ms = ['M0', 'M1', 'M2', 'M3', 'M4']
-    names = ['<i>O. anthropi</i>','<i>C. testosteroni</i>']
+              'Citric acid, D=0.05','']
+    names = ['<i>C. testosteroni</i>','<i>O. anthropi</i>']
     for i, a in enumerate(fig['layout']['annotations']):
         a['text'] = titles[i]
     for i, d in enumerate(fig['data']):
         d['name'] = names[i]
         d['line']['color'] = colors[d['name']]
     fig.add_vline(
-        x=141, col=1, annotation_text='Added Thiamine <br>to feed c=1.88 \u03BCM', opacity=1)
+        x=141, col=1, annotation_text='Added Thiamine <br>to feed c=1.48 \u03BCM', opacity=1)
     fig.add_vline(x=0, annotation_text='Batch <br>culture', opacity=1)
     fig.add_vline(x=67, annotation_text='Start <br>dilution', opacity=1)
     fig['layout']['legend']['title']['text'] = 'species'
@@ -239,7 +237,7 @@ def at_monot():
     fig.update_layout(showlegend=False)
     fig.show()
 
-dfs = []
+"""dfs = []
 df015 = cfu_parser('community_ss_report')[0]
 df015.insert(len(df015.columns), 'condition', 'Community')
 df015.insert(len(df015.columns), 'D', 0.15)
@@ -255,3 +253,4 @@ dfs.append(df01)
 out = pd.concat(dfs)
 fig = px.scatter(out,x='reactor',y='composition',color='species',category_orders={'reactor':['D=0.1','D=0.15']})
 fig = style_plot(None,fig,'cfus')
+"""
