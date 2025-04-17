@@ -3,10 +3,17 @@ from scipy.integrate import odeint
 import pandas as pd
 from style import *
 import plotly.graph_objects as go
+import plotly.io as pio
 
-df = dict(pd.read_csv("parameters.csv"))
-params = pd.Series(df["value"].values, index=df["parameter"]).to_dict()
-p = params
+pio.kaleido.scope.mathjax = None
+
+
+def parse_params():
+    df = dict(pd.read_csv("parameters.csv"))
+    params = pd.Series(df["value"].values, index=df["parameter"]).to_dict()
+    p = params
+    return p
+
 
 width, height = 300, 250
 lm = 10
@@ -14,11 +21,11 @@ bm = 10
 tm = 10
 rm = 10
 font_size = 8
-line_thickness = 1.2
-xs = np.linspace(0, 1000, 2000)
+line_thickness = 1.8
+xs = np.linspace(0, 20000, 2000)
 
 
-def ct_mono(y, t):
+def ct_mono(y, t, p):
     Ct, R = y
     JCt = p["v1_1"] * R / (R + p["K1_1"])
     dCt = JCt * Ct - p["D"] * Ct
@@ -26,7 +33,7 @@ def ct_mono(y, t):
     return dCt, dR
 
 
-def oa_mono(y, t):
+def oa_mono(y, t, p):
     Oa, R = y
     JOa = p["v2_1"] * R / (R + p["K2_1"])
     dOa = JOa * Oa - p["D"] * Oa
@@ -35,7 +42,8 @@ def oa_mono(y, t):
 
 
 def plot_ct_mono():
-    Y = odeint(ct_mono, [p["N01"], p["M1"]], xs)
+    p = parse_params()
+    Y = odeint(ct_mono, [p["N01"], p["M1"]], xs, args=(p,))
     Ct, R = Y[-1]
     fig = go.Figure()
     fig.add_trace(
@@ -51,7 +59,8 @@ def plot_ct_mono():
 
 
 def plot_oa_mono():
-    Y = odeint(oa_mono, [p["N02"], p["M1"]], xs)
+    p = parse_params()
+    Y = odeint(oa_mono, [p["N02"], p["M1"]], xs, args=(p,))
     Oa, R = Y[-1]
     fig = go.Figure()
     fig.add_trace(
@@ -66,7 +75,7 @@ def plot_oa_mono():
     return fig
 
 
-def competition(y, t):
+def competition(y, t, p):
     Ct, Oa, R = y
     JCt = p["v1_1"] * R / (R + p["K1_1"])
     JOa = p["v2_1"] * R / (R + p["K2_1"])
@@ -77,7 +86,8 @@ def competition(y, t):
 
 
 def plot_competition():
-    Y = odeint(competition, [p["N01"], p["N02"], p["M1"]], xs)
+    p = parse_params()
+    Y = odeint(competition, [p["N01"], p["N02"], p["M1"]], xs, args=(p,))
     Ct, Oa, R = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R)
     fig = go.Figure()
@@ -87,10 +97,6 @@ def plot_competition():
     fig.add_trace(
         go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
     )
-    ct_mono_trace = plot_ct_mono()
-    oa_mono_trace = plot_oa_mono()
-    fig.add_trace(ct_mono_trace.data[0])
-    fig.add_trace(oa_mono_trace.data[0])
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="Abundance [OD]")
     fig.update_layout(width=width, height=height)
     fig = style_plot(
@@ -102,10 +108,10 @@ def plot_competition():
         top_margin=tm,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/competition.svg")
+    fig.write_image("plots/simulations/dynamics/competition.svg")
 
 
-def thiamine_supply(y, t):
+def thiamine_supply(y, t, p):
     Ct, Oa, R, T = y
     JCt = p["v1_1"] * R / (R + p["K1_1"])
     JOa = p["v2_1"] * R / (R + p["K2_1"]) * T / (T + p["K2_3"])
@@ -117,7 +123,8 @@ def thiamine_supply(y, t):
 
 
 def plot_thiamine_supply():
-    Y = odeint(thiamine_supply, [p["N01"], p["N02"], p["M1"], p["M3"]], xs)
+    p = parse_params()
+    Y = odeint(thiamine_supply, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
     Ct, Oa, R, T = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R, "T", T)
     fig = go.Figure()
@@ -127,10 +134,6 @@ def plot_thiamine_supply():
     fig.add_trace(
         go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
     )
-    ct_mono_trace = plot_ct_mono()
-    oa_mono_trace = plot_oa_mono()
-    fig.add_trace(ct_mono_trace.data[0])
-    fig.add_trace(oa_mono_trace.data[0])
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="Abundance [OD]")
     fig.update_layout(width=width, height=height)
     fig = style_plot(
@@ -142,10 +145,50 @@ def plot_thiamine_supply():
         top_margin=tm,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/thiamine_supply.svg")
+    fig.write_image("plots/simulations/dynamics/thiamine_supply.svg")
 
 
-def mutual_cf(y, t):
+plot_thiamine_supply()
+
+
+def plot_thiamine_supply_oa_batch():
+    xs = np.linspace(0, 72, 2000)
+    dash = ["dash", "dot", "dashdot"]
+    names = ["0 nM thiamine", "1 nM thiamine", "10 nM thiamine"]
+    ts = [0, 1, 10]
+    p = parse_params()
+    p["v1_1"] = 0
+    p["D"] = 0
+    fig = go.Figure()
+    for i, t in enumerate(ts):
+        p["M3"] = t
+        Y = odeint(
+            thiamine_supply, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,)
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=Y[:, 1],
+                name=names[i],
+                marker=dict(color=colors["oa"]),
+                line=dict(dash=dash[i]),
+            )
+        )
+    fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="Abundance [OD]")
+    fig.update_layout(width=width, height=height)
+    fig = style_plot(
+        fig,
+        line_thickness=line_thickness,
+        font_size=font_size,
+        left_margin=lm,
+        buttom_margin=bm,
+        top_margin=tm,
+        right_margin=rm,
+    )
+    fig.write_image("plots/simulations/parameterization/thiamine_supply_oa_batch.pdf")
+
+
+def mutual_cf(y, t, p):
     Ct, Oa, R, T = y
     JCt = p["v1_1"] * R / (R + p["K1_1"])
     JOa = p["v2_1"] * R / (R + p["K2_1"]) * T / (T + p["K2_3"])
@@ -157,7 +200,10 @@ def mutual_cf(y, t):
 
 
 def plot_mutual_cf():
-    Y = odeint(mutual_cf, [p["N01"], p["N02"], p["M1"], 0], xs)
+    p = parse_params()
+    p["D"] = 0.15
+    p["a1_3"] = 0.5
+    Y = odeint(mutual_cf, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     Ct, Oa, R, T = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R, "T", T)
     fig = go.Figure()
@@ -167,10 +213,6 @@ def plot_mutual_cf():
     fig.add_trace(
         go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
     )
-    ct_mono_trace = plot_ct_mono()
-    oa_mono_trace = plot_oa_mono()
-    fig.add_trace(ct_mono_trace.data[0])
-    fig.add_trace(oa_mono_trace.data[0])
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="OD")
     fig.update_layout(width=width, height=height)
     fig = style_plot(
@@ -182,10 +224,40 @@ def plot_mutual_cf():
         top_margin=tm,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/mutual_cf.svg")
+    fig.write_image("plots/simulations/dynamics/mutual_cf.pdf")
 
 
-def niche_creation(y, t):
+def plot_thiamine_production():
+    xs = np.linspace(0, 200, 2000)
+    p = parse_params()
+    p["v2_1"] = 0
+    Y = odeint(mutual_cf, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    Ct, Oa, R, T = Y[-1]
+    print("Ct", Ct, "Oa", Oa, "R", R, "T", T)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 3],
+            name="Thiamine<br>concentration",
+            marker=dict(color=colors["blue"]),
+        )
+    )
+    fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="Concentration [nM]")
+    fig.update_layout(width=width, height=height, title="Thiamine concentration")
+    fig = style_plot(
+        fig,
+        line_thickness=line_thickness,
+        font_size=font_size,
+        left_margin=lm,
+        buttom_margin=bm,
+        top_margin=tm,
+        right_margin=rm,
+    )
+    fig.write_image("plots/simulations/parameterization/thiamine_production.pdf")
+
+
+def niche_creation(y, t, p):
     Ct, Oa, R, M = y
     JCtR = p["v1_1"] * R / (R + p["K1_1"])
     JCtM = p["v1_2"] * M / (M + p["K1_2"])
@@ -198,7 +270,8 @@ def niche_creation(y, t):
 
 
 def plot_niche_creation():
-    Y = odeint(niche_creation, [p["N01"], p["N02"], p["M1"], 0], xs)
+    p = parse_params()
+    Y = odeint(niche_creation, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     Ct, Oa, R, M = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R, "M", M)
     fig = go.Figure()
@@ -209,10 +282,6 @@ def plot_niche_creation():
         go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
     )
     Ct, Oa, R, M = Y[-1]
-    ct_mono_trace = plot_ct_mono()
-    oa_mono_trace = plot_oa_mono()
-    fig.add_trace(ct_mono_trace.data[0])
-    fig.add_trace(oa_mono_trace.data[0])
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="OD")
     fig.update_layout(width=width, height=height)
     fig = style_plot(
@@ -224,10 +293,80 @@ def plot_niche_creation():
         top_margin=tm,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/niche_creation.svg")
+    fig.write_image("plots/simulations/dynamics/niche_creation.pdf")
 
 
-def niche_creation_cf(y, t):
+def plot_niche_production():
+    xs = np.linspace(0, 2000, 2000)
+    p = parse_params()
+    p["v1_1"] = 0
+    p["v1_2"] = 0
+    Y = odeint(niche_creation, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    Ct, Oa, R, M = Y[-1]
+    print("Ct", Ct, "Oa", Oa, "R", R, "M", M)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 3],
+            name="Metabolite<br>concentration",
+            marker=dict(color=colors["blue"]),
+        )
+    )
+    fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="Concentration [mM]")
+    fig.update_layout(width=width, height=height, title="Metabolite concentration")
+    fig = style_plot(
+        fig,
+        line_thickness=line_thickness,
+        font_size=font_size,
+        left_margin=lm,
+        buttom_margin=bm,
+        top_margin=tm,
+        right_margin=rm,
+    )
+    fig.write_image("plots/simulations/parameterization/niche_concentration.pdf")
+
+
+def niche_supply(y, t, p):
+    Ct, Oa, R, M = y
+    JCtR = p["v1_1"] * R / (R + p["K1_1"])
+    JCtM = p["v1_2"] * M / (M + p["K1_2"])
+    JOa = p["v2_1"] * R / (R + p["K2_1"])
+    dCt = JCtR * Ct + JCtM * Ct - p["D"] * Ct
+    dOa = JOa * Oa - p["D"] * Oa
+    dR = -JCtR * Ct / p["q1_1"] - JOa * Oa / p["q2_1"] - p["D"] * R + p["D"] * p["M1"]
+    dM = -JCtM * Ct / p["q1_2"] - p["D"] * M + p["D"] * p["M2"]
+    return dCt, dOa, dR, dM
+
+
+def plot_niche_supply():
+    p = parse_params()
+    Y = odeint(niche_supply, [p["N01"], p["N02"], p["M1"], p["M2"]], xs, args=(p,))
+    Ct, Oa, R, M = Y[-1]
+    print("Ct", Ct, "Oa", Oa, "R", R, "M", M)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(x=xs, y=Y[:, 0], name="<i>Ct</i>", marker=dict(color=colors["ct"]))
+    )
+    fig.add_trace(
+        go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
+    )
+    Ct, Oa, R, M = Y[-1]
+    fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="OD")
+    fig.update_layout(width=width, height=height)
+    fig = style_plot(
+        fig,
+        line_thickness=line_thickness,
+        font_size=font_size,
+        left_margin=lm,
+        buttom_margin=bm,
+        top_margin=tm,
+        right_margin=rm,
+    )
+    fig.write_image("plots/simulations/dynamics/niche_creation_supply.pdf")
+
+
+def niche_creation_cf(y, t, p):
     Ct, Oa, R, T, M = y
     JCtR = p["v1_1"] * R / (R + p["K1_1"])
     JCtM = p["v1_2"] * M / (M + p["K1_2"])
@@ -241,7 +380,8 @@ def niche_creation_cf(y, t):
 
 
 def plot_niche_creation_cf():
-    Y = odeint(niche_creation_cf, [p["N01"], p["N02"], p["M1"], 0, 0], xs)
+    p = parse_params()
+    Y = odeint(niche_creation_cf, [p["N01"], p["N02"], p["M1"], 0, 0], xs, args=(p,))
     Ct, Oa, R, T, M = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R, "T", T, "M", M)
     fig = go.Figure()
@@ -252,10 +392,6 @@ def plot_niche_creation_cf():
     fig.add_trace(
         go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
     )
-    ct_mono_trace = plot_ct_mono()
-    oa_mono_trace = plot_oa_mono()
-    fig.add_trace(ct_mono_trace.data[0])
-    fig.add_trace(oa_mono_trace.data[0])
     Ct, Oa, R, T, M = Y[-1]
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="OD")
     fig.update_layout(width=width, height=height)
@@ -268,4 +404,16 @@ def plot_niche_creation_cf():
         top_margin=tm,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/niche_creation_cf.svg")
+    fig.write_image("plots/simulations/dynamics/niche_creation_cf.pdf")
+
+
+def caller():
+    plot_competition()
+    plot_thiamine_supply()
+    plot_thiamine_supply_oa_batch()
+    plot_mutual_cf()
+    plot_thiamine_production()
+    plot_niche_creation()
+    plot_niche_production()
+    plot_niche_supply()
+    plot_niche_creation_cf()
