@@ -9,7 +9,6 @@ df = dict(pd.read_csv("parameters.csv"))
 params = pd.Series(df["value"].values, index=df["parameter"]).to_dict()
 p = params
 
-width, height = 300, 250
 lm = 10
 bm = 10
 tm = 10
@@ -83,15 +82,15 @@ def competition():
 
 
 def mutual_cf():
-    Ts = np.linspace(1e-10, p["M3"] / 10, 100)
+    Ts = np.linspace(1e-10, 30, 100)
     R_grid, T_grid = np.meshgrid(Rs, Ts)
     JCt = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
     JOa = p["v2_1"] * R_grid / (R_grid + p["K2_1"]) * T_grid / (T_grid + p["K2_3"])
     J_ratio = np.log10(JOa / JCt)
     custom_colorscale = [
-        [0, "lightblue"],  # Min value -> Blue
-        [0.5, "white"],  # Mid value (zero) -> White
-        [1, "lightsalmon"],  # Max value -> Red
+        [0, "#c0bedc"],
+        [0.5, "white"],
+        [1, "#ecaf80"],
     ]
     fig = go.Figure()
     fig.add_trace(
@@ -106,12 +105,9 @@ def mutual_cf():
             ncontours=50,
             contours=dict(showlines=False),
             colorbar=dict(
-                title=dict(
-                    text="log<sub>10</sub> ( J<sub><i>Oa</i></sub> / J<sub><i>Ct</i></sub> )",
-                    side="right",
-                ),
-                len=0.5,
-                y=0.4,
+                len=0.8,
+                y=0.25,
+                thickness=10,
             ),
         )
     )
@@ -124,6 +120,7 @@ def mutual_cf():
             contours=dict(start=0.15, end=0.15, size=0.1, coloring="none"),
             line=dict(color=colors["ct"]),
             name="<i>Ct</i>",
+            showlegend=False,
         )
     )
     fig.add_trace(
@@ -135,27 +132,34 @@ def mutual_cf():
             contours=dict(start=0.15, end=0.15, size=0.1, coloring="none"),
             line=dict(color=colors["oa"]),
             name="<i>Oa</i>",
+            showlegend=False,
         )
     )
 
     fig.update_layout(
-        height=height,
-        width=width,
-        legend_title_text="Isocline of<br>growth rate",
-        xaxis=dict(showgrid=False, ticks="outside"),
-        yaxis=dict(showgrid=False, ticks="outside"),
+        height=110,
+        width=150,
+        # legend_title_text="Isocline of<br>growth rate",
+        title="Growth rate ratio of Oa to Ct",
+        xaxis=dict(
+            showgrid=True,
+        ),
+        yaxis=dict(showgrid=True),
     )
-    fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(title="Thiamine [µM]")
+    fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(title="Thiamine [nM]")
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
+        line_thickness=1,
         font_size=font_size,
-        left_margin=lm,
-        buttom_margin=bm,
-        top_margin=tm,
-        right_margin=rm,
+        left_margin=25,
+        buttom_margin=30,
+        top_margin=15,
+        right_margin=0,
     )
     fig.write_image("plots/isoclines/mutual_cf.svg")
+
+
+mutual_cf()
 
 
 def niche_creation():
@@ -308,8 +312,3 @@ def niche_creation_cf():
     )
     fig = style_plot(fig, top_margin=0, left_margin=0, buttom_margin=0, font_size=7)
     fig.write_image("plots/isoclines/niche_creation_cf.svg")
-
-
-competition()
-mutual_cf()
-niche_creation()
