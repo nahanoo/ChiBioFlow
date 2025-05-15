@@ -1,4 +1,4 @@
-width, height = 110, 110
+width, height = 150, 150
 colors = {
     "blue": "#000080",
     "ct": "#7570B3",
@@ -36,7 +36,10 @@ def style_plot(
             d["line"]["width"] = line_thickness
         except KeyError:
             pass
-        # d["error_y"]["thickness"] = line_thickness
+        try:
+            d["error_y"]["thickness"] = line_thickness
+        except KeyError:
+            pass
     for a in fig["layout"]["annotations"]:
         a["font"]["size"] = font_size
         a["font"]["color"] = "black"

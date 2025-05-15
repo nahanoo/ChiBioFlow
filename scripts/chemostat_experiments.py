@@ -11,40 +11,92 @@ from style import *
 
 def plot_chemostat_community():
     df = get_cfus()
-    experiments = set(df["experiment"])
     reactors = ["M0", "M1", "M2"]
-    opacity = [1, 0.5]
     species = ["ct", "oa"]
+    ct_oa = df[df["experiment"] == "ct_oa"]
+    ct_oa_thiamine = df[df["experiment"] == "ct_oa_thiamine"]
     legend = {
-        "ct": "<i>Ct <i>",
-        "oa": "<i>Oa <i>",
+        "ct": "Ct",
+        "oa": "Oa",
         "ct_oa_thiamine": "A + T",
         "ct_oa": "A",
     }
 
     fig = go.Figure()
-    for o, e in zip(opacity, experiments):
-        showlegend = True
-        for r in reactors:
-            for s in species:
-                data = df[
-                    (df["reactor"] == r)
-                    & (df["experiment"] == e) * (df["species"] == s)
-                ]
-                fig.add_trace(
-                    go.Scatter(
-                        x=data["sample_time"],
-                        y=data["average"],
-                        name=legend[s] + legend[e],
-                        showlegend=showlegend,
-                        marker=dict(color=colors[s]),
-                        opacity=o,
+    for s in species:
+        for i, r in enumerate(reactors):
+            data = ct_oa[(ct_oa["reactor"] == r) & (ct_oa["species"] == s)]
+            fig.add_trace(
+                go.Scatter(
+                    x=data["sample_time"],
+                    y=data["average"],
+                    error_y=dict(
+                        type="data", array=data["stdev"].to_list(), visible=True
                     ),
-                )
-            showlegend = False
-    fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="CFUs/mL", type="log")
-    fig = style_plot(fig)
-    fig.write_image("plots/experiments/ct_oa_a_a_a_t.svg")
+                    name=legend[s],
+                    showlegend=False,
+                    line=dict(color=colors[s]),
+                ),
+            )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", range=[0, 52], dtick=12),
+        yaxis=dict(
+            title="CFUs/mL",
+            type="log",
+            range=[7, 9],
+        ),
+        width=150,
+        height=150,
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        line_thickness=1,
+        right_margin=0,
+        left_margin=45,
+        buttom_margin=30,
+        top_margin=0,
+    )
+    fig.write_image("plots/experiments/ct_oa_a.svg")
+
+    fig = go.Figure()
+    for s in species:
+        for i, r in enumerate(reactors):
+            data = ct_oa_thiamine[
+                (ct_oa["reactor"] == r) & (ct_oa_thiamine["species"] == s)
+            ]
+            fig.add_trace(
+                go.Scatter(
+                    x=data["sample_time"],
+                    y=data["average"],
+                    error_y=dict(
+                        type="data", array=data["stdev"].to_list(), visible=True
+                    ),
+                    name=legend[s],
+                    showlegend=False,
+                    line=dict(color=colors[s]),
+                ),
+            )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", range=[0, 52], dtick=12),
+        yaxis=dict(
+            title="CFUs/mL",
+            type="log",
+            range=[7, 9],
+        ),
+        width=width,
+        height=height,
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        line_thickness=1,
+        right_margin=0,
+        left_margin=45,
+        buttom_margin=30,
+        top_margin=0,
+    )
+    fig.write_image("plots/experiments/ct_oa_a_t.svg")
 
 
 def plot_oa_mono_chemostats():
@@ -52,7 +104,7 @@ def plot_oa_mono_chemostats():
 
     df = get_od_chemostats()
     df = df[df["experiment"] == "oa_mono"]
-    Ms = [df[df["reactor"] == M] for M in ["M0", "M1", "M3"]]
+    Ms = [df[df["reactor"] == M] for M in ["M0", "M1"]]
     df = get_od_chemostats()
     df = df[df["experiment"] == "oa_mono_repeat"]
     df["reactor"] = "M2"
@@ -64,9 +116,10 @@ def plot_oa_mono_chemostats():
             go.Scatter(
                 x=x[4:-10],
                 y=y[4:-10],
-                name=M.loc[0, "reactor"],
+                # name=M.loc[0, "reactor"],
+                name="Chemostat",
                 showlegend=True,
-                # marker=dict(color=colors[i]),
+                marker=dict(color=colors["oa"]),
             )
         )
 
@@ -75,12 +128,14 @@ def plot_oa_mono_chemostats():
             range=[0, max(M["exp_time"])],
             showgrid=True,
             zeroline=True,
-            dtick=6,
+            dtick=12,
             title="Time [h]",
         ),
+        yaxis=dict(range=[0, 0.5], dtick=0.1),
         title="<i>O. anthropi</i>",
         width=width,
         height=height,
+        showlegend=False,
     )
     p = parse_params()
 
@@ -97,9 +152,45 @@ def plot_oa_mono_chemostats():
         ),
     )
     fig = style_plot(
-        fig, line_thickness=1.8, font_size=8, left_margin=20, buttom_margin=20
+        fig, line_thickness=1, font_size=11, left_margin=20, buttom_margin=20
     )
     fig.write_image("plots/experiments/oa_mono.svg")
+    df = get_od_chemostats()
+    df = df[df["experiment"] == "oa_mono"]
+    Ms = [df[df["reactor"] == M] for M in ["M3"]]
+    fig = go.Figure()
+    for i, M in enumerate(Ms):
+        x = M["exp_time"].to_numpy()
+        y = M["od_calibrated"].to_numpy()
+        fig.add_trace(
+            go.Scatter(
+                x=x[4:-10],
+                y=y[4:-10],
+                # name=M.loc[0, "reactor"],
+                name="Chemostat",
+                showlegend=True,
+                marker=dict(color=colors["oa"]),
+            )
+        )
+
+    fig.update_layout(
+        xaxis=dict(
+            range=[0, max(M["exp_time"])],
+            showgrid=True,
+            zeroline=True,
+            dtick=12,
+            title="Time [h]",
+        ),
+        yaxis=dict(range=[0, 0.5], dtick=0.1),
+        title="<i>O. anthropi</i>",
+        width=width,
+        height=height,
+        showlegend=False,
+    )
+    fig = style_plot(
+        fig, line_thickness=1, font_size=11, left_margin=20, buttom_margin=20
+    )
+    fig.write_image("plots/experiments/oa_mono_no_thiamine.svg")
 
 
 def plot_oa_ct_plate_reader():
@@ -125,6 +216,8 @@ def plot_oa_ct_plate_reader():
     for i, lg in enumerate(df_ct["linegroup"]):
         x = data[lg + "_time"][data[lg + "_time"] < 36]
         y = data[lg + "_measurement"][: len(x)]
+        slope = linregress(x[:36], np.log(y[:36]))[0]
+        print("Slope Ct", slope)
         fig.add_trace(
             go.Scatter(
                 x=x,
@@ -136,9 +229,10 @@ def plot_oa_ct_plate_reader():
         )
         p = parse_params()
     p["D"] = 0
+    p["N01"] = y[0]
+    p["q1_1"] = 0.028
     xs = data[lg + "_time"].to_numpy()
     Y_ct = odeint(ct_mono, [p["N01"], p["M1"]], xs, args=(p,))
-    Y_oa = odeint(oa_mono, [p["N02"], p["M1"]], xs, args=(p,))
     if model:
         fig.add_trace(
             go.Scatter(
@@ -150,9 +244,22 @@ def plot_oa_ct_plate_reader():
                 line=dict(dash="dash"),
             )
         )
+    """df = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250313_oa_thiamine_gradient/data/metadata.csv"
+    )
+    df_oa = df[
+        (df["exp_ID"] == "ct_oa_chemostat_project/_oa_thiamine_gradient")
+        & (df["species"] == "Ochrobactrum anthropi")
+        & (df["comments"] == "10000 nM thiamine")
+    ]
+    data = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250313_oa_thiamine_gradient/data/measurements.csv"
+    )"""
     for i, lg in enumerate(df_oa["linegroup"]):
         x = data[lg + "_time"][data[lg + "_time"] < 36]
         y = data[lg + "_measurement"][: len(x)]
+        slope = linregress(x[:36], np.log(y[:36]))[0]
+        print("Slope Oa", slope)
         fig.add_trace(
             go.Scatter(
                 x=x,
@@ -163,6 +270,8 @@ def plot_oa_ct_plate_reader():
                 mode="lines",
             )
         )
+    p["N02"] = y[0]
+    Y_oa = odeint(oa_mono, [p["N02"], p["M1"]], xs, args=(p,))
     if model:
         fig.add_trace(
             go.Scatter(
@@ -222,28 +331,106 @@ def plot_oa_ct_plate_reader():
         )
     fig.update_layout(
         xaxis=dict(
-            range=[0, max(x)], showgrid=False, zeroline=True, dtick=6, title="Time [h]"
+            range=[0, max(x)], showgrid=True, zeroline=True, dtick=12, title="Time [h]"
         ),
         yaxis=dict(
             range=[0, 0.35],
-            showgrid=False,
+            showgrid=True,
             dtick=0.1,
-            title="OD<sub>600</sub>",
+            title="OD",
         ),
-        width=110,
-        height=110,
-        title="Batch growth curves",
+        width=width,
+        height=width,
     )
     fig = style_plot(
         fig,
-        line_thickness=0.8,
-        font_size=8,
+        line_thickness=1,
+        font_size=11,
         buttom_margin=10,
         top_margin=10,
         left_margin=10,
         right_margin=10,
     )
     fig.write_image("plots/experiments/ct_oa_plate_reader.svg")
+
+
+def ct_oa_plate_reader_fit():
+    p["D"] = 0
+    p["N01"] = y[0]
+    p["q1_1"] = 0.028
+    xs = data[lg + "_time"].to_numpy()
+    Y_ct = odeint(ct_mono, [p["N01"], p["M1"]], xs, args=(p,))
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y_ct[:, 0],
+            name="<i>C. testosteroni</i><br>model",
+            marker=dict(color=colors["ct"]),
+            mode="lines",
+            line=dict(dash="dot"),
+        )
+    )
+    df = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250328_oa_in_ct_OD_gradient/data/metadata.csv"
+    )
+    df = df[
+        (df["exp_ID"] == "ct_oa_chemostat_project/_oa_in_spent_media_of_ct")
+        & (df["species"] == "Ochrobactrum anthropi")
+    ]
+    data = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250328_oa_in_ct_OD_gradient/data/measurements.csv"
+    )
+    for i, lg in enumerate(df[df["comments"] == "0.37 OD of Ct"]["linegroup"]):
+        x = data[lg + "_time"][data[lg + "_time"] < 36]
+        y = data[lg + "_measurement"][: len(x)]
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                name="Oa in spent<br>media of Ct",
+                showlegend=False,
+                line=dict(
+                    color=colors["oa"],
+                ),
+                mode="lines",
+            )
+        )
+    p["N02"] = y[0]
+    Y_oa = odeint(oa_mono, [p["N02"], p["M1"]], xs, args=(p,))
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y_oa[:, 0],
+            name="<i>O. anthropi</i><br>model",
+            marker=dict(color=colors["oa"]),
+            line=dict(dash="dot"),
+            mode="lines",
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(
+            range=[0, max(x)], showgrid=True, zeroline=True, dtick=12, title="Time [h]"
+        ),
+        yaxis=dict(
+            range=[0, 0.35],
+            showgrid=True,
+            dtick=0.1,
+            title="OD",
+        ),
+        width=width,
+        height=width,
+        showlegend=False,
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=1,
+        font_size=11,
+        buttom_margin=10,
+        top_margin=10,
+        left_margin=10,
+        right_margin=10,
+    )
+    fig.write_image("plots/experiments/ct_oa_plate_reader_fit.svg")
 
 
 def ct_oa_max_growth_rate():
@@ -305,6 +492,7 @@ def ct_oa_max_growth_rate():
     )
     x = np.average([data[lg + "_time"] for lg in df_oa["linegroup"]], axis=0)
     y = np.average([data[lg + "_measurement"] for lg in df_oa["linegroup"]], axis=0)
+    x = x[x < 4]
     y = y[: len(x)]
     slope, intercept, r_value, p_value, std_err = linregress(x, np.log(y))
     print("Slope Oa", slope)
@@ -337,7 +525,6 @@ def ct_oa_max_growth_rate():
 
 def plot_ct_mono_chemostats():
     fig = go.Figure()
-
     df = get_od_chemostats()
     df = df[df["experiment"] == "ct_mono"]
     Ms = [df[df["reactor"] == M] for M in sorted(set(df["reactor"]))]
@@ -348,9 +535,10 @@ def plot_ct_mono_chemostats():
             go.Scatter(
                 x=x[4:-10],
                 y=y[4:-10],
-                name=M.loc[0, "reactor"],
-                showlegend=True,
-                # marker=dict(color=colors[i]),
+                # name=M.loc[0, "reactor"],
+                name="Chemostat",
+                showlegend=(True if i == 0 else False),
+                marker=dict(color="#7570B3"),
             )
         )
 
@@ -362,15 +550,16 @@ def plot_ct_mono_chemostats():
             dtick=6,
             title="Time [h]",
         ),
-        yaxis=dict(range=[0, 0.4], dtick=0.1, title="OD"),
+        yaxis=dict(range=[0, 0.5], dtick=0.1, title="OD"),
         title="<i>C. testosteroni</i>",
         width=width,
         height=height,
+        showlegend=False,
     )
     p = parse_params()
 
     p["N01"] = 0.05
-    p["q1_1"] = 0.053
+    p["q1_1"] = 0.047
     Y = odeint(ct_mono, [p["N01"], p["M1"]], M["exp_time"], args=(p,))
     fig.add_trace(
         go.Scatter(
@@ -382,14 +571,14 @@ def plot_ct_mono_chemostats():
         ),
     )
     fig = style_plot(
-        fig, line_thickness=1.8, font_size=8, left_margin=25, buttom_margin=20
+        fig, line_thickness=1, font_size=11, left_margin=10, buttom_margin=20
     )
     fig.write_image("plots/experiments/ct_mono.svg")
     colors = ["#6A5ACD", "#7570B3"]
     fig = go.Figure()
-
     df = get_od_chemostats()
     df = df[df["experiment"] == "ct_mono_old"]
+    df = df[df["exp_time"] <= 24]
     Ms = [df[df["reactor"] == M] for M in sorted(set(df["reactor"]))]
     for i, M in enumerate(Ms):
         x = M["exp_time"].to_numpy()
@@ -416,13 +605,13 @@ def plot_ct_mono_chemostats():
             range=[0, 0.5], showgrid=True, zeroline=True, dtick=0.05, title="log(OD)"
         ),
         title="<i>O. anthropi</i>",
-        width=width,
-        height=height,
+        # width=width,
+        # height=height,
     )
     p = parse_params()
 
     p["N02"] = 0.03
-    p["q2_1"] = 0.053
+    p["q1_1"] = 0.022
     Y = odeint(ct_mono, [p["N02"], p["M1"]], M["exp_time"], args=(p,))
     fig.add_trace(
         go.Scatter(
@@ -434,7 +623,7 @@ def plot_ct_mono_chemostats():
         ),
     )
     fig = style_plot(
-        fig, line_thickness=1.8, font_size=8, left_margin=20, buttom_margin=20
+        fig, line_thickness=1.8, font_size=11, left_margin=20, buttom_margin=20
     )
     fig.write_image("plots/experiments/ct_mono_old.svg")
 
@@ -489,7 +678,6 @@ def plot_thiamine_gradient():
 
     p = parse_params()
     p["D"] = 0
-    p["N02"] = 1
     xs = np.linspace(0, max(x), 200)
     Y = odeint(
         thiamine_supply,
@@ -507,33 +695,30 @@ def plot_thiamine_gradient():
     )
     fig.update_layout(
         xaxis=dict(
-            range=[0, max(x)], showgrid=False, zeroline=True, dtick=12, title="Time [h]"
+            range=[0, max(x)], showgrid=True, zeroline=True, dtick=12, title="Time [h]"
         ),
         yaxis=dict(
-            range=[0, 0.35],
-            showgrid=False,
+            range=[0, 0.4],
+            showgrid=True,
             zeroline=True,
-            dtick=0.05,
+            dtick=0.1,
             title="OD",
         ),
-        width=120,
-        height=110,
+        width=150,
+        height=150,
         showlegend=False,
-        title="Thiamine gradient <i>O. anthropi</i>",
+        # title="Thiamine gradient <i>O. anthropi</i>",
     )
     fig = style_plot(
         fig,
         line_thickness=0.8,
-        font_size=8,
+        font_size=11,
         left_margin=30,
         right_margin=0,
-        buttom_margin=20,
-        top_margin=12,
+        buttom_margin=25,
+        top_margin=0,
     )
     fig.write_image("plots/experiments/thiamine_gradient.svg")
-
-
-plot_thiamine_gradient()
 
 
 def max_growth_rate_high_conc():
@@ -655,70 +840,184 @@ def max_growth_rate_high_conc():
     fig.write_image("plots/experiments/oa_high_conc.svg")
 
 
-df = pd.read_csv(
-    "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/metadata.csv"
-)
-df_ct = df[df["species"] == "Comamonas testosteroni"]
-df_oa = df[df["species"] == "Ochrobactrum anthropi"]
-data = pd.read_csv(
-    "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/measurements.csv"
-)
+def spent_media_curves():
+    df = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/metadata.csv"
+    )
+    df_ct = df[df["species"] == "Comamonas testosteroni"]
+    df_ct = df_ct.sort_values(by="exp_ID")
+    df_oa = df[df["species"] == "Ochrobactrum anthropi"]
+    data = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/measurements.csv"
+    )
+    fig = go.Figure()
+    for j, cs in enumerate(["Spent media Ct", "Spent media Oa"]):
+        line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
+        for i, (lg, comment) in enumerate(
+            df_ct[df_ct["carbon_source"] == cs][["linegroup", "comments"]].values
+        ):
+            if line_counter[comment] == 0:
+                x = data[lg + "_time"]
+                y = data[lg + "_measurement"]
+                fig.add_trace(
+                    go.Scatter(
+                        x=x,
+                        y=y,
+                        name=cs,
+                        legendgroup=cs,
+                        line=dict(color=colors["ct"]),
+                        showlegend=(i == 0),
+                        opacity=(0.5 if j == 0 else 1),
+                    )
+                )
+                line_counter[comment] += 1
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", range=[0, 72], dtick=12),
+        yaxis=dict(title="OD", range=[0, 0.08], dtick=0.02),
+        showlegend=False,
+        width=width,
+        height=height,
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=1,
+        font_size=11,
+        buttom_margin=25,
+        left_margin=35,
+        right_margin=0,
+    )
+    fig.write_image("plots/experiments/spent_media_ct.svg")
+    fig = go.Figure()
+    for j, cs in enumerate(["Spent media Ct", "Spent media Oa"]):
+        line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
+        for i, (lg, comment) in enumerate(
+            df_oa[df_oa["carbon_source"] == cs][["linegroup", "comments"]].values
+        ):
+            if line_counter[comment] == 0:
+                x = data[lg + "_time"]
+                y = data[lg + "_measurement"]
+                fig.add_trace(
+                    go.Scatter(
+                        x=x[5:],
+                        y=y[5:],
+                        name=cs,
+                        legendgroup=cs,
+                        mode="lines",
+                        line=dict(
+                            color=colors["oa"],
+                        ),
+                        opacity=(0.5 if j == 0 else 1),
+                        showlegend=(i == 0),
+                    )
+                )
+                line_counter[comment] += 1
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", range=[0, 72], dtick=12),
+        yaxis=dict(title="OD", range=[0, 0.03], dtick=0.01),
+        title="<i>O. anthropi</i>",
+        width=width,
+        height=height,
+        showlegend=False,
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=0.8,
+        font_size=8,
+        buttom_margin=20,
+        left_margin=25,
+        top_margin=20,
+        right_margin=0,
+    )
+    fig.write_image("plots/experiments/spent_media_oa.svg")
 
-fig = go.Figure()
-for cs in set(df_ct["carbon_source"]):
-    for i, lg in enumerate(df_ct[df_ct["carbon_source"] == cs]["linegroup"]):
-        x = data[lg + "_time"]
-        y = data[lg + "_measurement"]
-        fig.add_trace(
-            go.Scatter(
-                x=x,
-                y=y,
-                name=cs,
-                legendgroup=cs,
-                line=dict(color=colors[cs]),
-                showlegend=(i == 0),
-            )
+
+spent_media_curves()
+
+
+def Km_cufs():
+    concentrations = {
+        30: "#1f77b4",  # blue
+        10: "#ff7f0e",  # orange
+        1: "#2ca02c",  # green
+        0.1: "#d62728",  # red
+        0.01: "#9467bd",  # purple
+        0.001: "#8c564b",  # brown
+        0.0001: "#e377c2",  # pink
+        "M9 + HMB": "#17becf",  # teal
+    }
+
+    slopes = {key: [] for key in list(concentrations.keys())}
+
+    sheets = ["ct1", "ct2", "ct3", "oa1", "oa2", "oa3"]
+    dfs = [
+        pd.read_excel(
+            "/home/eric/ChiBioFlow/data/at_oa/ct_oa_affinity_test/cfus.xlsx",
+            sheet_name=sheet,
+            index_col=0,
         )
-fig.update_layout(
-    xaxis=dict(title="Time [h]", range=[0, 72], dtick=8),
-    yaxis=dict(title="OD", range=[0, 0.08], dtick=0.011),
-    title="<i>C. testosteroni</i>",
-)
-fig = style_plot(
-    fig,
-    line_thickness=1.5,
-    font_size=8,
-    buttom_margin=20,
-    left_margin=35,
-    right_margin=0,
-)
-fig.write_image("plots/experiments/spent_media_ct.svg")
-fig = go.Figure()
-for cs in ["Spent media Ct", "Spent media Oa"]:
-    for i, lg in enumerate(df_oa[df_oa["carbon_source"] == cs]["linegroup"]):
-        x = data[lg + "_time"]
-        y = data[lg + "_measurement"]
-        fig.add_trace(
-            go.Scatter(
-                x=x,
-                y=y,
-                name=cs,
-                legendgroup=cs,
-                line=dict(color=colors[cs]),
-                showlegend=(i == 0),
-            )
+        for sheet in sheets
+    ]
+
+    fig = go.Figure()
+
+    sheets = ["ct1", "ct2", "ct3", "oa1", "oa2", "oa3"]
+    dfs = [
+        pd.read_excel(
+            "/home/eric/ChiBioFlow/data/at_oa/ct_oa_affinity_test/cfus.xlsx",
+            sheet_name=sheet,
+            index_col=0,
         )
-fig.update_layout(
-    xaxis=dict(title="Time [h]", range=[0, 72], dtick=8),
-    yaxis=dict(title="OD", range=[0, 0.08], dtick=0.011),
-    title="<i>O. anthropi</i>",
-)
-fig = style_plot(
-    fig,
-    line_thickness=1.5,
-    font_size=8,
-    buttom_margin=20,
-    left_margin=35,
-    right_margin=0,
-)
-fig.write_image("plots/experiments/spent_media_oa.svg")
+        for sheet in sheets
+    ]
+
+    x_values = list(dfs[0].columns)
+
+    for c in list(concentrations.keys()):
+        for i, df in enumerate(dfs[3:4]):  # first 3 replicates
+            y_values = np.log(np.array(df.loc[c].values))
+            slope, inter = linregress(x=range(len(y_values)), y=y_values)[:2]
+            slopes[c].append(slope)
+            fig.add_trace(
+                go.Scatter(
+                    x=x_values,
+                    y=np.exp(y_values),
+                    name=str(c),
+                    marker=dict(color=concentrations[c]),
+                    showlegend=(i == 0),
+                    legendgroup=str(c),
+                )
+            )
+            # Plot linear fit
+            fig.add_trace(
+                go.Scatter(
+                    x=x_values,
+                    y=np.exp([slope * x + inter for x in range(len(y_values))]),
+                    line=dict(dash="dot", color=concentrations[c]),
+                    showlegend=(i == 0),
+                    legendgroup=str(c),
+                )
+            )
+    fig.show()
+
+    x = 1 / np.array(list(concentrations.keys())[3:-1])
+    y = 1 / np.array([np.mean(slopes[c]) for c in list(concentrations.keys())[3:-1]])
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            mode="markers",
+            marker=dict(color="black"),
+        )
+    )
+    slope, inter = linregress(x, y)[:2]
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=[slope * i + inter for i in x],
+            line=dict(dash="dot", color="black"),
+        )
+    )
+    fig.write_image("tmp.svg")
+    print(slopes)
+    fig.show()

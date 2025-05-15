@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-def plot_od(e, df=False):
+def plot_od(e, df=False,ymatch=True):
     """Creates lineplot for parsed column e.g. od_measured.
     Plots every reactor as subplot.
     """
@@ -20,10 +20,13 @@ def plot_od(e, df=False):
 
     else:
         df, order = chibio_parser(e, down_sample=False)
-    fig = px.scatter(df, x="exp_time", y='measurement', facet_col="reactor", facet_col_wrap=3,
-                      category_orders={'reactor': order}, facet_row='sensor',color='sensor',log_y=True)
+    fig = px.line(df, x="exp_time", y='measurement', facet_col="reactor", facet_col_wrap=3,
+                      category_orders={'reactor': order}, facet_row='sensor',color='sensor',log_y=False)
     fig.update_traces(marker=dict(size=2))
-    # fig.update_yaxes(matches=None)
+    if ymatch:
+        pass
+    else:
+        fig.update_yaxes(matches=None)
     return df, fig
 
 
