@@ -78,7 +78,7 @@ def plot_chemostat_community():
                 ),
             )
     fig.update_layout(
-        xaxis=dict(title="Time [h]", range=[0, 52], dtick=12),
+        xaxis=dict(title="Time [h]", range=[0, 42], dtick=12),
         yaxis=dict(
             title="CFUs/mL",
             type="log",
@@ -851,6 +851,7 @@ def spent_media_curves():
         "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/measurements.csv"
     )
     fig = go.Figure()
+    ys = []
     for j, cs in enumerate(["Spent media Ct", "Spent media Oa"]):
         line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
         for i, (lg, comment) in enumerate(
@@ -859,6 +860,7 @@ def spent_media_curves():
             if line_counter[comment] == 0:
                 x = data[lg + "_time"]
                 y = data[lg + "_measurement"]
+                ys.append(y.to_numpy())
                 fig.add_trace(
                     go.Scatter(
                         x=x,
@@ -871,6 +873,26 @@ def spent_media_curves():
                     )
                 )
                 line_counter[comment] += 1
+    ys = np.average(ys, axis=0)
+    xs = x
+    i, j = 0, 0
+    for q, x in enumerate(xs):
+        if x <= 24:
+            i = q
+        if x >= 60:
+            j = q
+            break
+    slope, intercept, r_value, p_value, std_err = linregress(xs[i:j], np.log(ys[i:j]))
+    print("Slope Ct", slope)
+    """fig.add_trace(
+        go.Scatter(
+            x=xs[i:j],
+            y=np.exp(slope * xs[i:j] + intercept),
+            name="fit",
+            line=dict(dash="dot", color=colors["ct"]),
+        )
+    )"""
+
     fig.update_layout(
         xaxis=dict(title="Time [h]", range=[0, 72], dtick=12),
         yaxis=dict(title="OD", range=[0, 0.08], dtick=0.02),
@@ -929,9 +951,6 @@ def spent_media_curves():
         right_margin=0,
     )
     fig.write_image("plots/experiments/spent_media_oa.svg")
-
-
-spent_media_curves()
 
 
 def Km_cufs():

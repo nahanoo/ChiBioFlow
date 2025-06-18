@@ -110,11 +110,11 @@ def plot_competition():
     fig = style_plot(
         fig,
         line_thickness=line_thickness,
-        font_size=font_size,
-        left_margin=25,
-        buttom_margin=20,
-        top_margin=0,
-        right_margin=0,
+        font_size=11,
+        left_margin=lm,
+        buttom_margin=bm,
+        top_margin=tm,
+        right_margin=rm,
     )
     fig.write_image("plots/simulations/dynamics/competition.svg")
 
@@ -200,14 +200,13 @@ def mutual_cf(y, t, p):
     dCt = JCt * Ct - p["D"] * Ct
     dOa = JOa * Oa - p["D"] * Oa
     dR = -JCt * Ct / p["q1_1"] - JOa * Oa / p["q2_1"] + p["D"] * p["M1"] - p["D"] * R
-    dT = p["a1_3"] * Ct * JCt / p["q1_3"] - JOa * Oa / p["q2_3"] - p["D"] * T
+    dT = JCt * Ct / p["q1_3"] - JOa * Oa / p["q2_3"] - p["D"] * T
     return dCt, dOa, dR, dT
 
 
 def plot_mutual_cf():
+    xs = np.linspace(0, 250, 2000)
     p = parse_params()
-    p["N02"] = 0.0
-    p["D"] = 0
     Y = odeint(mutual_cf, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     Ct, Oa, R, T = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R, "T", T)
@@ -468,7 +467,3 @@ def caller():
     plot_niche_production()
     plot_niche_supply()
     plot_niche_creation_cf()
-
-
-plot_competition()
-plot_niche_creation()

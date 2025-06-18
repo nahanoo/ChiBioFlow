@@ -82,7 +82,7 @@ def competition():
 
 
 def mutual_cf():
-    Ts = np.linspace(1e-10, 100, 100)
+    Ts = np.linspace(1e-10, 60, 100)
     R_grid, T_grid = np.meshgrid(Rs, Ts)
     JCt = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
     JOa = p["v2_1"] * R_grid / (R_grid + p["K2_1"]) * T_grid / (T_grid + p["K2_3"])
@@ -142,11 +142,13 @@ def mutual_cf():
         # legend_title_text="Isocline of<br>growth rate",
         # title="Growth rate ratio of Oa to Ct",
         xaxis=dict(
-            showgrid=True,
+            showgrid=False,
         ),
-        yaxis=dict(showgrid=True),
+        yaxis=dict(range=[0, 70], dtick=20, showgrid=False),
     )
-    fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(title="Thiamine [nM]")
+    fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(
+        title="Thiamine [nM]", zeroline=False
+    )
     fig = style_plot(
         fig,
         line_thickness=1,
@@ -157,6 +159,9 @@ def mutual_cf():
         right_margin=0,
     )
     fig.write_image("plots/isoclines/mutual_cf.svg")
+
+
+competition()
 
 
 def niche_creation():

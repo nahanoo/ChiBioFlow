@@ -80,40 +80,20 @@ def competition():
 
 def thiamine_supply():
     p = parse_params()
-    Ts = np.linspace(0, 100, 100)
-    Ds = np.linspace(0.01, 0.2, 100)
-    zs = np.zeros((len(Ds), len(Ts)))
-    for i, D in enumerate(Ds):
-        for j, T in enumerate(Ts):
-            p["D"] = D
-            p["M3"] = T
-            Y = odeint(ts, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
-            Ct, Oa, R, T = Y[-1]
-            zs[i, j] = Oa / (Ct + Oa)
+    Ts = np.linspace(0, 100, 10000)
     fig = go.Figure()
-    fig.add_trace(
-        go.Contour(
-            z=zs,
-            x=Ts,
-            y=Ds,
-            colorscale=custom_colorscale,
-            zmid=0.5,
-            zmin=0,
-            zmax=1,
-            ncontours=50,
-            contours=dict(showlines=False),
-            colorbar=dict(
-                title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
-                len=0.8,
-                # y=0.25,
-                thickness=10,
-            ),
-        )
-    )
-    fig.update_xaxes(title="Thiamine [nM]", zeroline=False), fig.update_yaxes(
-        title="D [1/h]"
-    )
-    fig.update_layout(height=150, width=150)
+    js = p["v2_1"] * 0.1 / (0.1 + p["K2_1"]) * Ts / (Ts + p["K2_3"])
+    js[-1] = 0.25
+    Ts[-1] = 100
+    fig.add_trace(go.Scatter(x=list(Ts), y=list(js), mode="lines"))
+    fig.update_xaxes(
+        title="R<sub>0,T</sub> [nM]",
+        zeroline=True,
+        showgrid=False,
+        range=[0, 110],
+        dtick=50,
+    ), fig.update_yaxes(title="D [1/h]", zeroline=True, showgrid=False)
+    fig.update_layout(height=150, width=120)
     fig = style_plot(
         fig,
         line_thickness=line_thickness,
@@ -129,12 +109,12 @@ def thiamine_supply():
 def mutual_cf():
     p = parse_params()
     Ds = np.linspace(0, 0.2, 50)
-    alphas = np.linspace(0, 1, 50)
+    alphas = 1 / np.linspace(0.002, 0.02, 50)
     zs = np.zeros((len(Ds), len(alphas)))
     for i, D in enumerate(Ds):
         p["D"] = D
         for j, alpha in enumerate(alphas):
-            p["a1_3"] = alpha
+            p["q1_3"] = alpha
             Y = odeint(mc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
             Ct, Oa, R, T = Y[-1]
             if Ct <= 1e-6:
@@ -171,9 +151,11 @@ def mutual_cf():
         )
     )
 
-    fig.update_xaxes(title="Thiamine leakage", zeroline=False), fig.update_yaxes(
-        title="Dilution rate [1/h]", zeroline=False
+    fig.update_xaxes(
+        title="1 / Q<sub>Ct,R</sub> nM/OD",
+        zeroline=False,
     )
+    fig.update_yaxes(title="Dilution rate [1/h]", zeroline=False, showgrid=False)
     fig.update_layout(height=150, width=170)
     fig = style_plot(
         fig,
@@ -308,6 +290,11 @@ def misleading_interaction():
         cols=4,
         horizontal_spacing=0.1,
     )
+    figj = make_subplots(
+        rows=1,
+        cols=3,
+        horizontal_spacing=0.1,
+    )
     p = parse_params()
     a = 0.027
     p["D"] = 0
@@ -316,10 +303,21 @@ def misleading_interaction():
     xs = np.linspace(0, 24, 1000)
     Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     R = Y[:, 2]
+    JCt = p["v1_1"] * R / (p["K1_1"] + R)
     fig.add_trace(
         go.Scatter(
             x=xs,
             y=Y[:, 0],
+            name="Ct",
+            line=dict(color=colors["ct"], shape="spline"),
+        ),
+        row=1,
+        col=1,
+    )
+    figj.add_trace(
+        go.Scatter(
+            x=xs,
+            y=JCt,
             name="Ct",
             line=dict(color=colors["ct"], shape="spline"),
         ),
@@ -345,6 +343,16 @@ def misleading_interaction():
         row=1,
         col=2,
     )
+    figj.add_trace(
+        go.Scatter(
+            x=xs,
+            y=JOa,
+            name="Oa",
+            line=dict(color=colors["oa"], shape="spline"),
+        ),
+        row=1,
+        col=2,
+    )
 
     fig.add_trace(
         go.Scatter(
@@ -362,6 +370,9 @@ def misleading_interaction():
 
     Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     R = Y[:, 2]
+    JCt = p["v1_1"] * R / (p["K1_1"] + R)
+    JOa = p["v2_1"] * R / (p["K2_1"] + R)
+
     M = Y[:, 3]
     fig.add_trace(
         go.Scatter(
@@ -388,6 +399,29 @@ def misleading_interaction():
         col=3,
     )
 
+    figj.add_trace(
+        go.Scatter(
+            x=xs,
+            y=JOa,
+            name="Oa",
+            line=dict(color=colors["oa"], shape="spline"),
+            showlegend=False,
+        ),
+        row=1,
+        col=3,
+    )
+    figj.add_trace(
+        go.Scatter(
+            x=xs,
+            y=JCt,
+            name="Ct",
+            line=dict(color=colors["ct"], shape="spline"),
+            showlegend=False,
+        ),
+        row=1,
+        col=3,
+    )
+
     fig.for_each_xaxis(lambda x: x.update(range=[0, 24], dtick=12))
     fig.for_each_yaxis(lambda y: y.update(range=[0, 0.4], dtick=0.2))
     fig.update_layout(width=width * 2, height=height, showlegend=False)
@@ -402,12 +436,23 @@ def misleading_interaction():
     )
     fig.write_image("plots/simulations/coexistence/batch_failure.svg")
 
-
-misleading_interaction()
+    figj.for_each_xaxis(lambda x: x.update(range=[0, 24], dtick=12))
+    figj.for_each_yaxis(lambda y: y.update(range=[0, 0.4], dtick=0.2))
+    figj.update_layout(width=width * 2, height=height, showlegend=False)
+    figj = style_plot(
+        figj,
+        line_thickness=line_thickness,
+        font_size=11,
+        left_margin=lm,
+        buttom_margin=0,
+        top_margin=10,
+        right_margin=rm,
+    )
+    figj.write_image("plots/simulations/coexistence/batch_failure_j.svg")
 
 
 def differences():
-    Ds = np.linspace(0, 0.15, 100)
+    Ds = np.linspace(0, 0.2, 100)
     p = parse_params()
     JCts = []
     JOas = []
@@ -443,8 +488,8 @@ def differences():
         )
     )
     fig.update_layout(
-        xaxis=dict(title="Dilution rate [1/h]", range=[0, 0.151], dtick=0.03),
-        yaxis=dict(title="J [1/h]", range=[0, 0.151], dtick=0.03),
+        xaxis=dict(title="Dilution rate [1/h]"),
+        yaxis=dict(title="J [1/h]"),
         showlegend=False,
         width=width,
         height=height,
@@ -462,8 +507,8 @@ def differences():
 
 
 def realized_J():
-    Kms = np.linspace(1e-3, 1e-1, 1000)
-    Rs = np.linspace(1e-3, 1e-1, 1000)
+    Kms = np.linspace(1e-3, 1, 1000)
+    Rs = np.linspace(1e-3, 1, 1000)
     zs = np.zeros((len(Rs), len(Kms)))
     for i, R in enumerate(Rs):
         for j, Km in enumerate(Kms):
@@ -523,3 +568,91 @@ def realized_J():
         right_margin=rm,
     )
     fig.write_image("plots/simulations/coexistence/realized_J.svg")
+
+
+def km_dataset():
+    color_dict = {
+        "arabinose": "#1f77b4",  # blue
+        "fructose": "#ff7f0e",  # orange
+        "glucose": "#2ca02c",  # green
+        "lactate": "#d62728",  # red
+        "lactose": "#9467bd",  # purple
+        "maltose": "#8c564b",  # brown
+    }
+    symbol_dict = {
+        "Achromobacter sp.": "pentagon",
+        "Escherichia coli": "square",
+        "Marine coryneform baterium": "diamond",
+        "Pseudomonas sp.": "cross",
+        "Spirillum sp.": "x",
+        "Streptococcus mutans": "triangle-up",
+        "Streptococcus sanguis": "triangle-down",
+        "Vibrio sp.": "star",
+    }
+    df = pd.read_excel("km_dataset.xlsx")
+    df = df[df["Eukaryote"] != True]
+
+    fig = go.Figure()
+
+    # === Legend for nutrients (colors) ===
+    for nutrient, color in color_dict.items():
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(color=color, symbol="circle", size=10),
+                name=nutrient.capitalize(),
+                legendgroup="color_legend",
+                showlegend=True,
+            )
+        )
+
+    # === Legend for species (symbols) ===
+    for species, symbol in symbol_dict.items():
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(color="black", symbol=symbol, size=10),
+                name=species,
+                legendgroup="symbol_legend",
+                showlegend=True,
+            )
+        )
+
+    # === Actual data ===
+    for _, row in df.iterrows():
+        fig.add_trace(
+            go.Scatter(
+                x=[row["gmax (per hour)"]],
+                y=[row["K common unit (uM)"]],
+                mode="markers",
+                marker=dict(
+                    color=color_dict[row["Limiting Nutrient"]],
+                    symbol=symbol_dict[row["Species"]],
+                    size=10,
+                ),
+                showlegend=False,
+            )
+        )
+
+    fig.update_layout(
+        yaxis=dict(type="log", title="K [uM]"),
+        xaxis=dict(title="max. growth rate [1/h]", range=[0, 2], dtick=0.5),
+        showlegend=False,
+        width=1 * width,
+        height=1 * height,
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=line_thickness,
+        font_size=11,
+        left_margin=lm,
+        buttom_margin=25,
+        top_margin=5,
+        right_margin=rm,
+        marker_size=4,
+    )
+    fig.write_image("plots/experiments/km_dataset.svg")
