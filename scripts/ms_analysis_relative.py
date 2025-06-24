@@ -38,7 +38,24 @@ meta.index = meta["metabolite"]
 raw.insert(len(raw.columns), "group", None)
 for m in raw["metabolite"]:
     raw.loc[m, "group"] = meta.loc[m]["group"]
-# df = df[df["group"] == "Amino Acids and Derivatives"]
+
+colors = {
+    group: color
+    for group, color in zip(
+        set(meta["group"]),
+        [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+        ],
+    )
+}
+symbols = {"Ct": "cross", "Oa": "square"}
 
 
 def plotting():
@@ -141,36 +158,38 @@ def plotting():
         fig.write_image("plots/ms_analysis/relativ/" + f)
 
 
-def leakage():
-    pairs = {
-        "media_ct_c": [media, ct_c],
-        "media_oa_c": [media, oa_c],
-        "ct_c_oa_b": [ct_c, oa_b],
-        "oa_c_ct_b": [oa_c, ct_b],
-    }
-    df = pd.DataFrame(
-        columns=[
-            "metabolite",
-            "group",
-            "media_ct_c",
-            "media_oa_c",
-            "ct_c_oa_b",
-            "oa_c_ct_b",
-        ]
-    )
-    for i, m in enumerate(raw["metabolite"]):
-        for key, pair in pairs.items():
-            group = meta.loc[m]["group"]
-            df.at[i, key] = stats.ttest_ind(
-                list(raw.loc[m][pair[1]].values),
-                list(raw.loc[m][pair[0]].values),
-                equal_var=False,
-            )[:2]
+pairs = {
+    "media_ct_c": [media, ct_c],
+    "media_oa_c": [media, oa_c],
+    "ct_c_oa_b": [ct_c, oa_b],
+    "oa_c_ct_b": [oa_c, ct_b],
+}
+df = pd.DataFrame(
+    columns=[
+        "metabolite",
+        "group",
+        "media_ct_c",
+        "media_oa_c",
+        "ct_c_oa_b",
+        "oa_c_ct_b",
+    ]
+)
+for i, m in enumerate(raw["metabolite"]):
+    for key, pair in pairs.items():
+        group = meta.loc[m]["group"]
+        df.at[i, key] = stats.ttest_ind(
+            list(raw.loc[m][pair[1]].values),
+            list(raw.loc[m][pair[0]].values),
+            equal_var=False,
+        )[:2]
 
-            df.at[i, "metabolite"] = m
-            df.at[i, "group"] = group
-    df.index = df["metabolite"]
-    df = df.sort_values(by="group")
+        df.at[i, "metabolite"] = m
+        df.at[i, "group"] = group
+df.index = df["metabolite"]
+df = df.sort_values(by="group")
+
+
+def leakage():
     groups = []
     colors = {
         group: color
@@ -188,7 +207,6 @@ def leakage():
             ],
         )
     }
-    symbols = {"Ct": "cross", "Oa": "square"}
     fig = go.Figure()
     for i, (m, media_ct, media_oa) in enumerate(
         zip(df["metabolite"], df["media_ct_c"], df["media_oa_c"])
@@ -383,27 +401,10 @@ def consumption():
         right_margin=30,
     )
     fig.write_image("plots/ms_analysis/relativ/consumption.svg")
+    fig.show()
 
 
-colors = {
-    group: color
-    for group, color in zip(
-        set(meta["group"]),
-        [
-            "#1f77b4",
-            "#ff7f0e",
-            "#2ca02c",
-            "#d62728",
-            "#9467bd",
-            "#8c564b",
-            "#e377c2",
-            "#7f7f7f",
-        ],
-    )
-}
-
-
-def media():
+def media_metabolites():
     fig = go.Figure()
     raw = raw[["metabolite", "group"] + media]
     df = raw[media][raw[media] > 10000].dropna()
