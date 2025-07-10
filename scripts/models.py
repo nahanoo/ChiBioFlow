@@ -207,6 +207,7 @@ def mutual_cf(y, t, p):
 def plot_mutual_cf():
     xs = np.linspace(0, 250, 2000)
     p = parse_params()
+    p["N02"] = 0
     Y = odeint(mutual_cf, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     Ct, Oa, R, T = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R, "T", T)
@@ -229,6 +230,9 @@ def plot_mutual_cf():
         right_margin=rm,
     )
     fig.write_image("plots/simulations/dynamics/mutual_cf.svg")
+
+
+plot_mutual_cf()
 
 
 def plot_thiamine_production():

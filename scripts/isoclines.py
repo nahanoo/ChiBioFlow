@@ -19,25 +19,25 @@ Rs = np.linspace(1e-10, 0.5, 100)
 
 
 def competition():
-    # Competition for acetate
-    JCt = [p["v1_1"] * R / (R + p["K1_1"]) for R in Rs]
-    JOa = [p["v2_1"] * R / (R + p["K2_1"]) for R in Rs]
-    Ds = np.linspace(0, max(JCt), 100)
-    R_grid, D_grid = np.meshgrid(Rs, Ds)
+    Ts = np.linspace(4, 6, 1000)
+    R_grid, T_grid = np.meshgrid(Rs, Ts * 1000)
+    JCt = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
+    JOa = p["v2_1"] * R_grid / (R_grid + p["K2_1"]) * T_grid / (T_grid + p["K2_3"])
     JCt_grid = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
     JOa_grid = p["v2_1"] * R_grid / (R_grid + p["K2_1"])
     R_ratio = np.log(JOa_grid / JCt_grid)
+
     custom_colorscale = [
-        [0, "lightblue"],  # Min value -> Blue
-        [0.5, "white"],  # Mid value (zero) -> White
-        [1, "lightsalmon"],  # Max value -> Red
+        [0, "#c0bedc"],
+        [0.5, "white"],
+        [1, "#ecaf80"],
     ]
     fig = go.Figure()
     fig.add_trace(
         go.Contour(
             z=R_ratio,
             x=Rs,
-            y=Ds,
+            y=Ts,
             colorscale=custom_colorscale,
             zmid=0,
             zmin=-0.5,
@@ -45,38 +45,57 @@ def competition():
             ncontours=50,
             contours=dict(showlines=False),
             colorbar=dict(
-                title=dict(
-                    text="log<sub>10</sub> ( J<sub><i>Oa</i></sub> / J<sub><i>Ct</i></sub> )",
-                    side="right",
-                ),
-                len=0.5,
-                y=0.4,
+                len=0.6,
+                y=0.2,
+                thickness=10,
             ),
         )
     )
     fig.add_trace(
-        go.Scatter(
-            x=Rs, y=JCt, marker=dict(color=colors["ct"]), name="<i>Ct</i>", opacity=1
+        go.Contour(
+            z=JCt,
+            x=Rs,
+            y=Ts,
+            showscale=False,
+            contours=dict(start=0.15, end=0.15, size=0.1, coloring="none"),
+            line=dict(color=colors["ct"]),
+            name="<i>Ct</i>",
+            showlegend=False,
         )
     )
     fig.add_trace(
-        go.Scatter(x=Rs, y=JOa, marker=dict(color=colors["oa"]), name="<i>Oa</i>")
+        go.Contour(
+            z=JOa,
+            x=Rs,
+            y=Ts,
+            showscale=False,
+            contours=dict(start=0.15, end=0.15, size=0.1, coloring="none"),
+            line=dict(color=colors["oa"]),
+            name="<i>Oa</i>",
+            showlegend=False,
+        )
     )
-    fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(title="J [1/h]")
-    fig.update_layout(height=height, width=width)
-    fig.update_layout(legend_title_text="Isocline of<br>growth rate")
     fig.update_layout(
-        xaxis=dict(showgrid=False, ticks="outside"),
-        yaxis=dict(showgrid=False, ticks="outside"),
+        height=150,
+        width=180,
+        # legend_title_text="Isocline of<br>growth rate",
+        # title="Growth rate ratio of Oa to Ct",
+        xaxis=dict(
+            showgrid=False,
+        ),
+        yaxis=dict(showgrid=False),  # range=[0, 70], dtick=20,
+    )
+    fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(
+        title="Thiamine [μM]", zeroline=False
     )
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
+        line_thickness=1,
         font_size=font_size,
-        left_margin=lm,
-        buttom_margin=bm,
-        top_margin=tm,
-        right_margin=rm,
+        left_margin=30,
+        buttom_margin=25,
+        top_margin=0,
+        right_margin=0,
     )
     fig.write_image("plots/isoclines/competition.svg")
 
@@ -100,8 +119,8 @@ def mutual_cf():
             y=Ts,
             colorscale=custom_colorscale,
             zmid=0,
-            zmin=-0.1,
-            zmax=0.1,
+            zmin=-1,
+            zmax=1,
             ncontours=50,
             contours=dict(showlines=False),
             colorbar=dict(
@@ -159,9 +178,6 @@ def mutual_cf():
         right_margin=0,
     )
     fig.write_image("plots/isoclines/mutual_cf.svg")
-
-
-competition()
 
 
 def niche_creation():

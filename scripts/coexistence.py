@@ -79,21 +79,57 @@ def competition():
 
 
 def thiamine_supply():
+
     p = parse_params()
-    Ts = np.linspace(0, 100, 10000)
+    Ds = np.linspace(0, 0.2, 500)
+    alphas = np.linspace(1, 100, 500)
+    zs = np.zeros((len(Ds), len(alphas)))
+    for i, D in enumerate(Ds):
+        p["D"] = D
+        for j, alpha in enumerate(alphas):
+            p["M3"] = alpha
+            Y = odeint(ts, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
+            Ct, Oa, R, T = Y[-1]
+            if Ct <= 1e-6:
+                Ct = 0
+            if Oa <= 1e-6:
+                Oa = 0
+            if (Ct == 0) and (Oa == 0):
+                ratio = None
+            else:
+                ratio = Oa / (Ct + Oa)
+            zs[i, j] = ratio
+
     fig = go.Figure()
-    js = p["v2_1"] * 0.1 / (0.1 + p["K2_1"]) * Ts / (Ts + p["K2_3"])
-    js[-1] = 0.25
-    Ts[-1] = 100
-    fig.add_trace(go.Scatter(x=list(Ts), y=list(js), mode="lines"))
+
+    fig.add_trace(
+        go.Contour(
+            z=zs,
+            x=alphas,
+            y=Ds,
+            colorscale=custom_colorscale,
+            ncontours=50,
+            zmid=0.5,
+            zmin=0,
+            zmax=1,
+            contours=dict(
+                showlines=False,
+            ),
+            colorbar=dict(
+                title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
+                len=0.8,
+                # y=0.25,
+                thickness=10,
+            ),
+        )
+    )
+
     fig.update_xaxes(
-        title="R<sub>0,T</sub> [nM]",
-        zeroline=True,
-        showgrid=False,
-        range=[0, 110],
-        dtick=50,
-    ), fig.update_yaxes(title="D [1/h]", zeroline=True, showgrid=False)
-    fig.update_layout(height=150, width=120)
+        title="1 / Q<sub>Ct,R</sub> nM/OD",
+        zeroline=False,
+    )
+    fig.update_yaxes(title="Dilution rate [1/h]", zeroline=False, showgrid=False)
+    fig.update_layout(height=150, width=170)
     fig = style_plot(
         fig,
         line_thickness=line_thickness,
@@ -103,7 +139,7 @@ def thiamine_supply():
         top_margin=0,
         right_margin=0,
     )
-    fig.write_image("plots/simulations/coexistence/thiamine_supply.svg")
+    fig.write_image("plots/simulations/coexistence/thiamine_supp.svg")
 
 
 def mutual_cf():
@@ -492,7 +528,7 @@ def differences():
         yaxis=dict(title="J [1/h]"),
         showlegend=False,
         width=width,
-        height=height,
+        height=height * 1.3,
     )
     fig = style_plot(
         fig,
@@ -512,7 +548,7 @@ def realized_J():
     zs = np.zeros((len(Rs), len(Kms)))
     for i, R in enumerate(Rs):
         for j, Km in enumerate(Kms):
-            zs[i, j] = 0.2 * R / (R + Km)
+            zs[i, j] = 0.4 * R / (R + Km)
     D = 0.1
     p = parse_params()
     R_star = -D * p["K2_1"] / (D - p["v2_1"])
@@ -527,8 +563,8 @@ def realized_J():
             colorscale=custom_colorscale,
             ncontours=20,
             zmin=0,
-            zmax=0.2,
-            zmid=0.1,
+            zmax=0.4,
+            zmid=0.2,
             contours=dict(showlines=False),
             colorbar=dict(
                 title=dict(text="J", side="right", font=dict(size=8)),
@@ -552,10 +588,10 @@ def realized_J():
     )
 
     fig.update_layout(
-        xaxis=dict(title="K<sub>M</sub> [mM]", zeroline=False, type="log", dtick="1"),
-        yaxis=dict(title="M [mM]", zeroline=False, type="log", dtick="1"),
-        height=150,
-        width=170,
+        xaxis=dict(title="K<sub>C</sub> [mM]", zeroline=False, type="log", dtick="1"),
+        yaxis=dict(title="C [mM]", zeroline=False, type="log", dtick="1"),
+        height=height * 1.3,
+        width=width * 1.3,
     )
 
     fig = style_plot(

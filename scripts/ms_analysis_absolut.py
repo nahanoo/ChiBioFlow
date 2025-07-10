@@ -4,6 +4,7 @@ from plotly.subplots import make_subplots
 import numpy as np
 from style import *
 import math
+import scipy.stats as stats
 
 
 media = ["SM_042025_MPTA_b1_1", "SM_042025_MPTA_b2_2", "SM_042025_MPTA_b3_3"]
@@ -32,8 +33,7 @@ raw = pd.read_excel(
     "../data/250610_ms_data/raw_data_absolut.xlsx",
 )
 raw.index = raw["metabolite"]
-raw = raw[raw != "< LOQ"]
-
+raw = raw.replace("< LOQ", None)
 
 meta = pd.read_excel("../data/250610_ms_data/meta.xlsx")
 meta.index = meta["metabolite"]
@@ -41,6 +41,8 @@ meta.index = meta["metabolite"]
 raw.insert(len(raw.columns), "group", None)
 for m in raw["metabolite"]:
     raw.loc[m, "group"] = meta.loc[m]["group"]
+
+symbols = {"Ct": "cross", "Oa": "square"}
 
 
 def plotting():
@@ -143,17 +145,57 @@ def plotting():
         fig.write_image("plots/ms_analysis/absolut/" + f)
 
 
-relevant = ["Isoleucine", "Glutamine", "Lactate", "Citrate"]
-fig = go.Figure()
-raw = raw[["metabolite", "group"] + media]
-for m, row in raw.iterrows():
-    if m not in relevant:
-        continue
+def media_metabolites():
+    relevant = ["Isoleucine", "Glutamine", "Lactate", "Citrate"]
+    fig = go.Figure()
+    raw = raw[["metabolite", "group"] + media].copy()
+    for m, row in raw.iterrows():
+        if m not in relevant:
+            continue
+        fig.add_trace(
+            go.Box(
+                x=[m, m, m],
+                y=row[media].values,
+                name=m,
+                marker=dict(color="black"),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+                showlegend=False,
+            ),
+        )
+    fig.update_yaxes(type="log")
+    fig.update_layout(
+        xaxis_title="Metabolite",
+        yaxis_title="Concentration [µM]",
+        width=width,
+        height=1.5 * height,
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=1,
+        marker_size=5,
+        font_size=11,
+        buttom_margin=80,
+        top_margin=0,
+        left_margin=40,
+        right_margin=0,
+    )
+    fig.write_image("plots/ms_analysis/absolut/media.svg")
+
+
+def cis_aconitate():
+
+    df = raw[raw["metabolite"] == "Cis-Aconitate"]
+    fig = go.Figure()
     fig.add_trace(
         go.Box(
-            x=[m, m, m],
-            y=row[media].values,
-            name=m,
+            x=["Media"],
+            y=[],
+            name="Media",
+            text="LOQ",
             marker=dict(color="black"),
             boxpoints="all",
             jitter=1,
@@ -163,21 +205,105 @@ for m, row in raw.iterrows():
             showlegend=False,
         ),
     )
-fig.update_yaxes(type="log")
-fig.update_layout(
-    xaxis_title="Metabolite",
-    yaxis_title="Concentration [µM]",
-    width=2.5 * width,
-    height=1.5 * height,
-)
-fig = style_plot(
-    fig,
-    line_thickness=1,
-    marker_size=5,
-    font_size=11,
-    buttom_margin=30,
-    top_margin=0,
-    left_margin=40,
-    right_margin=0,
-)
-fig.write_image("plots/ms_analysis/absolut/media.svg")
+    fig.add_annotation(
+        x="Media",
+        y=0,
+        text="< LOQ",
+        showarrow=False,
+        textangle=90,  #
+        # font=dict(size=14, color="gray"),
+        align="center",
+        bgcolor="white",
+        # bordercolor="black",
+        borderwidth=1,
+        yshift=-30,  # shift the text box above baseline
+    )
+    fig.add_trace(
+        go.Box(
+            x=3 * ["Ct Chemostat"],
+            y=df[ct_c].values[0],
+            name="Ct Chemostat",
+            marker=dict(color=colors["ct"]),
+            boxpoints="all",
+            jitter=1,
+            pointpos=0,
+            boxmean=True,
+            quartilemethod="linear",
+            showlegend=False,
+        ),
+    )
+    fig.add_trace(
+        go.Box(
+            x=3 * ["Oa Chemostat"],
+            y=df[oa_c].values[0],
+            name="Oa Chemostat",
+            marker=dict(color=colors["oa"]),
+            boxpoints="all",
+            jitter=1,
+            pointpos=0,
+            boxmean=True,
+            quartilemethod="linear",
+            showlegend=False,
+        ),
+    )
+    fig.add_trace(
+        go.Box(
+            x=3 * ["Ct in Oa"],
+            y=[],
+            name="Ct in Oa",
+            marker=dict(color=colors["ct"]),
+            boxpoints="all",
+            jitter=1,
+            pointpos=0,
+            boxmean=True,
+            quartilemethod="linear",
+            showlegend=False,
+        ),
+    )
+    fig.add_annotation(
+        x="Ct in Oa",
+        y=0,
+        text="< LOQ",
+        showarrow=False,
+        textangle=90,  #
+        # font=dict(size=14, color="gray"),
+        align="center",
+        bgcolor="white",
+        # bordercolor="black",
+        borderwidth=1,
+        yshift=-30,  # shift the text box above baseline
+    )
+
+    fig.add_trace(
+        go.Box(
+            x=3 * ["Oa in Ct"],
+            y=df[oa_b].values[0],
+            name="Oa in Ct",
+            marker=dict(color=colors["oa"]),
+            boxpoints="all",
+            jitter=1,
+            pointpos=0,
+            boxmean=True,
+            quartilemethod="linear",
+            showlegend=False,
+        ),
+    )
+
+    fig.update_yaxes(title="Concentration [µM]", type="log")
+    fig.update_layout(
+        yaxis_title="Concentration [µM]",
+        width=width * 0.8,
+        height=1.3 * height,
+        title="Cis-Aconitate",
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=1,
+        marker_size=5,
+        font_size=11,
+        buttom_margin=30,
+        top_margin=30,
+        left_margin=30,
+        right_margin=0,
+    )
+    fig.write_image("plots/ms_analysis/absolut/cis_aconitate.svg")

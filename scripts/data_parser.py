@@ -107,13 +107,17 @@ def get_cfus():
             "1D",
         )
         sheets.append(sheet)
-    pd.concat(sheets).to_excel(
-        "../data/data.xlsx", index=False, sheet_name="Chemostat CFU data"
-    )
+    with pd.ExcelWriter(
+        "../data/data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
+    ) as writer:
+        pd.concat(sheets).to_excel(writer, index=False, sheet_name="Chemostat CFU data")
+
     return pd.concat(dfs)
 
 
 def get_od_chemostats():
+    sheets = []
+    replicates = ["replicate_1", "replicate_2", "replicate_3"]
     dfs = []
     Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/250310_oa_mono")
     df = calibration_csv(
@@ -121,18 +125,62 @@ def get_od_chemostats():
     )
     df.insert(len(df.columns), "experiment", "oa_mono")
     dfs.append(df)
+    reactors = [df[df["reactor"] == M] for M in ["M0", "M1"]]
+
     Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/250327_oa_mono")
     df = calibration_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250327_oa_mono/calibration.csv", Ms
     )
     df.insert(len(df.columns), "experiment", "oa_mono_repeat")
     dfs.append(df)
+    df["reactor"] = "M2"
+    reactors.insert(2, df)
+    for i, r in enumerate(reactors):
+        sheet = pd.DataFrame(
+            columns=["time", "OD", "name", "species", "description", "figure"]
+        )
+        (
+            sheet["time"],
+            sheet["OD"],
+            sheet["name"],
+            sheet["species"],
+            sheet["description"],
+            sheet["figure"],
+        ) = (
+            r["exp_time"],
+            r["od_calibrated"],
+            replicates[i],
+            "Oa",
+            "Oa mono-culture with 10000 nM thiamine",
+            "S1B",
+        )
+        sheets.append(sheet)
     Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/250320_ct_mono")
     df = calibration_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250320_ct_mono/calibration.csv", Ms
     )
     df.insert(len(df.columns), "experiment", "ct_mono")
-    dfs.append(df)
+    for i, r in enumerate(df["reactor"].unique()):
+        mask = df[df["reactor"] == r]
+        sheet = pd.DataFrame(
+            columns=["time", "OD", "name", "species", "description", "figure"]
+        )
+        (
+            sheet["time"],
+            sheet["OD"],
+            sheet["name"],
+            sheet["species"],
+            sheet["description"],
+            sheet["figure"],
+        ) = (
+            mask["exp_time"],
+            mask["od_calibrated"],
+            replicates[i],
+            "Ct",
+            "Ct mono-culture with 10000 nM thiamine",
+            "S1B",
+        )
+        sheets.append(sheet)
     Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/241101_ct_mono")
     Ms = [Ms[Ms["reactor"] == r] for r in ["M0", "M1", "M2"]]
     Ms = [M[M["exp_time"] < 500] for M in Ms]
@@ -147,6 +195,10 @@ def get_od_chemostats():
         M["od_calibrated"] = OD
         M["experiment"] = "ct_mono_old"
         dfs.append(M)
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(sheets).to_excel(
+            writer, index=False, sheet_name="Monoculture chemostat OD data"
+        )
     return pd.concat(dfs)
 
 
@@ -427,8 +479,408 @@ def ct_oa_plate_reader():
                 line_counter[comment] += 1
 
                 sheets.append(sheet)
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(sheets).to_excel(
+            writer, index=False, sheet_name="Monoculture batch growth curves"
+        )
 
-    pd.concat(sheets).to_excel(
-        "../data/data.xlsx", index=False, sheet_name="Monoculture batch growth curves"
-    )
     return pd.concat(sheets)
+
+
+media = ["SM_042025_MPTA_b1_1", "SM_042025_MPTA_b2_2", "SM_042025_MPTA_b3_3"]
+Ct_chemostat = [
+    "SM_042025_MPTA_ct_c_b2_5",
+    "SM_042025_MPTA_ct_c_b3_6",
+    "SM_042025_MPTA_ct_c_b1_4",
+]
+Oa_chemostat = [
+    "SM_042025_MPTA_oa_c_b3_9",
+    "SM_042025_MPTA_oa_c_b1_7",
+    "SM_042025_MPTA_oa_c_b2_8",
+]
+Ct_batch = [
+    "SM_042025_MPTA_ct_b_b2_11",
+    "SM_042025_MPTA_ct_b_b3_12",
+    "SM_042025_MPTA_ct_b_b1_10",
+]
+Oa_batch = [
+    "SM_042025_MPTA_oa_b_b1_13",
+    "SM_042025_MPTA_oa_b_b2_14",
+    "SM_042025_MPTA_oa_b_b3_15",
+]
+
+
+def relative_quantification():
+    raw = pd.read_excel("../data/250610_ms_data/raw_data.xlsx")
+    raw.index = raw["metabolite"]
+
+    meta = pd.read_excel("../data/250610_ms_data/meta.xlsx")
+    meta.index = meta["metabolite"]
+
+    raw.insert(len(raw.columns), "group", None)
+    for m in raw["metabolite"]:
+        raw.loc[m, "group"] = meta.loc[m]["group"]
+
+    sheets = []
+
+    for i, sample in enumerate(Ct_chemostat):
+        df = pd.DataFrame(
+            columns=[
+                "metabolite",
+                "peak_value",
+                "name",
+                "species",
+                "group",
+                "description",
+                "figure",
+            ]
+        )
+        (
+            df["metabolite"],
+            df["peak_value"],
+            df["name"],
+            df["species"],
+            df["group"],
+            df["description"],
+            df["figure"],
+        ) = (
+            raw["metabolite"],
+            raw[sample],
+            "replicate_" + str(i + 1),
+            None,
+            raw["group"],
+            "Spent chemostat media of Ct ",
+            "2D",
+        )
+        sheets.append(df)
+
+    for i, sample in enumerate(Oa_chemostat):
+        df = pd.DataFrame(
+            columns=[
+                "metabolite",
+                "peak_value",
+                "name",
+                "species",
+                "group",
+                "description",
+                "figure",
+            ]
+        )
+        (
+            df["metabolite"],
+            df["peak_value"],
+            df["name"],
+            df["species"],
+            df["group"],
+            df["description"],
+            df["figure"],
+        ) = (
+            raw["metabolite"],
+            raw[sample],
+            "replicate_" + str(i + 1),
+            None,
+            raw["group"],
+            "Spent chemostat media of Oa ",
+            "2D",
+        )
+        sheets.append(df)
+
+    for i, sample in enumerate(media):
+        df = pd.DataFrame(
+            columns=[
+                "metabolite",
+                "peak_value",
+                "name",
+                "species",
+                "group",
+                "description",
+                "figure",
+            ]
+        )
+        (
+            df["metabolite"],
+            df["peak_value"],
+            df["name"],
+            df["species"],
+            df["group"],
+            df["description"],
+            df["figure"],
+        ) = (
+            raw["metabolite"],
+            raw[sample],
+            "replicate_" + str(i + 1),
+            None,
+            raw["group"],
+            "Chemostat media used for experiments",
+            "2D",
+        )
+        sheets.append(df)
+
+    for i, sample in enumerate(Ct_batch):
+        df = pd.DataFrame(
+            columns=[
+                "metabolite",
+                "peak_value",
+                "name",
+                "species",
+                "group",
+                "description",
+                "figure",
+            ]
+        )
+        (
+            df["metabolite"],
+            df["peak_value"],
+            df["name"],
+            df["species"],
+            df["group"],
+            df["description"],
+            df["figure"],
+        ) = (
+            raw["metabolite"],
+            raw[sample],
+            "replicate_" + str(i + 1),
+            "Ct",
+            raw["group"],
+            "Ct grown in spent chemostat media of Oa",
+            "2D",
+        )
+        sheets.append(df)
+
+    for i, sample in enumerate(Oa_batch):
+        df = pd.DataFrame(
+            columns=[
+                "metabolite",
+                "peak_value",
+                "name",
+                "species",
+                "group",
+                "description",
+                "figure",
+            ]
+        )
+        (
+            df["metabolite"],
+            df["peak_value"],
+            df["name"],
+            df["species"],
+            df["group"],
+            df["description"],
+            df["figure"],
+        ) = (
+            raw["metabolite"],
+            raw[sample],
+            "replicate_" + str(i + 1),
+            "Oa",
+            raw["group"],
+            "Oa grown in spent chemostat media of Oa",
+            "2D",
+        )
+        sheets.append(df)
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(sheets).to_excel(
+            writer, index=False, sheet_name="MS relative quantification"
+        )
+    return pd.concat(sheets)
+
+
+raw = pd.read_excel(
+    "../data/250610_ms_data/raw_data_absolut.xlsx",
+)
+raw.index = raw["metabolite"]
+raw = raw[raw != "< LOQ"]
+
+
+meta = pd.read_excel("../data/250610_ms_data/meta.xlsx")
+meta.index = meta["metabolite"]
+
+raw.insert(len(raw.columns), "group", None)
+for m in raw["metabolite"]:
+    raw.loc[m, "group"] = meta.loc[m]["group"]
+
+sheets = []
+
+for i, sample in enumerate(Ct_chemostat):
+    df = pd.DataFrame(
+        columns=[
+            "metabolite",
+            "value",
+            "unit",
+            "name",
+            "species",
+            "group",
+            "description",
+            "figure",
+        ]
+    )
+    (
+        df["metabolite"],
+        df["value"],
+        df["unit"],
+        df["name"],
+        df["species"],
+        df["group"],
+        df["description"],
+        df["figure"],
+    ) = (
+        raw["metabolite"],
+        raw[sample],
+        raw["unit"],
+        "replicate_" + str(i + 1),
+        None,
+        raw["group"],
+        "Spent chemostat media of Ct ",
+        "2D",
+    )
+    sheets.append(df)
+
+for i, sample in enumerate(Oa_chemostat):
+    df = pd.DataFrame(
+        columns=[
+            "metabolite",
+            "value",
+            "unit",
+            "name",
+            "species",
+            "group",
+            "description",
+            "figure",
+        ]
+    )
+    (
+        df["metabolite"],
+        df["value"],
+        df["unit"],
+        df["name"],
+        df["species"],
+        df["group"],
+        df["description"],
+        df["figure"],
+    ) = (
+        raw["metabolite"],
+        raw[sample],
+        raw["unit"],
+        "replicate_" + str(i + 1),
+        None,
+        raw["group"],
+        "Spent chemostat media of Oa ",
+        "2D",
+    )
+    sheets.append(df)
+
+for i, sample in enumerate(media):
+    df = pd.DataFrame(
+        columns=[
+            "metabolite",
+            "value",
+            "unit",
+            "name",
+            "species",
+            "group",
+            "description",
+            "figure",
+        ]
+    )
+    (
+        df["metabolite"],
+        df["value"],
+        df["unit"],
+        df["name"],
+        df["species"],
+        df["group"],
+        df["description"],
+        df["figure"],
+    ) = (
+        raw["metabolite"],
+        raw[sample],
+        raw["unit"],
+        "replicate_" + str(i + 1),
+        None,
+        raw["group"],
+        "Chemostat media used for experiments",
+        "2D",
+    )
+    sheets.append(df)
+
+for i, sample in enumerate(Ct_batch):
+    df = pd.DataFrame(
+        columns=[
+            "metabolite",
+            "value",
+            "unit",
+            "name",
+            "species",
+            "group",
+            "description",
+            "figure",
+        ]
+    )
+    (
+        df["metabolite"],
+        df["value"],
+        df["unit"],
+        df["name"],
+        df["species"],
+        df["group"],
+        df["description"],
+        df["figure"],
+    ) = (
+        raw["metabolite"],
+        raw[sample],
+        raw["unit"],
+        "replicate_" + str(i + 1),
+        "Ct",
+        raw["group"],
+        "Ct grown in spent chemostat media of Oa",
+        "2D",
+    )
+    sheets.append(df)
+
+for i, sample in enumerate(Oa_batch):
+    df = pd.DataFrame(
+        columns=[
+            "metabolite",
+            "value",
+            "unit",
+            "name",
+            "species",
+            "group",
+            "description",
+            "figure",
+        ]
+    )
+    (
+        df["metabolite"],
+        df["value"],
+        df["unit"],
+        df["name"],
+        df["species"],
+        df["group"],
+        df["description"],
+        df["figure"],
+    ) = (
+        raw["metabolite"],
+        raw[sample],
+        raw["unit"],
+        "replicate_" + str(i + 1),
+        "Oa",
+        raw["group"],
+        "Oa grown in spent chemostat media of Oa",
+        "2D",
+    )
+    sheets.append(df)
+tmp = pd.concat(sheets)
+tmp = tmp[tmp["unit"] != "[nM]"]
+tmp = tmp[tmp["metabolite"] == "Cis-Aconitate"]
+px.box(tmp, "metabolite", "value", facet_col="description", points="all").show()
+"""with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+    pd.concat(sheets).to_excel(
+        writer, index=False, sheet_name="MS relative quantification"
+    )"""
+
+"""pd.DataFrame().to_excel("../data/data.xlsx", index=False)
+get_cfus()
+get_od_chemostats()
+ct_oa_plate_reader()
+relative_quantification()
+"""

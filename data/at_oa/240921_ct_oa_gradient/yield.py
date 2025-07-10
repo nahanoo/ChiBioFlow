@@ -21,7 +21,7 @@ raw = pd.read_csv(
 )
 raw.index = raw["linegroup"]
 for species in ["Comamonas testosteroni", "Ochrobactrum anthropi"]:
-    mask = (meta_full["project"] == "240921_carbon_source_gradients") & (
+    mask = (meta_full["project"] == "ct_oa_chemostat_project/") & (
         meta_full["species"] == species
     )
     meta = meta_full[mask]

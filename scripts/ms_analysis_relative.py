@@ -46,11 +46,11 @@ colors = {
         [
             "#1f77b4",
             "#ff7f0e",
-            "#2ca02c",
+            "#e377c2",
             "#d62728",
             "#9467bd",
             "#8c564b",
-            "#e377c2",
+            "#2ca02c",
             "#7f7f7f",
         ],
     )
@@ -177,11 +177,17 @@ df = pd.DataFrame(
 for i, m in enumerate(raw["metabolite"]):
     for key, pair in pairs.items():
         group = meta.loc[m]["group"]
-        df.at[i, key] = stats.ttest_ind(
-            list(raw.loc[m][pair[1]].values),
-            list(raw.loc[m][pair[0]].values),
-            equal_var=False,
-        )[:2]
+        fold_change = np.log2(
+            np.mean(raw.loc[m][pair[1]].values) / np.mean(raw.loc[m][pair[0]].values)
+        )
+        df.at[i, key] = [
+            stats.ttest_ind(
+                list(raw.loc[m][pair[1]].values),
+                list(raw.loc[m][pair[0]].values),
+                equal_var=False,
+            )[:2],
+            fold_change,
+        ]
 
         df.at[i, "metabolite"] = m
         df.at[i, "group"] = group
@@ -191,31 +197,13 @@ df = df.sort_values(by="group")
 
 def leakage():
     groups = []
-    colors = {
-        group: color
-        for group, color in zip(
-            set(df["group"]),
-            [
-                "#1f77b4",
-                "#ff7f0e",
-                "#2ca02c",
-                "#d62728",
-                "#9467bd",
-                "#8c564b",
-                "#e377c2",
-                "#7f7f7f",
-            ],
-        )
-    }
     fig = go.Figure()
-    for i, (m, media_ct, media_oa) in enumerate(
-        zip(df["metabolite"], df["media_ct_c"], df["media_oa_c"])
-    ):
-        if (media_ct[1] < 0.05) & (media_oa[1] < 0.05):
+    for i, (m, media_ct) in enumerate(zip(df["metabolite"], df["media_ct_c"])):
+        if media_ct[0][1] < 0.05:
             fig.add_trace(
                 go.Scatter(
                     x=[media_ct[1]],
-                    y=[media_ct[0]],
+                    y=-np.log10([media_ct[0][1]]),
                     marker=dict(
                         color=colors[meta.loc[m]["group"]], symbol=symbols["Ct"]
                     ),
@@ -223,10 +211,13 @@ def leakage():
                     showlegend=False,
                 )
             )
+
+    for i, (m, media_oa) in enumerate(zip(df["metabolite"], df["media_oa_c"])):
+        if media_oa[0][1] < 0.05:
             fig.add_trace(
                 go.Scatter(
                     x=[media_oa[1]],
-                    y=[media_oa[0]],
+                    y=-np.log10([media_oa[0][1]]),
                     marker=dict(
                         color=colors[meta.loc[m]["group"]], symbol=symbols["Oa"]
                     ),
@@ -235,33 +226,6 @@ def leakage():
                 )
             )
             groups.append(meta.loc[m]["group"])
-        else:
-            if media_ct[1] < 0.05:
-                fig.add_trace(
-                    go.Scatter(
-                        x=[media_ct[1]],
-                        y=[media_ct[0]],
-                        marker=dict(
-                            color=colors[meta.loc[m]["group"]], symbol=symbols["Ct"]
-                        ),
-                        hovertext=[meta.loc[m]["group"] + "<br>" + m],
-                        showlegend=False,
-                    )
-                )
-                groups.append(meta.loc[m]["group"])
-            if media_oa[1] < 0.05:
-                fig.add_trace(
-                    go.Scatter(
-                        x=[media_oa[1]],
-                        y=[media_oa[0]],
-                        marker=dict(
-                            color=colors[meta.loc[m]["group"]], symbol=symbols["Oa"]
-                        ),
-                        hovertext=[meta.loc[m]["group"] + "<br>" + m],
-                        showlegend=False,
-                    )
-                )
-                groups.append(meta.loc[m]["group"])
     for group in set(groups):
         fig.add_trace(
             go.Scatter(
@@ -283,41 +247,34 @@ def leakage():
             )
         )
     fig.update_layout(
-        xaxis_title="p-value",
-        yaxis_title="t-statistic",
-        width=2.5 * width,
-        height=1.5 * height,
+        xaxis_title="log<sub>2</sub> fold change",
+        yaxis_title="-log<sub>10</sub> p-value",
+        width=2 * width,
+        height=1.3 * height,
     )
     fig = style_plot(
         fig,
         line_thickness=1,
         marker_size=5,
         font_size=11,
-        buttom_margin=10,
+        buttom_margin=30,
         top_margin=0,
-        left_margin=40,
+        left_margin=30,
         right_margin=30,
     )
     fig.write_image("plots/ms_analysis/relativ/leakage.svg")
-    fig.show()
+    # fig.show()
 
 
 def consumption():
     groups = []
     fig = go.Figure()
-    for i, (m, ct_batch, oa_batch) in enumerate(
-        zip(df["metabolite"], df["oa_c_ct_b"], df["ct_c_oa_b"])
-    ):
-        if (
-            (ct_batch[1] < 0.05)
-            & (oa_batch[1] < 0.05)
-            & (ct_batch[0] < 0)
-            & (oa_batch[0] < 0)
-        ):
+    for i, (m, ct_batch) in enumerate(zip(df["metabolite"], df["oa_c_ct_b"])):
+        if (ct_batch[0][1] < 0.05) & (ct_batch[1] < 0):
             fig.add_trace(
                 go.Scatter(
                     x=[ct_batch[1]],
-                    y=[ct_batch[0]],
+                    y=-np.log10([ct_batch[0][1]]),
                     marker=dict(
                         color=colors[meta.loc[m]["group"]], symbol=symbols["Ct"]
                     ),
@@ -325,45 +282,22 @@ def consumption():
                     showlegend=False,
                 )
             )
+            groups.append(meta.loc[m]["group"])
+
+    for i, (m, oa_batch) in enumerate(zip(df["metabolite"], df["ct_c_oa_b"])):
+        if (oa_batch[0][1] < 0.05) & (oa_batch[1] < 0):
             fig.add_trace(
                 go.Scatter(
                     x=[oa_batch[1]],
-                    y=[oa_batch[0]],
+                    y=-np.log10([oa_batch[0][1]]),
                     marker=dict(
                         color=colors[meta.loc[m]["group"]], symbol=symbols["Oa"]
                     ),
-                    hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Oa"],
+                    hovertext=[meta.loc[m]["group"] + "<br>" + m],
                     showlegend=False,
                 )
             )
             groups.append(meta.loc[m]["group"])
-        else:
-            if (ct_batch[1] < 0.05) & (ct_batch[0] < 0):
-                fig.add_trace(
-                    go.Scatter(
-                        x=[ct_batch[1]],
-                        y=[ct_batch[0]],
-                        marker=dict(
-                            color=colors[meta.loc[m]["group"]], symbol=symbols["Ct"]
-                        ),
-                        hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
-                        showlegend=False,
-                    )
-                )
-                groups.append(meta.loc[m]["group"])
-            if (oa_batch[1] < 0.05) & (oa_batch[0] < 0):
-                fig.add_trace(
-                    go.Scatter(
-                        x=[oa_batch[1]],
-                        y=[oa_batch[0]],
-                        marker=dict(
-                            color=colors[meta.loc[m]["group"]], symbol=symbols["Oa"]
-                        ),
-                        hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Oa"],
-                        showlegend=False,
-                    )
-                )
-                groups.append(meta.loc[m]["group"])
     for group in set(groups):
         fig.add_trace(
             go.Scatter(
@@ -385,19 +319,19 @@ def consumption():
             )
         )
     fig.update_layout(
-        xaxis_title="p-value",
-        yaxis_title="t-statistic",
-        width=2.5 * width,
-        height=1.5 * height,
+        xaxis_title="log<sub>2</sub> fold change",
+        yaxis_title="-log<sub>10</sub> p-value",
+        width=2 * width,
+        height=1.3 * height,
     )
     fig = style_plot(
         fig,
         line_thickness=1,
         marker_size=5,
         font_size=11,
-        buttom_margin=10,
+        buttom_margin=30,
         top_margin=0,
-        left_margin=40,
+        left_margin=30,
         right_margin=30,
     )
     fig.write_image("plots/ms_analysis/relativ/consumption.svg")
@@ -441,3 +375,179 @@ def media_metabolites():
         right_margin=30,
     )
     fig.write_image("plots/ms_analysis/relativ/media.svg")
+
+
+def thiamine():
+    colors = {
+        "blue": "#000080",
+        "ct": "#7570B3",
+        "oa": "#D95F02",
+        "ms": "#E6AB02",
+        "at": "#1B9E77",
+        "Spent media Ct": "#1B9E77",
+        "Spent media Oa": "#E7298A",
+        "H20": "gray",
+    }
+
+    t = raw[raw["metabolite"] == "Thiamine"]
+    fig = go.Figure()
+    for i, m in enumerate(t["metabolite"]):
+        x = 3 * ["Media"]
+        y = t.loc[m][media].values
+
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=y,
+                marker=dict(color="black"),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+
+        x = 3 * ["Ct Chemostat"]
+        y = t.loc[m][ct_c].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=y,
+                marker=dict(color=colors["ct"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+
+        x = 3 * ["Oa Chemostat"]
+        y = t.loc[m][oa_c].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=y,
+                marker=dict(color=colors["oa"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+        x = 3 * ["Ct in Oa"]
+        y = t.loc[m][ct_b].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=y,
+                marker=dict(color=colors["ct"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+        x = 3 * ["Oa in Ct"]
+        y = t.loc[m][oa_b].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=y,
+                marker=dict(color=colors["oa"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+    fig.update_layout(
+        showlegend=False, width=width, height=height * 1.5, yaxis=dict(type="log")
+    ),
+    fig.update_yaxes(type="log", nticks=4)
+    fig = style_plot(fig, line_thickness=1, marker_size=5, font_size=11)
+    fig.write_image("plots/ms_analysis/relativ/thiamine.svg")
+
+    fig = go.Figure()
+    for i, m in enumerate(t["metabolite"]):
+        x = 3 * ["Media"]
+        y = t.loc[m][media].values
+        y_media = y
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=10 / y_media * y,
+                marker=dict(color="black"),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+
+        x = 3 * ["Ct Chemostat"]
+        y = t.loc[m][ct_c].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=10 / y_media * y,
+                marker=dict(color=colors["ct"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+
+        x = 3 * ["Oa Chemostat"]
+        y = t.loc[m][oa_c].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=10 / y_media * y,
+                marker=dict(color=colors["oa"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+        x = 3 * ["Ct in Oa"]
+        y = t.loc[m][ct_b].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=10 / y_media * y,
+                marker=dict(color=colors["ct"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+        x = 3 * ["Oa in Ct"]
+        y = t.loc[m][oa_b].values
+        fig.add_trace(
+            go.Box(
+                x=x,
+                y=10 / y_media * y,
+                marker=dict(color=colors["oa"]),
+                boxpoints="all",
+                jitter=1,
+                pointpos=0,
+                boxmean=True,
+                quartilemethod="linear",
+            ),
+        )
+    fig.update_layout(showlegend=False, width=width, height=height),
+    fig.update_yaxes(type="log", nticks=4)
+    fig = style_plot(fig, line_thickness=1, marker_size=5, font_size=11)
+    fig.write_image("plots/ms_analysis/relativ/thiamine_absolut.svg")

@@ -3,6 +3,8 @@ colors = {
     "blue": "#000080",
     "ct": "#7570B3",
     "oa": "#D95F02",
+    "ms": "#E6AB02",
+    "at": "#1B9E77",
     "Spent media Ct": "#1B9E77",
     "Spent media Oa": "#E7298A",
     "H20": "gray",

@@ -852,7 +852,8 @@ def spent_media_curves():
     )
     fig = go.Figure()
     ys = []
-    for j, cs in enumerate(["Spent media Ct", "Spent media Oa"]):
+    sources = ["Spent media Oa"]
+    for j, cs in enumerate(sources):
         line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
         for i, (lg, comment) in enumerate(
             df_ct[df_ct["carbon_source"] == cs][["linegroup", "comments"]].values
@@ -869,7 +870,7 @@ def spent_media_curves():
                         legendgroup=cs,
                         line=dict(color=colors["ct"]),
                         showlegend=(i == 0),
-                        opacity=(0.5 if j == 0 else 1),
+                        opacity=(1 if j == 0 else 1),
                     )
                 )
                 line_counter[comment] += 1
@@ -877,9 +878,9 @@ def spent_media_curves():
     xs = x
     i, j = 0, 0
     for q, x in enumerate(xs):
-        if x <= 24:
+        if x <= 18:
             i = q
-        if x >= 60:
+        if x >= 36:
             j = q
             break
     slope, intercept, r_value, p_value, std_err = linregress(xs[i:j], np.log(ys[i:j]))
@@ -889,7 +890,7 @@ def spent_media_curves():
             x=xs[i:j],
             y=np.exp(slope * xs[i:j] + intercept),
             name="fit",
-            line=dict(dash="dot", color=colors["ct"]),
+            line=dict(dash="dot", color="black"),
         )
     )"""
 
@@ -898,7 +899,8 @@ def spent_media_curves():
         yaxis=dict(title="OD", range=[0, 0.08], dtick=0.02),
         showlegend=False,
         width=width,
-        height=height,
+        height=height * 1.3,
+        title="Ct in spent chemostat<br>media of Oa",
     )
     fig = style_plot(
         fig,
@@ -907,6 +909,7 @@ def spent_media_curves():
         buttom_margin=25,
         left_margin=35,
         right_margin=0,
+        top_margin=35,
     )
     fig.write_image("plots/experiments/spent_media_ct.svg")
     fig = go.Figure()
@@ -951,6 +954,9 @@ def spent_media_curves():
         right_margin=0,
     )
     fig.write_image("plots/experiments/spent_media_oa.svg")
+
+
+spent_media_curves()
 
 
 def Km_cufs():
