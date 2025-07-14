@@ -5,8 +5,6 @@ from style import *
 import plotly.graph_objects as go
 import plotly.io as pio
 
-pio.kaleido.scope.mathjax = None
-
 
 def parse_params():
     df = dict(pd.read_csv("parameters.csv"))
@@ -109,14 +107,13 @@ def plot_competition():
     )
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
         font_size=11,
         left_margin=lm,
         buttom_margin=bm,
         top_margin=tm,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/dynamics/competition.svg")
+    fig.write_image("plots/simulations/dynamics/fig3b.svg")
 
 
 def thiamine_supply(y, t, p):
@@ -232,9 +229,6 @@ def plot_mutual_cf():
     fig.write_image("plots/simulations/dynamics/mutual_cf.svg")
 
 
-plot_mutual_cf()
-
-
 def plot_thiamine_production():
     xs = np.linspace(0, 200, 2000)
     p = parse_params()
@@ -303,7 +297,10 @@ def plot_niche_creation():
         top_margin=tm,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/dynamics/niche_creation.svg")
+    fig.write_image("plots/simulations/dynamics/fig3b.svg")
+
+
+plot_niche_creation()
 
 
 def plot_niche_production():

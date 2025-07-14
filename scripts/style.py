@@ -10,6 +10,22 @@ colors = {
     "H20": "gray",
 }
 
+colors_heatmap = [
+    [0.0, "#3b4cc0"],  # deep blue
+    [0.5, "white"],
+    [1.0, "#b40426"],  # deep red
+]
+
+colors_metabolites = {
+    "Nucleotide related": "#1f77b4",
+    "Carbohydrates": "#ff7f0e",
+    "Fatty Acids": "#2ca02c",
+    "Amino Acids": "#9467bd",
+    "Organic Acids": "#8c564b",
+    "Coenzymes": "#e377c2",
+    "Others": "#7f7f7f",
+}
+
 
 def style_plot(
     fig,
@@ -19,7 +35,7 @@ def style_plot(
     right_margin=10,
     buttom_margin=10,
     font_size=14,
-    line_thickness=3,
+    line_thickness=1.5,
 ):
     """Style function for figures setting fot size and true black color."""
     fig.update_layout(
@@ -39,7 +55,7 @@ def style_plot(
         except KeyError:
             pass
         try:
-            d["error_y"]["thickness"] = line_thickness
+            d["error_y"]["thickness"] = line_thickness / 2
         except KeyError:
             pass
     for a in fig["layout"]["annotations"]:
@@ -54,20 +70,30 @@ def style_plot(
         margin=dict(l=left_margin, r=right_margin, t=top_margin, b=buttom_margin),
         hoverlabel=dict(font_size=font_size),
     )
-    gridline_width = 0.5
+    gridline_width = 0.2
     fig.update_yaxes(
         title_standoff=0,
-        gridcolor="black",
+        gridcolor="gray",
+        zeroline=False,
         zerolinecolor="black",
         gridwidth=gridline_width,
-        zerolinewidth=gridline_width,
+        zerolinewidth=0.5,
+        showline=True,
+        mirror=True,
+        linecolor="black",
+        linewidth=0.5,
     )
     fig.update_xaxes(
         title_standoff=0,
-        gridcolor="black",
+        gridcolor="gray",
         zerolinecolor="black",
         gridwidth=gridline_width,
-        zerolinewidth=gridline_width,
+        zerolinewidth=0.5,
+        showline=True,
+        mirror=True,
+        linecolor="black",
+        linewidth=0.5,
+        zeroline=False,
     )
     fig.for_each_xaxis(
         lambda axis: axis.title.update(font=dict(size=font_size, color="black"))

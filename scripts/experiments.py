@@ -9,7 +9,7 @@ from scipy.stats import linregress
 from style import *
 
 
-def plot_chemostat_community():
+def fig1cd():
     df = get_cfus()
     reactors = ["M0", "M1", "M2"]
     species = ["ct", "oa"]
@@ -51,13 +51,13 @@ def plot_chemostat_community():
     fig = style_plot(
         fig,
         font_size=11,
-        line_thickness=1,
         right_margin=0,
         left_margin=45,
         buttom_margin=30,
         top_margin=0,
     )
-    fig.write_image("plots/experiments/ct_oa_a.svg")
+
+    fig.write_image("plots/experiments/fi1c.svg")
 
     fig = go.Figure()
     for s in species:
@@ -90,13 +90,12 @@ def plot_chemostat_community():
     fig = style_plot(
         fig,
         font_size=11,
-        line_thickness=1,
         right_margin=0,
         left_margin=45,
         buttom_margin=30,
         top_margin=0,
     )
-    fig.write_image("plots/experiments/ct_oa_a_t.svg")
+    fig.write_image("plots/experiments/fig1d.svg")
 
 
 def plot_oa_mono_chemostats():
@@ -193,7 +192,7 @@ def plot_oa_mono_chemostats():
     fig.write_image("plots/experiments/oa_mono_no_thiamine.svg")
 
 
-def plot_oa_ct_plate_reader():
+def fig1a():
     model = False
     df = pd.read_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250328_ct_oa_thiamine_gradient/data/metadata.csv"
@@ -224,16 +223,17 @@ def plot_oa_ct_plate_reader():
                 y=y,
                 name="Ct",
                 showlegend=False,
-                marker=dict(color=colors["ct"]),
+                line=dict(color=colors["ct"]),
             )
         )
-        p = parse_params()
-    p["D"] = 0
-    p["N01"] = y[0]
-    p["q1_1"] = 0.028
-    xs = data[lg + "_time"].to_numpy()
-    Y_ct = odeint(ct_mono, [p["N01"], p["M1"]], xs, args=(p,))
+
     if model:
+        p = parse_params()
+        p["D"] = 0
+        p["N01"] = y[0]
+        p["q1_1"] = 0.028
+        xs = data[lg + "_time"].to_numpy()
+        Y_ct = odeint(ct_mono, [p["N01"], p["M1"]], xs, args=(p,))
         fig.add_trace(
             go.Scatter(
                 x=xs,
@@ -244,17 +244,7 @@ def plot_oa_ct_plate_reader():
                 line=dict(dash="dash"),
             )
         )
-    """df = pd.read_csv(
-        "/home/eric/ChiBioFlow/data/at_oa/250313_oa_thiamine_gradient/data/metadata.csv"
-    )
-    df_oa = df[
-        (df["exp_ID"] == "ct_oa_chemostat_project/_oa_thiamine_gradient")
-        & (df["species"] == "Ochrobactrum anthropi")
-        & (df["comments"] == "10000 nM thiamine")
-    ]
-    data = pd.read_csv(
-        "/home/eric/ChiBioFlow/data/at_oa/250313_oa_thiamine_gradient/data/measurements.csv"
-    )"""
+
     for i, lg in enumerate(df_oa["linegroup"]):
         x = data[lg + "_time"][data[lg + "_time"] < 36]
         y = data[lg + "_measurement"][: len(x)]
@@ -270,9 +260,10 @@ def plot_oa_ct_plate_reader():
                 mode="lines",
             )
         )
-    p["N02"] = y[0]
-    Y_oa = odeint(oa_mono, [p["N02"], p["M1"]], xs, args=(p,))
+
     if model:
+        p["N02"] = y[0]
+        Y_oa = odeint(oa_mono, [p["N02"], p["M1"]], xs, args=(p,))
         fig.add_trace(
             go.Scatter(
                 x=xs,
@@ -302,7 +293,7 @@ def plot_oa_ct_plate_reader():
                 y=y,
                 name="Oa no thiamine",
                 showlegend=False,
-                line=dict(color=colors["oa"], dash="dash"),
+                line=dict(color=colors["oa"], dash="3px"),
                 mode="lines",
             )
         )
@@ -325,8 +316,9 @@ def plot_oa_ct_plate_reader():
                 y=y,
                 name="Oa in spent<br>media of Ct",
                 showlegend=False,
-                line=dict(color=colors["oa"], dash="dot"),
+                line=dict(color=colors["oa"], dash="1px"),
                 mode="lines",
+                marker=dict(color=colors["oa"]),
             )
         )
     fig.update_layout(
@@ -340,18 +332,17 @@ def plot_oa_ct_plate_reader():
             title="OD",
         ),
         width=width,
-        height=width,
+        height=height,
     )
     fig = style_plot(
         fig,
-        line_thickness=1,
         font_size=11,
         buttom_margin=10,
         top_margin=10,
         left_margin=10,
         right_margin=10,
     )
-    fig.write_image("plots/experiments/ct_oa_plate_reader.svg")
+    fig.write_image("plots/experiments/fig1a.svg")
 
 
 def ct_oa_plate_reader_fit():
@@ -840,7 +831,7 @@ def max_growth_rate_high_conc():
     fig.write_image("plots/experiments/oa_high_conc.svg")
 
 
-def spent_media_curves():
+def fig2d():
     df = pd.read_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/metadata.csv"
     )
@@ -911,7 +902,7 @@ def spent_media_curves():
         right_margin=0,
         top_margin=35,
     )
-    fig.write_image("plots/experiments/spent_media_ct.svg")
+    fig.write_image("plots/experiments/fig2d_ct.svg")
     fig = go.Figure()
     for j, cs in enumerate(["Spent media Ct", "Spent media Oa"]):
         line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
@@ -953,10 +944,7 @@ def spent_media_curves():
         top_margin=20,
         right_margin=0,
     )
-    fig.write_image("plots/experiments/spent_media_oa.svg")
-
-
-spent_media_curves()
+    fig.write_image("plots/experiments/fig2d_oa.svg")
 
 
 def Km_cufs():

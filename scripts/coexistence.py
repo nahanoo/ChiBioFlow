@@ -34,51 +34,8 @@ font_size = 8
 line_thickness = 1.2
 xs = np.linspace(0, 5000, 5000 * 6)
 
-custom_colorscale = [
-    [0, "#c0bedc"],
-    [0.5, "white"],
-    [1, "#ecaf80"],
-]
 
-
-def competition():
-    p = parse_params()
-    Ds = np.linspace(0, 0.4, 100)
-    Cts = []
-    Oas = []
-    for D in Ds:
-        p["D"] = D
-        Y = odeint(cp, [p["N01"], p["N02"], p["M1"]], xs, args=(p,))
-        Ct, Oa, R = Y[-1]
-        Cts.append(Ct), Oas.append(Oa)
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(x=Ds, y=Cts, name="<i>Ct</i>", marker=dict(color=colors["ct"]))
-    )
-
-    fig.add_trace(
-        go.Scatter(x=Ds, y=Oas, name="<i>Oa</i>", marker=dict(color=colors["oa"]))
-    )
-    fig.update_xaxes(title="Dilution rate [1/h]"), fig.update_yaxes(
-        title="Abundance [OD]"
-    )
-    fig.update_layout(
-        width=width,
-        height=height,
-    )
-    fig = style_plot(
-        fig,
-        line_thickness=line_thickness,
-        font_size=font_size,
-        left_margin=lm,
-        buttom_margin=bm,
-        top_margin=tm,
-        right_margin=rm,
-    )
-    fig.write_image("plots/simulations/coexistence/competition.pdf")
-
-
-def thiamine_supply():
+def fig1d():
 
     p = parse_params()
     Ds = np.linspace(0, 0.2, 500)
@@ -107,7 +64,7 @@ def thiamine_supply():
             z=zs,
             x=alphas,
             y=Ds,
-            colorscale=custom_colorscale,
+            colorscale=colors_heatmap,
             ncontours=50,
             zmid=0.5,
             zmin=0,
@@ -139,13 +96,13 @@ def thiamine_supply():
         top_margin=0,
         right_margin=0,
     )
-    fig.write_image("plots/simulations/coexistence/thiamine_supp.svg")
+    fig.write_image("plots/simulations/coexistence/fig1d.svg")
 
 
-def mutual_cf():
+def fig1c():
     p = parse_params()
-    Ds = np.linspace(0, 0.2, 50)
-    alphas = 1 / np.linspace(0.002, 0.02, 50)
+    Ds = np.linspace(0, 0.2, 500)
+    alphas = np.linspace(0.0002, 0.02, 500)
     zs = np.zeros((len(Ds), len(alphas)))
     for i, D in enumerate(Ds):
         p["D"] = D
@@ -170,7 +127,7 @@ def mutual_cf():
             z=zs,
             x=alphas,
             y=Ds,
-            colorscale=custom_colorscale,
+            colorscale=colors_heatmap,
             ncontours=50,
             zmid=0.5,
             zmin=0,
@@ -189,7 +146,9 @@ def mutual_cf():
 
     fig.update_xaxes(
         title="1 / Q<sub>Ct,R</sub> nM/OD",
-        zeroline=False,
+        # zeroline=False,
+        range=[0.0002, 0.02],
+        dtick=0.002,
     )
     fig.update_yaxes(title="Dilution rate [1/h]", zeroline=False, showgrid=False)
     fig.update_layout(height=150, width=170)
@@ -202,7 +161,7 @@ def mutual_cf():
         top_margin=0,
         right_margin=0,
     )
-    fig.write_image("plots/simulations/coexistence/mutual_cf.svg")
+    fig.write_image("plots/simulations/coexistence/fig1c.svg")
 
 
 def niche_creation():
@@ -320,7 +279,7 @@ def niche_creation_cf():
     fig.write_image("plots/simulations/coexistence/niche_creation_cf.pdf")
 
 
-def misleading_interaction():
+def fig3a():
     fig = make_subplots(
         rows=1,
         cols=4,
@@ -463,21 +422,19 @@ def misleading_interaction():
     fig.update_layout(width=width * 2, height=height, showlegend=False)
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
         font_size=11,
         left_margin=lm,
         buttom_margin=0,
         top_margin=10,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/coexistence/batch_failure.svg")
+    fig.write_image("plots/simulations/coexistence/fig3a.svg")
 
     figj.for_each_xaxis(lambda x: x.update(range=[0, 24], dtick=12))
     figj.for_each_yaxis(lambda y: y.update(range=[0, 0.4], dtick=0.2))
     figj.update_layout(width=width * 2, height=height, showlegend=False)
     figj = style_plot(
         figj,
-        line_thickness=line_thickness,
         font_size=11,
         left_margin=lm,
         buttom_margin=0,
@@ -487,7 +444,10 @@ def misleading_interaction():
     figj.write_image("plots/simulations/coexistence/batch_failure_j.svg")
 
 
-def differences():
+fig3a()
+
+
+def fig2a():
     Ds = np.linspace(0, 0.2, 100)
     p = parse_params()
     JCts = []
@@ -532,17 +492,16 @@ def differences():
     )
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
         font_size=11,
         left_margin=10,
         buttom_margin=10,
         top_margin=10,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/coexistence/differences_J.svg")
+    fig.write_image("plots/simulations/coexistence/fig2a.svg")
 
 
-def realized_J():
+def fig2b():
     Kms = np.linspace(1e-3, 1, 1000)
     Rs = np.linspace(1e-3, 1, 1000)
     zs = np.zeros((len(Rs), len(Kms)))
@@ -560,8 +519,8 @@ def realized_J():
             z=zs,
             x=Kms,
             y=Rs,
-            colorscale=custom_colorscale,
-            ncontours=20,
+            colorscale=colors_heatmap,
+            ncontours=50,
             zmin=0,
             zmax=0.4,
             zmid=0.2,
@@ -603,7 +562,7 @@ def realized_J():
         top_margin=5,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/coexistence/realized_J.svg")
+    fig.write_image("plots/simulations/coexistence/fig2b.svg")
 
 
 def km_dataset():

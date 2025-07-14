@@ -186,7 +186,7 @@ def media_metabolites():
     fig.write_image("plots/ms_analysis/absolut/media.svg")
 
 
-def cis_aconitate():
+def fig2f():
 
     df = raw[raw["metabolite"] == "Cis-Aconitate"]
     fig = go.Figure()
@@ -306,4 +306,4 @@ def cis_aconitate():
         left_margin=30,
         right_margin=0,
     )
-    fig.write_image("plots/ms_analysis/absolut/cis_aconitate.svg")
+    fig.write_image("plots/ms_analysis/absolut/fig2f.svg")

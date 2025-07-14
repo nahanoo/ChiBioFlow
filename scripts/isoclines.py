@@ -100,24 +100,20 @@ def competition():
     fig.write_image("plots/isoclines/competition.svg")
 
 
-def mutual_cf():
+def fig1b():
     Ts = np.linspace(1e-10, 60, 100)
     R_grid, T_grid = np.meshgrid(Rs, Ts)
     JCt = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
     JOa = p["v2_1"] * R_grid / (R_grid + p["K2_1"]) * T_grid / (T_grid + p["K2_3"])
     J_ratio = np.log10(JOa / JCt)
-    custom_colorscale = [
-        [0, "#c0bedc"],
-        [0.5, "white"],
-        [1, "#ecaf80"],
-    ]
+
     fig = go.Figure()
     fig.add_trace(
         go.Contour(
             z=J_ratio,
             x=Rs,
             y=Ts,
-            colorscale=custom_colorscale,
+            colorscale=colors_heatmap,
             zmid=0,
             zmin=-1,
             zmax=1,
@@ -156,17 +152,13 @@ def mutual_cf():
     )
 
     fig.update_layout(
+        autosize=False,
         height=150,
         width=180,
-        # legend_title_text="Isocline of<br>growth rate",
-        # title="Growth rate ratio of Oa to Ct",
-        xaxis=dict(
-            showgrid=False,
-        ),
-        yaxis=dict(range=[0, 70], dtick=20, showgrid=False),
+        yaxis=dict(range=[0, 70], dtick=20),
     )
-    fig.update_xaxes(title="Acetate [mM]"), fig.update_yaxes(
-        title="Thiamine [nM]", zeroline=False
+    fig.update_xaxes(title="Acetate [mM]", showgrid=False), fig.update_yaxes(
+        title="Thiamine [nM]", zeroline=True, showgrid=True
     )
     fig = style_plot(
         fig,
@@ -177,7 +169,8 @@ def mutual_cf():
         top_margin=0,
         right_margin=0,
     )
-    fig.write_image("plots/isoclines/mutual_cf.svg")
+
+    fig.write_image("plots/isoclines/fig1B.svg")
 
 
 def niche_creation():

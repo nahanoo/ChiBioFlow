@@ -195,7 +195,7 @@ df.index = df["metabolite"]
 df = df.sort_values(by="group")
 
 
-def leakage():
+def fig2c():
     groups = []
     fig = go.Figure()
     for i, (m, media_ct) in enumerate(zip(df["metabolite"], df["media_ct_c"])):
@@ -205,7 +205,8 @@ def leakage():
                     x=[media_ct[1]],
                     y=-np.log10([media_ct[0][1]]),
                     marker=dict(
-                        color=colors[meta.loc[m]["group"]], symbol=symbols["Ct"]
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                        symbol=symbols["Ct"],
                     ),
                     hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
                     showlegend=False,
@@ -219,20 +220,21 @@ def leakage():
                     x=[media_oa[1]],
                     y=-np.log10([media_oa[0][1]]),
                     marker=dict(
-                        color=colors[meta.loc[m]["group"]], symbol=symbols["Oa"]
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                        symbol=symbols["Oa"],
                     ),
                     hovertext=[meta.loc[m]["group"] + "<br>" + m],
                     showlegend=False,
                 )
             )
             groups.append(meta.loc[m]["group"])
-    for group in set(groups):
+    for group in sorted(list(set(groups))):
         fig.add_trace(
             go.Scatter(
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker=dict(color=colors[group]),
+                marker=dict(color=colors_metabolites[group]),
                 name=group,
             )
         )
@@ -254,7 +256,6 @@ def leakage():
     )
     fig = style_plot(
         fig,
-        line_thickness=1,
         marker_size=5,
         font_size=11,
         buttom_margin=30,
@@ -262,11 +263,11 @@ def leakage():
         left_margin=30,
         right_margin=30,
     )
-    fig.write_image("plots/ms_analysis/relativ/leakage.svg")
+    fig.write_image("plots/ms_analysis/relativ/fig2c.svg")
     # fig.show()
 
 
-def consumption():
+def fig2e():
     groups = []
     fig = go.Figure()
     for i, (m, ct_batch) in enumerate(zip(df["metabolite"], df["oa_c_ct_b"])):
@@ -276,7 +277,8 @@ def consumption():
                     x=[ct_batch[1]],
                     y=-np.log10([ct_batch[0][1]]),
                     marker=dict(
-                        color=colors[meta.loc[m]["group"]], symbol=symbols["Ct"]
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                        symbol=symbols["Ct"],
                     ),
                     hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
                     showlegend=False,
@@ -291,20 +293,21 @@ def consumption():
                     x=[oa_batch[1]],
                     y=-np.log10([oa_batch[0][1]]),
                     marker=dict(
-                        color=colors[meta.loc[m]["group"]], symbol=symbols["Oa"]
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                        symbol=symbols["Oa"],
                     ),
                     hovertext=[meta.loc[m]["group"] + "<br>" + m],
                     showlegend=False,
                 )
             )
             groups.append(meta.loc[m]["group"])
-    for group in set(groups):
+    for group in sorted(list(set(groups))):
         fig.add_trace(
             go.Scatter(
                 x=[None],
                 y=[None],
                 mode="markers",
-                marker=dict(color=colors[group]),
+                marker=dict(color=colors_metabolites[group]),
                 name=group,
             )
         )
@@ -334,8 +337,12 @@ def consumption():
         left_margin=30,
         right_margin=30,
     )
-    fig.write_image("plots/ms_analysis/relativ/consumption.svg")
+    fig.write_image("plots/ms_analysis/relativ/fig2e.svg")
     fig.show()
+
+
+fig2c()
+fig2e()
 
 
 def media_metabolites():
