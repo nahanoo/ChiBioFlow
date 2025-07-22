@@ -101,8 +101,8 @@ def fig1d():
 
 def fig1c():
     p = parse_params()
-    Ds = np.linspace(0, 0.3, 1000)
-    alphas = np.linspace(0.0002, 1, 1000)
+    Ds = np.linspace(0, 0.3, 500)
+    alphas = np.linspace(0.0002, 1, 500)
     zs = np.zeros((len(Ds), len(alphas)))
     Ts = []
     for i, D in enumerate(Ds):
