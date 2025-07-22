@@ -18,7 +18,7 @@ line_thickness = 1.2
 Rs = np.linspace(1e-10, 0.5, 100)
 
 
-def competition():
+def sfig1f():
     Ts = np.linspace(4, 6, 1000)
     R_grid, T_grid = np.meshgrid(Rs, Ts * 1000)
     JCt = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
@@ -27,18 +27,13 @@ def competition():
     JOa_grid = p["v2_1"] * R_grid / (R_grid + p["K2_1"])
     R_ratio = np.log(JOa_grid / JCt_grid)
 
-    custom_colorscale = [
-        [0, "#c0bedc"],
-        [0.5, "white"],
-        [1, "#ecaf80"],
-    ]
     fig = go.Figure()
     fig.add_trace(
         go.Contour(
             z=R_ratio,
             x=Rs,
             y=Ts,
-            colorscale=custom_colorscale,
+            colorscale=colors_heatmap,
             zmid=0,
             zmin=-0.5,
             zmax=0.5,
@@ -97,11 +92,13 @@ def competition():
         top_margin=0,
         right_margin=0,
     )
-    fig.write_image("plots/isoclines/competition.svg")
+    fig.write_image("plots/isoclines/sfig1f.svg")
 
 
 def fig1b():
-    Ts = np.linspace(1e-10, 60, 100)
+    Ts = np.linspace(1e-2, 50000, 1000)
+    Rs = np.linspace(1e-2, 10, 1000)
+
     R_grid, T_grid = np.meshgrid(Rs, Ts)
     JCt = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
     JOa = p["v2_1"] * R_grid / (R_grid + p["K2_1"]) * T_grid / (T_grid + p["K2_3"])
@@ -123,7 +120,53 @@ def fig1b():
                 len=0.6,
                 y=0.2,
                 thickness=10,
+                outlinewidth=0.5,
+                outlinecolor="black",
             ),
+        )
+    )
+    fig.update_layout(
+        autosize=False,
+        height=150,
+        width=200,
+        yaxis=dict(
+            # tickvals=[0, 20, 40, 60],
+            # ticktext=["0", "20", "40", "60"],
+            # range=[0, 60],
+            title="Thiamine [nM]",
+            zeroline=True,
+            showgrid=True,
+            ticks="inside",
+            type="log",
+            dtick=1,
+        ),
+        xaxis=dict(
+            title="Acetate [mM]",
+            zeroline=False,
+            showgrid=False,
+            ticks="inside",
+            type="log",
+            dtick=1,
+        ),
+    )
+    fig = style_plot(
+        fig,
+        line_thickness=1.5,
+        font_size=font_size,
+        left_margin=30,
+        buttom_margin=25,
+        top_margin=0,
+        right_margin=0,
+    )
+    fig.add_trace(
+        go.Contour(
+            z=JCt,
+            x=Rs,
+            y=Ts,
+            showscale=False,
+            contours=dict(start=0.15, end=0.15, coloring="none"),
+            line=dict(color="black", width=2.5),
+            showlegend=False,
         )
     )
     fig.add_trace(
@@ -132,8 +175,8 @@ def fig1b():
             x=Rs,
             y=Ts,
             showscale=False,
-            contours=dict(start=0.15, end=0.15, size=0.1, coloring="none"),
-            line=dict(color=colors["ct"]),
+            contours=dict(start=0.15, end=0.15, coloring="none"),
+            line=dict(color=colors["ct"], width=1.5),
             name="<i>Ct</i>",
             showlegend=False,
         )
@@ -144,30 +187,25 @@ def fig1b():
             x=Rs,
             y=Ts,
             showscale=False,
-            contours=dict(start=0.15, end=0.15, size=0.1, coloring="none"),
-            line=dict(color=colors["oa"]),
-            name="<i>Oa</i>",
+            contours=dict(start=0.15, end=0.15, coloring="none"),
+            line=dict(
+                color="black",
+                width=2.5,
+            ),
             showlegend=False,
         )
     )
-
-    fig.update_layout(
-        autosize=False,
-        height=150,
-        width=180,
-        yaxis=dict(range=[0, 70], dtick=20),
-    )
-    fig.update_xaxes(title="Acetate [mM]", showgrid=False), fig.update_yaxes(
-        title="Thiamine [nM]", zeroline=True, showgrid=True
-    )
-    fig = style_plot(
-        fig,
-        line_thickness=1,
-        font_size=font_size,
-        left_margin=30,
-        buttom_margin=25,
-        top_margin=0,
-        right_margin=0,
+    fig.add_trace(
+        go.Contour(
+            z=JOa,
+            x=Rs,
+            y=Ts,
+            showscale=False,
+            contours=dict(start=0.15, end=0.15, coloring="none"),
+            line=dict(color=colors["oa"], width=1.5),
+            name="<i>Oa</i>",
+            showlegend=False,
+        )
     )
 
     fig.write_image("plots/isoclines/fig1B.svg")

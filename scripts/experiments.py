@@ -98,7 +98,7 @@ def fig1cd():
     fig.write_image("plots/experiments/fig1d.svg")
 
 
-def plot_oa_mono_chemostats():
+def sfig1bc():
     fig = go.Figure()
 
     df = get_od_chemostats()
@@ -150,10 +150,8 @@ def plot_oa_mono_chemostats():
             mode="lines",
         ),
     )
-    fig = style_plot(
-        fig, line_thickness=1, font_size=11, left_margin=20, buttom_margin=20
-    )
-    fig.write_image("plots/experiments/oa_mono.svg")
+    fig = style_plot(fig, font_size=11, left_margin=20, buttom_margin=20)
+    fig.write_image("plots/experiments/sfig1b.svg")
     df = get_od_chemostats()
     df = df[df["experiment"] == "oa_mono"]
     Ms = [df[df["reactor"] == M] for M in ["M3"]]
@@ -186,10 +184,8 @@ def plot_oa_mono_chemostats():
         height=height,
         showlegend=False,
     )
-    fig = style_plot(
-        fig, line_thickness=1, font_size=11, left_margin=20, buttom_margin=20
-    )
-    fig.write_image("plots/experiments/oa_mono_no_thiamine.svg")
+    fig = style_plot(fig, font_size=11, left_margin=20, buttom_margin=20)
+    fig.write_image("plots/experiments/sfig1c.svg")
 
 
 def fig1a():
@@ -323,44 +319,40 @@ def fig1a():
         )
     fig.update_layout(
         xaxis=dict(
-            range=[0, max(x)], showgrid=True, zeroline=True, dtick=12, title="Time [h]"
+            range=[0, max(x)],
+            showgrid=True,
+            zeroline=True,
+            dtick=10,
+            title="Time [h]",
+            ticks="inside",
         ),
         yaxis=dict(
-            range=[0, 0.35],
+            # range=[0, 0.35],
             showgrid=True,
-            dtick=0.1,
+            # dtick=0.1,
             title="OD",
+            ticks="inside",
         ),
         width=width,
         height=height,
+        title="Batch cultures in minimal media",
     )
     fig = style_plot(
         fig,
         font_size=11,
-        buttom_margin=10,
-        top_margin=10,
-        left_margin=10,
-        right_margin=10,
+        buttom_margin=20,
+        top_margin=20,
+        left_margin=20,
+        right_margin=20,
     )
     fig.write_image("plots/experiments/fig1a.svg")
 
 
-def ct_oa_plate_reader_fit():
-    p["D"] = 0
-    p["N01"] = y[0]
-    p["q1_1"] = 0.028
-    xs = data[lg + "_time"].to_numpy()
-    Y_ct = odeint(ct_mono, [p["N01"], p["M1"]], xs, args=(p,))
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=Y_ct[:, 0],
-            name="<i>C. testosteroni</i><br>model",
-            marker=dict(color=colors["ct"]),
-            mode="lines",
-            line=dict(dash="dot"),
-        )
-    )
+fig1a()
+
+
+def sfig1e():
+    fig = go.Figure()
     df = pd.read_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250328_oa_in_ct_OD_gradient/data/metadata.csv"
     )
@@ -378,7 +370,6 @@ def ct_oa_plate_reader_fit():
             go.Scatter(
                 x=x,
                 y=y,
-                name="Oa in spent<br>media of Ct",
                 showlegend=False,
                 line=dict(
                     color=colors["oa"],
@@ -386,6 +377,8 @@ def ct_oa_plate_reader_fit():
                 mode="lines",
             )
         )
+    p = parse_params()
+    p["D"] = 0
     p["N02"] = y[0]
     Y_oa = odeint(oa_mono, [p["N02"], p["M1"]], xs, args=(p,))
     fig.add_trace(
@@ -394,6 +387,40 @@ def ct_oa_plate_reader_fit():
             y=Y_oa[:, 0],
             name="<i>O. anthropi</i><br>model",
             marker=dict(color=colors["oa"]),
+            line=dict(dash="dot"),
+            mode="lines",
+        )
+    )
+    df = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250328_ct_oa_thiamine_gradient/data/metadata.csv"
+    )
+    df_ct = df[
+        (df["exp_ID"] == "ct_oa_chemostat_project/_thiamine_gradient")
+        & (df["species"] == "Comamonas testosteroni")
+        & (df["comments"] == "10000 nM thiamine")
+    ]
+    for i, lg in enumerate(df_ct["linegroup"]):
+        x = data[lg + "_time"][data[lg + "_time"] < 36]
+        y = data[lg + "_measurement"][: len(x)]
+        slope = linregress(x[:36], np.log(y[:36]))[0]
+        print("Slope Ct", slope)
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                name="Ct",
+                showlegend=False,
+                line=dict(color=colors["ct"]),
+            )
+        )
+    p["N01"] = y[0]
+    Y_ct = odeint(ct_mono, [p["N02"], p["M1"]], xs, args=(p,))
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y_ct[:, 0],
+            name="<i>O. anthropi</i><br>model",
+            marker=dict(color=colors["ct"]),
             line=dict(dash="dot"),
             mode="lines",
         )
@@ -414,107 +441,16 @@ def ct_oa_plate_reader_fit():
     )
     fig = style_plot(
         fig,
-        line_thickness=1,
         font_size=11,
         buttom_margin=10,
         top_margin=10,
         left_margin=10,
         right_margin=10,
     )
-    fig.write_image("plots/experiments/ct_oa_plate_reader_fit.svg")
+    fig.write_image("plots/experiments/sfig1e.svg")
 
 
-def ct_oa_max_growth_rate():
-    df = pd.read_csv(
-        "/home/eric/ChiBioFlow/data/at_oa/250328_ct_oa_thiamine_gradient/data/metadata.csv"
-    )
-    df_ct = df[
-        (df["exp_ID"] == "ct_oa_chemostat_project/_thiamine_gradient")
-        & (df["species"] == "Comamonas testosteroni")
-        & (df["comments"] == "10000 nM thiamine")
-    ]
-    df_oa = df[
-        (df["exp_ID"] == "ct_oa_chemostat_project/_thiamine_gradient")
-        & (df["species"] == "Ochrobactrum anthropi")
-        & (df["comments"] == "10000 nM thiamine")
-    ]
-    data = pd.read_csv(
-        "/home/eric/ChiBioFlow/data/at_oa/250328_ct_oa_thiamine_gradient/data/measurements.csv"
-    )
-    p = parse_params()
-    p["D"] = 0
-    xs = np.linspace(0, 72, 200)
-    x = np.average([data[lg + "_time"] for lg in df_ct["linegroup"]], axis=0)
-    y = np.average([data[lg + "_measurement"] for lg in df_ct["linegroup"]], axis=0)
-    x = x[x < 4]
-    y = y[: len(x)]
-    slope, intercept, r_value, p_value, std_err = linregress(x, np.log(y))
-    (print("Slope Ct", slope))
-    fit = [slope * i + intercept for i in x]
-    fig = go.Figure()
-    for i, lg in enumerate(df_ct["linegroup"]):
-        x = data[lg + "_time"]
-        y = data[lg + "_measurement"]
-        fig.add_trace(
-            go.Scatter(
-                x=x,
-                y=np.log(y),
-                name="<i>C. testosteroni</i>",
-                legendgroup="<i>C. testosteroni</i>",
-                showlegend=(i == 0),
-                marker=dict(color=colors["ct"]),
-            )
-        )
-    fig.add_trace(
-        go.Scatter(
-            x=x,
-            y=fit,
-            name="fit",
-            line=dict(dash="dash", color="black"),
-        )
-    )
-    fig.update_layout(
-        xaxis=dict(
-            range=[0, max(x)], showgrid=True, zeroline=True, dtick=6, title="Time [h]"
-        ),
-        yaxis=dict(
-            range=[-4, 0], showgrid=True, zeroline=True, dtick=0.5, title="log(OD)"
-        ),
-    )
-    x = np.average([data[lg + "_time"] for lg in df_oa["linegroup"]], axis=0)
-    y = np.average([data[lg + "_measurement"] for lg in df_oa["linegroup"]], axis=0)
-    x = x[x < 4]
-    y = y[: len(x)]
-    slope, intercept, r_value, p_value, std_err = linregress(x, np.log(y))
-    print("Slope Oa", slope)
-    fit = [p["v2_1"] * i + np.log(p["N02"]) for i in x]
-    for i, lg in enumerate(df_oa["linegroup"]):
-        x = data[lg + "_time"]
-        y = data[lg + "_measurement"]
-        fig.add_trace(
-            go.Scatter(
-                x=x,
-                y=np.log(y),
-                name="<i>O. anthropi</i>",
-                legendgroup="<i>O. anthropi</i>",
-                showlegend=(i == 0),
-                marker=dict(color=colors["oa"]),
-            )
-        )
-    fig.add_trace(
-        go.Scatter(
-            x=x,
-            y=fit,
-            name="fit",
-            line=dict(dash="dash", color="black"),
-            showlegend=False,
-        )
-    )
-    fig = style_plot(fig, line_thickness=1.7)
-    fig.write_image("plots/experiments/ct_max_growth_rate.svg")
-
-
-def plot_ct_mono_chemostats():
+def sfig1a():
     fig = go.Figure()
     df = get_od_chemostats()
     df = df[df["experiment"] == "ct_mono"]
@@ -542,7 +478,7 @@ def plot_ct_mono_chemostats():
             title="Time [h]",
         ),
         yaxis=dict(range=[0, 0.5], dtick=0.1, title="OD"),
-        title="<i>C. testosteroni</i>",
+        title="Ct",
         width=width,
         height=height,
         showlegend=False,
@@ -561,10 +497,8 @@ def plot_ct_mono_chemostats():
             mode="lines",
         ),
     )
-    fig = style_plot(
-        fig, line_thickness=1, font_size=11, left_margin=10, buttom_margin=20
-    )
-    fig.write_image("plots/experiments/ct_mono.svg")
+    fig = style_plot(fig, font_size=11, left_margin=10, buttom_margin=20)
+    fig.write_image("plots/experiments/sfig1a.svg")
     colors = ["#6A5ACD", "#7570B3"]
     fig = go.Figure()
     df = get_od_chemostats()
@@ -619,7 +553,7 @@ def plot_ct_mono_chemostats():
     fig.write_image("plots/experiments/ct_mono_old.svg")
 
 
-def plot_thiamine_gradient():
+def sfig1d():
     colors = {
         "0 nM thiamine": "#1f77b4",
         "0.01 nM thiamine": "#ff7f0e",
@@ -702,14 +636,13 @@ def plot_thiamine_gradient():
     )
     fig = style_plot(
         fig,
-        line_thickness=0.8,
         font_size=11,
         left_margin=30,
         right_margin=0,
         buttom_margin=25,
         top_margin=0,
     )
-    fig.write_image("plots/experiments/thiamine_gradient.svg")
+    fig.write_image("plots/experiments/sfig1d.svg")
 
 
 def max_growth_rate_high_conc():
@@ -886,21 +819,20 @@ def fig2d():
     )"""
 
     fig.update_layout(
-        xaxis=dict(title="Time [h]", range=[0, 72], dtick=12),
-        yaxis=dict(title="OD", range=[0, 0.08], dtick=0.02),
+        xaxis=dict(title="Time [h]"),
+        yaxis=dict(title="OD"),
         showlegend=False,
-        width=width,
+        width=175,
         height=height * 1.3,
-        title="Ct in spent chemostat<br>media of Oa",
+        title="Ct in spent chemo-<br>stat media of Oa",
     )
     fig = style_plot(
         fig,
-        line_thickness=1,
         font_size=11,
         buttom_margin=25,
         left_margin=35,
-        right_margin=0,
-        top_margin=35,
+        right_margin=10,
+        top_margin=30,
     )
     fig.write_image("plots/experiments/fig2d_ct.svg")
     fig = go.Figure()
@@ -931,7 +863,7 @@ def fig2d():
         xaxis=dict(title="Time [h]", range=[0, 72], dtick=12),
         yaxis=dict(title="OD", range=[0, 0.03], dtick=0.01),
         title="<i>O. anthropi</i>",
-        width=width,
+        width=100,
         height=height,
         showlegend=False,
     )
@@ -942,7 +874,7 @@ def fig2d():
         buttom_margin=20,
         left_margin=25,
         top_margin=20,
-        right_margin=0,
+        right_margin=20,
     )
     fig.write_image("plots/experiments/fig2d_oa.svg")
 

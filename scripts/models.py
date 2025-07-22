@@ -20,7 +20,7 @@ tm = 10
 rm = 10
 font_size = 8
 line_thickness = 1.2
-xs = np.linspace(0, 5000, 5000 * 6)
+xs = np.linspace(0, 10000, 10000 * 6)
 
 
 def ct_mono(y, t, p):
@@ -85,8 +85,8 @@ def competition(y, t, p):
 
 def plot_competition():
     p = parse_params()
-    p["D"] = 0.15
-    xs = np.linspace(0, 250, 1000)
+    p["D"] = 0.16842105263157894
+    xs = np.linspace(0, 10000, 10000)
     Y = odeint(competition, [p["N01"], p["N02"], p["M1"]], xs, args=(p,))
     Ct, Oa, R = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R)
@@ -298,9 +298,6 @@ def plot_niche_creation():
         right_margin=rm,
     )
     fig.write_image("plots/simulations/dynamics/fig3b.svg")
-
-
-plot_niche_creation()
 
 
 def plot_niche_production():

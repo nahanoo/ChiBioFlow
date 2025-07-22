@@ -101,182 +101,71 @@ def fig1d():
 
 def fig1c():
     p = parse_params()
-    Ds = np.linspace(0, 0.2, 500)
-    alphas = np.linspace(0.0002, 0.02, 500)
+    Ds = np.linspace(0, 0.3, 1000)
+    alphas = np.linspace(0.0002, 1, 1000)
     zs = np.zeros((len(Ds), len(alphas)))
+    Ts = []
     for i, D in enumerate(Ds):
         p["D"] = D
         for j, alpha in enumerate(alphas):
             p["q1_3"] = alpha
             Y = odeint(mc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
             Ct, Oa, R, T = Y[-1]
-            if Ct <= 1e-6:
-                Ct = 0
-            if Oa <= 1e-6:
-                Oa = 0
-            if (Ct == 0) and (Oa == 0):
-                ratio = None
-            else:
-                ratio = Oa / (Ct + Oa)
+
+            ratio = Oa / (Ct + Oa)
             zs[i, j] = ratio
+            Ts.append(T)
 
     fig = go.Figure()
+    from scipy.ndimage import zoom
 
     fig.add_trace(
         go.Contour(
             z=zs,
-            x=alphas,
+            x=Ts,
             y=Ds,
             colorscale=colors_heatmap,
             ncontours=50,
             zmid=0.5,
             zmin=0,
             zmax=1,
-            contours=dict(
-                showlines=False,
-            ),
+            contours=dict(showlines=False),
             colorbar=dict(
                 title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
-                len=0.8,
                 # y=0.25,
                 thickness=10,
+                outlinewidth=0.5,
+                outlinecolor="black",
             ),
+            showscale=False,
         )
     )
 
     fig.update_xaxes(
-        title="1 / Q<sub>Ct,R</sub> nM/OD",
+        title="Thiamine concentration in chemostat [nM]",
+        type="log",
+        ticks="inside",
         # zeroline=False,
-        range=[0.0002, 0.02],
-        dtick=0.002,
+        # range=[0.0002, 0.02],
+        # dtick=0.002,
     )
-    fig.update_yaxes(title="Dilution rate [1/h]", zeroline=False, showgrid=False)
-    fig.update_layout(height=150, width=170)
+    fig.update_yaxes(
+        title="Dilution rate [1/h]", zeroline=False, showgrid=False, ticks="inside"
+    )
+    fig.update_layout(height=150, width=150, title="Cross-feeding")
     fig = style_plot(
         fig,
         line_thickness=line_thickness,
         font_size=11,
-        left_margin=40,
+        left_margin=20,
         buttom_margin=25,
-        top_margin=0,
-        right_margin=0,
+        top_margin=20,
+        right_margin=10,
     )
     fig.write_image("plots/simulations/coexistence/fig1c.svg")
 
 
-def niche_creation():
-    p = parse_params()
-    Ds = np.linspace(0, 0.3, 100)
-    alphas = np.linspace(0, 1, 100)
-    zs = np.zeros((len(Ds), len(alphas)))
-    for i, D in enumerate(Ds):
-        p["D"] = D
-        for j, alpha in enumerate(alphas):
-            p["a2_2"] = alpha
-            Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
-            Ct, Oa, R, M = Y[-1]
-            ratio = Oa / (Ct + Oa)
-            if ratio <= 1e-5:
-                ratio = 0
-            zs[i, j] = ratio
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Contour(
-            z=zs,
-            x=alphas,
-            y=Ds,
-            colorscale=custom_colorscale,
-            ncontours=50,
-            zmid=0.5,
-            zmin=0,
-            zmax=1,
-            contours=dict(showlines=False),
-            colorbar=dict(
-                title=dict(
-                    text="<i>Oa</i> fraction",
-                    side="right",
-                ),
-                len=0.5,
-            ),
-        )
-    )
-    fig.update_xaxes(title="Metabolite leakage rate [1/h]"), fig.update_yaxes(
-        title="Dilution rate [1/h]"
-    )
-    fig.update_layout(
-        height=height,
-        width=width,
-        xaxis=dict(showgrid=False, ticks="outside"),
-        yaxis=dict(showgrid=False, ticks="outside"),
-    )
-    fig = style_plot(
-        fig,
-        line_thickness=line_thickness,
-        font_size=font_size,
-        left_margin=lm,
-        buttom_margin=bm,
-        top_margin=tm,
-        right_margin=rm,
-    )
-    fig.write_image("plots/simulations/coexistence/niche_creation.pdf")
-
-
-def niche_creation_cf():
-    p = parse_params()
-    alphas = np.linspace(0, 1, 10)
-    zs = np.zeros((len(alphas), len(alphas)))
-    for i, alpha in enumerate(alphas):
-        p["a1_3"] = alpha
-        for j, beta in enumerate(alphas):
-            p["a2_2"] = beta
-            Y = odeint(nccf, [p["N01"], p["N02"], p["M1"], 0, 0], xs, args=(p,))
-            Ct, Oa, R, T, M = Y[-1]
-            ratio = Oa / (Ct + Oa)
-            if ratio <= 1e-5:
-                ratio = 0
-            zs[i, j] = ratio
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Contour(
-            z=zs,
-            x=alphas,
-            y=alphas,
-            colorscale=custom_colorscale,
-            zmid=0.5,
-            zmin=0,
-            zmax=1,
-            ncontours=50,
-            contours=dict(showlines=False),
-            colorbar=dict(
-                title=dict(
-                    text="<i>Oa</i> fraction",
-                    side="right",
-                ),
-                len=0.5,
-            ),
-        )
-    )
-    fig.update_xaxes(title="Metabolite leakage rate [1/h]"), fig.update_yaxes(
-        title="Thiamine leakage rate [1/h]"
-    )
-    fig.update_layout(
-        height=height,
-        width=width,
-        xaxis=dict(showgrid=False, ticks="outside"),
-        yaxis=dict(showgrid=False, ticks="outside"),
-    )
-    fig = style_plot(
-        fig,
-        line_thickness=line_thickness,
-        font_size=font_size,
-        left_margin=lm,
-        buttom_margin=bm,
-        top_margin=tm,
-        right_margin=rm,
-    )
-    fig.write_image("plots/simulations/coexistence/niche_creation_cf.pdf")
+fig1c()
 
 
 def fig3a():
@@ -444,11 +333,90 @@ def fig3a():
     figj.write_image("plots/simulations/coexistence/batch_failure_j.svg")
 
 
-fig3a()
-
-
 def fig2a():
-    Ds = np.linspace(0, 0.2, 100)
+    Ds = np.linspace(0, 0.3, 1000)
+    p = parse_params()
+    r_stars = []
+    for D in Ds:
+        p["D"] = D
+        Y = odeint(cp, [p["N01"], p["N02"], p["M1"]], xs, args=(p,))
+        R = Y[:, 2][-1]
+        r_stars.append(R)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=Ds,
+            y=r_stars,
+            name="r_star",
+            line=dict(color="black", shape="spline"),
+            mode="lines",
+        )
+    )
+    r_equal = (p["K1_1"] * p["v2_1"] - p["K2_1"] * p["v1_1"]) / (p["v1_1"] - p["v2_1"])
+    dc_oa = r_equal * p["v1_1"] / (p["K1_1"] + r_equal)
+    fig.update_layout(
+        xaxis=dict(title="Dilution rate [1/h]", ticks="inside", showgrid=False),
+        yaxis=dict(title="Acetate concentration [mM]", ticks="inside", showgrid=False),
+        showlegend=False,
+        width=width,
+        height=height * 1.3,
+        title="Competition for acetate",
+        shapes=[
+            # Blue background from x=0 to x=0.1
+            dict(
+                type="rect",
+                xref="x",
+                yref="paper",
+                x0=0,
+                x1=dc_oa,
+                y0=0,
+                y1=1,
+                fillcolor=colors["oa"],
+                opacity=0.3,
+                layer="below",
+                line_width=0,
+            ),
+            # Red background from x=0.1 to x=0.3
+            dict(
+                type="rect",
+                xref="x",
+                yref="paper",
+                x0=dc_oa,
+                x1=max(Ds),
+                y0=0,
+                y1=1,
+                fillcolor=colors["ct"],
+                opacity=0.3,
+                layer="below",
+                line_width=0,
+            ),
+            dict(
+                type="line",
+                yref="paper",
+                x0=dc_oa,
+                y0=0,
+                x1=dc_oa,
+                y1=1,
+                line=dict(color="black", width=1.5, dash="dot"),
+            ),
+        ],
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=20,
+        buttom_margin=10,
+        top_margin=20,
+        right_margin=rm,
+    )
+    fig.write_image("plots/simulations/coexistence/fig2a.svg")
+
+
+def fig2b():
+    p = parse_params()
+    r_equal = (p["K1_1"] * p["v2_1"] - p["K2_1"] * p["v1_1"]) / (p["v1_1"] - p["v2_1"])
+    dc_oa = r_equal * p["v1_1"] / (p["K1_1"] + r_equal)
+    Ds = np.linspace(0, dc_oa, 100)
     p = parse_params()
     JCts = []
     JOas = []
@@ -470,25 +438,65 @@ def fig2a():
     )
     fig.add_trace(
         go.Scatter(
-            x=Ds, y=JOas, name="Oa", marker=dict(color=colors["oa"]), mode="lines"
+            x=Ds,
+            y=JOas,
+            name="Oa",
+            marker=dict(color=colors["oa"]),
+            mode="lines",
+            fill="tonexty",
+            # fillcolor="white",
+            fillcolor="rgba(117, 112, 179, 0.3)",
+        )
+    )
+    JCts = []
+    JOas = []
+    JCts_diff = []
+    Ds = np.linspace(dc_oa, 0.3, 100)
+
+    for D in Ds:
+        p["D"] = D
+        Y = odeint(cp, [p["N01"], p["N02"], p["M1"]], xs, args=(p,))
+        R = Y[:, 2][-1]
+        JCt = p["v1_1"] * R / (p["K1_1"] + R)
+        JOa = p["v2_1"] * R / (p["K2_1"] + R)
+        JCts.append(JCt)
+        JOas.append(JOa)
+        JCts_diff.append(D - JCt)
+    fig.add_trace(
+        go.Scatter(
+            x=Ds, y=JCts, name="Ct", marker=dict(color=colors["ct"]), mode="lines"
         )
     )
     fig.add_trace(
         go.Scatter(
             x=Ds,
-            y=JCts_diff,
-            name="D - J<sub>Ct</sub>",
-            line=dict(dash="dot"),
-            marker=dict(color=colors["ct"]),
+            y=JOas,
+            name="Oa",
+            marker=dict(color=colors["oa"]),
             mode="lines",
+            fill="tonexty",
+            # fillcolor="white",
+            fillcolor="rgba(217, 95, 2, 0.3)",
         )
     )
     fig.update_layout(
-        xaxis=dict(title="Dilution rate [1/h]"),
-        yaxis=dict(title="J [1/h]"),
+        xaxis=dict(title="Dilution rate [1/h]", ticks="inside"),
+        yaxis=dict(title="J [1/h]", ticks="inside"),
         showlegend=False,
         width=width,
         height=height * 1.3,
+        title="Growth rate based on acetate",
+        shapes=[
+            dict(
+                type="line",
+                x0=dc_oa,
+                yref="paper",
+                y0=0,
+                x1=dc_oa,
+                y1=1,
+                line=dict(color="black", width=1.5, dash="dot"),
+            )
+        ],
     )
     fig = style_plot(
         fig,
@@ -498,10 +506,69 @@ def fig2a():
         top_margin=10,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/coexistence/fig2a.svg")
+    fig.write_image("plots/simulations/coexistence/fig2b.svg")
 
 
-def fig2b():
+def fig2c():
+    p = parse_params()
+    r_equal = (p["K1_1"] * p["v2_1"] - p["K2_1"] * p["v1_1"]) / (p["v1_1"] - p["v2_1"])
+    dc_oa = r_equal * p["v1_1"] / (p["K1_1"] + r_equal)
+    Ds = np.linspace(0, 0.3, 1000)
+    p = parse_params()
+    JCts = []
+    JOas = []
+    JCts_diff = []
+    JOas_diff = []
+    for D in Ds:
+        p["D"] = D
+        Y = odeint(cp, [p["N01"], p["N02"], p["M1"]], xs, args=(p,))
+        R = Y[:, 2][-1]
+        JCt = p["v1_1"] * R / (p["K1_1"] + R)
+        JOa = p["v2_1"] * R / (p["K2_1"] + R)
+        JCts.append(JCt)
+        JOas.append(JOa)
+        JCts_diff.append(D - JCt)
+        JOas_diff.append(D - JOa)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=Ds,
+            y=JCts_diff,
+            name="Ct",
+            line=dict(color=colors["ct"], shape="spline"),
+            mode="lines",
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=Ds,
+            y=JOas_diff,
+            name="Oa",
+            line=dict(color=colors["oa"], shape="spline"),
+            mode="lines",
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(title="Dilution rate [1/h]", ticks="inside"),
+        yaxis=dict(title="J 1/h", ticks="inside"),
+        showlegend=False,
+        width=width,
+        height=height * 1.3,
+        title="Missing growth rate<br>for coexistence",
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=20,
+        buttom_margin=10,
+        top_margin=30,
+        right_margin=rm,
+    )
+    fig.write_image("plots/simulations/coexistence/fig2c.svg")
+
+
+def fig2e():
     Kms = np.linspace(1e-3, 1, 1000)
     Rs = np.linspace(1e-3, 1, 1000)
     zs = np.zeros((len(Rs), len(Kms)))
@@ -519,53 +586,59 @@ def fig2b():
             z=zs,
             x=Kms,
             y=Rs,
-            colorscale=colors_heatmap,
-            ncontours=50,
-            zmin=0,
-            zmax=0.4,
-            zmid=0.2,
+            colorscale=[
+                [0.0, "white"],  # deep blue
+                [1.0, "black"],  # deep red
+            ],
+            ncontours=100,
+            # zmin=0,
+            # zmax=0.4,
+            # zmid=0.2,
             contours=dict(showlines=False),
             colorbar=dict(
-                title=dict(text="J", side="right", font=dict(size=8)),
-                len=0.6,
-                y=0.25,
+                title=dict(text="J", side="right", font=dict(size=11)),
+                # len=0.6,
+                # y=0.25,
                 thickness=10,
+                outlinewidth=0.5,
+                outlinecolor="black",
             ),
         )
     )
 
-    fig.add_trace(
-        go.Contour(
-            z=zs,
-            x=Kms,
-            y=Rs,
-            showscale=False,
-            contours=dict(start=0.07, end=0.07, size=0.1, coloring="none"),
-            line=dict(color="black"),
-            showlegend=False,
-        )
-    )
-
     fig.update_layout(
-        xaxis=dict(title="K<sub>C</sub> [mM]", zeroline=False, type="log", dtick="1"),
-        yaxis=dict(title="C [mM]", zeroline=False, type="log", dtick="1"),
+        xaxis=dict(
+            title="Metabolite affinity [mM]",
+            zeroline=False,
+            type="log",
+            dtick="1",
+            ticks="inside",
+        ),
+        yaxis=dict(
+            title="Metabolite concentration [mM]",
+            zeroline=False,
+            type="log",
+            dtick="1",
+            ticks="inside",
+        ),
         height=height * 1.3,
-        width=width * 1.3,
+        width=250,
+        title="Realizable growth rates",
     )
 
     fig = style_plot(
         fig,
         line_thickness=line_thickness,
         font_size=11,
-        left_margin=lm,
+        left_margin=40,
         buttom_margin=25,
         top_margin=5,
-        right_margin=rm,
+        right_margin=20,
     )
-    fig.write_image("plots/simulations/coexistence/fig2b.svg")
+    fig.write_image("plots/simulations/coexistence/fig2e.svg")
 
 
-def km_dataset():
+def sfig3():
     color_dict = {
         "arabinose": "#1f77b4",  # blue
         "fructose": "#ff7f0e",  # orange
@@ -637,12 +710,11 @@ def km_dataset():
         yaxis=dict(type="log", title="K [uM]"),
         xaxis=dict(title="max. growth rate [1/h]", range=[0, 2], dtick=0.5),
         showlegend=False,
-        width=1 * width,
-        height=1 * height,
+        width=200,
+        height=200,
     )
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
         font_size=11,
         left_margin=lm,
         buttom_margin=25,
@@ -650,4 +722,4 @@ def km_dataset():
         right_margin=rm,
         marker_size=4,
     )
-    fig.write_image("plots/experiments/km_dataset.svg")
+    fig.write_image("plots/experiments/sfig3.svg")

@@ -11,9 +11,9 @@ colors = {
 }
 
 colors_heatmap = [
-    [0.0, "#3b4cc0"],  # deep blue
+    [0.0, "#7570B3"],  # deep blue
     [0.5, "white"],
-    [1.0, "#b40426"],  # deep red
+    [1.0, "#D95F02"],  # deep red
 ]
 
 colors_metabolites = {
@@ -82,6 +82,8 @@ def style_plot(
         mirror=True,
         linecolor="black",
         linewidth=0.5,
+        tickcolor="black",
+        tickwidth=0.5,
     )
     fig.update_xaxes(
         title_standoff=0,
@@ -94,6 +96,8 @@ def style_plot(
         linecolor="black",
         linewidth=0.5,
         zeroline=False,
+        tickcolor="black",
+        tickwidth=0.5,
     )
     fig.for_each_xaxis(
         lambda axis: axis.title.update(font=dict(size=font_size, color="black"))

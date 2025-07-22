@@ -5,6 +5,7 @@ import numpy as np
 from style import *
 import math
 import scipy.stats as stats
+from plotly.subplots import make_subplots
 
 
 media = ["SM_042025_MPTA_b1_1", "SM_042025_MPTA_b2_2", "SM_042025_MPTA_b3_3"]
@@ -196,156 +197,115 @@ df = df.sort_values(by="group")
 
 
 def fig2c():
-    groups = []
-    fig = go.Figure()
-    for i, (m, media_ct) in enumerate(zip(df["metabolite"], df["media_ct_c"])):
-        if media_ct[0][1] < 0.05:
-            fig.add_trace(
-                go.Scatter(
-                    x=[media_ct[1]],
-                    y=-np.log10([media_ct[0][1]]),
-                    marker=dict(
-                        color=colors_metabolites[meta.loc[m]["group"]],
-                        symbol=symbols["Ct"],
-                    ),
-                    hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
-                    showlegend=False,
-                )
-            )
+    pass
 
-    for i, (m, media_oa) in enumerate(zip(df["metabolite"], df["media_oa_c"])):
-        if media_oa[0][1] < 0.05:
-            fig.add_trace(
-                go.Scatter(
-                    x=[media_oa[1]],
-                    y=-np.log10([media_oa[0][1]]),
-                    marker=dict(
-                        color=colors_metabolites[meta.loc[m]["group"]],
-                        symbol=symbols["Oa"],
-                    ),
-                    hovertext=[meta.loc[m]["group"] + "<br>" + m],
-                    showlegend=False,
-                )
-            )
-            groups.append(meta.loc[m]["group"])
-    for group in sorted(list(set(groups))):
+
+fig = make_subplots(
+    rows=2, cols=2, subplot_titles=["Ct", "Oa", "Ct", "Oa"], vertical_spacing=0.2
+)
+groups = []
+for i, (m, media_ct) in enumerate(zip(df["metabolite"], df["media_ct_c"])):
+    if media_ct[0][1] < 0.05:
         fig.add_trace(
             go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                marker=dict(color=colors_metabolites[group]),
-                name=group,
-            )
+                x=[media_ct[1]],
+                y=-np.log10([media_ct[0][1]]),
+                marker=dict(
+                    color=colors_metabolites[meta.loc[m]["group"]],
+                ),
+                hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
         )
-    for key, symbol in symbols.items():
+
+for i, (m, media_oa) in enumerate(zip(df["metabolite"], df["media_oa_c"])):
+    if media_oa[0][1] < 0.05:
         fig.add_trace(
             go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                marker=dict(symbol=symbol, color="black"),
-                name=key,
-            )
+                x=[media_oa[1]],
+                y=-np.log10([media_oa[0][1]]),
+                marker=dict(
+                    color=colors_metabolites[meta.loc[m]["group"]],
+                ),
+                hovertext=[meta.loc[m]["group"] + "<br>" + m],
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
         )
-    fig.update_layout(
-        xaxis_title="log<sub>2</sub> fold change",
-        yaxis_title="-log<sub>10</sub> p-value",
-        width=2 * width,
-        height=1.3 * height,
+        groups.append(meta.loc[m]["group"])
+
+
+for i, (m, ct_batch) in enumerate(zip(df["metabolite"], df["oa_c_ct_b"])):
+    if (ct_batch[0][1] < 0.05) & (ct_batch[1] < 0):
+        fig.add_trace(
+            go.Scatter(
+                x=[ct_batch[1]],
+                y=-np.log10([ct_batch[0][1]]),
+                marker=dict(
+                    color=colors_metabolites[meta.loc[m]["group"]],
+                ),
+                hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
+                showlegend=False,
+            ),
+            row=2,
+            col=1,
+        )
+        groups.append(meta.loc[m]["group"])
+
+for i, (m, oa_batch) in enumerate(zip(df["metabolite"], df["ct_c_oa_b"])):
+    if (oa_batch[0][1] < 0.05) & (oa_batch[1] < 0):
+        fig.add_trace(
+            go.Scatter(
+                x=[oa_batch[1]],
+                y=-np.log10([oa_batch[0][1]]),
+                marker=dict(
+                    color=colors_metabolites[meta.loc[m]["group"]],
+                ),
+                hovertext=[meta.loc[m]["group"] + "<br>" + m],
+                showlegend=False,
+            ),
+            row=2,
+            col=2,
+        )
+        groups.append(meta.loc[m]["group"])
+for group in sorted(list(set(groups))):
+    fig.add_trace(
+        go.Scatter(
+            x=[None],
+            y=[None],
+            mode="markers",
+            marker=dict(color=colors_metabolites[group]),
+            name=group,
+        )
     )
-    fig = style_plot(
-        fig,
-        marker_size=5,
-        font_size=11,
-        buttom_margin=30,
-        top_margin=0,
-        left_margin=30,
-        right_margin=30,
-    )
-    fig.write_image("plots/ms_analysis/relativ/fig2c.svg")
-    # fig.show()
+
+fig.update_layout(
+    width=3 * width,
+    height=2.6 * height,
+)
+fig = style_plot(
+    fig,
+    line_thickness=1,
+    marker_size=5,
+    font_size=11,
+    buttom_margin=30,
+    top_margin=40,
+    left_margin=30,
+    right_margin=30,
+)
+fig["layout"]["xaxis3"]["title"] = "log<sub>2</sub> fold change"
+fig["layout"]["yaxis1"]["title"] = "-log<sub>10</sub> p-value"
+fig.write_image("plots/ms_analysis/relativ/fig3a.svg")
 
 
 def fig2e():
-    groups = []
-    fig = go.Figure()
-    for i, (m, ct_batch) in enumerate(zip(df["metabolite"], df["oa_c_ct_b"])):
-        if (ct_batch[0][1] < 0.05) & (ct_batch[1] < 0):
-            fig.add_trace(
-                go.Scatter(
-                    x=[ct_batch[1]],
-                    y=-np.log10([ct_batch[0][1]]),
-                    marker=dict(
-                        color=colors_metabolites[meta.loc[m]["group"]],
-                        symbol=symbols["Ct"],
-                    ),
-                    hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
-                    showlegend=False,
-                )
-            )
-            groups.append(meta.loc[m]["group"])
-
-    for i, (m, oa_batch) in enumerate(zip(df["metabolite"], df["ct_c_oa_b"])):
-        if (oa_batch[0][1] < 0.05) & (oa_batch[1] < 0):
-            fig.add_trace(
-                go.Scatter(
-                    x=[oa_batch[1]],
-                    y=-np.log10([oa_batch[0][1]]),
-                    marker=dict(
-                        color=colors_metabolites[meta.loc[m]["group"]],
-                        symbol=symbols["Oa"],
-                    ),
-                    hovertext=[meta.loc[m]["group"] + "<br>" + m],
-                    showlegend=False,
-                )
-            )
-            groups.append(meta.loc[m]["group"])
-    for group in sorted(list(set(groups))):
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                marker=dict(color=colors_metabolites[group]),
-                name=group,
-            )
-        )
-    for key, symbol in symbols.items():
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                marker=dict(symbol=symbol, color="black"),
-                name=key,
-            )
-        )
-    fig.update_layout(
-        xaxis_title="log<sub>2</sub> fold change",
-        yaxis_title="-log<sub>10</sub> p-value",
-        width=2 * width,
-        height=1.3 * height,
-    )
-    fig = style_plot(
-        fig,
-        line_thickness=1,
-        marker_size=5,
-        font_size=11,
-        buttom_margin=30,
-        top_margin=0,
-        left_margin=30,
-        right_margin=30,
-    )
-    fig.write_image("plots/ms_analysis/relativ/fig2e.svg")
-    fig.show()
+    pass
 
 
-fig2c()
-fig2e()
-
-
-def media_metabolites():
+def sfig2b(raw):
     fig = go.Figure()
     raw = raw[["metabolite", "group"] + media]
     df = raw[media][raw[media] > 10000].dropna()
@@ -373,7 +333,6 @@ def media_metabolites():
     )
     fig = style_plot(
         fig,
-        line_thickness=1,
         marker_size=5,
         font_size=11,
         buttom_margin=10,
@@ -381,10 +340,10 @@ def media_metabolites():
         left_margin=40,
         right_margin=30,
     )
-    fig.write_image("plots/ms_analysis/relativ/media.svg")
+    fig.write_image("plots/ms_analysis/relativ/sfig2b.svg")
 
 
-def thiamine():
+def sfig2c(raw):
     colors = {
         "blue": "#000080",
         "ct": "#7570B3",
@@ -476,8 +435,8 @@ def thiamine():
         showlegend=False, width=width, height=height * 1.5, yaxis=dict(type="log")
     ),
     fig.update_yaxes(type="log", nticks=4)
-    fig = style_plot(fig, line_thickness=1, marker_size=5, font_size=11)
-    fig.write_image("plots/ms_analysis/relativ/thiamine.svg")
+    fig = style_plot(fig, marker_size=5, font_size=11)
+    fig.write_image("plots/ms_analysis/relativ/sfig2c.svg")
 
     fig = go.Figure()
     for i, m in enumerate(t["metabolite"]):
@@ -558,3 +517,6 @@ def thiamine():
     fig.update_yaxes(type="log", nticks=4)
     fig = style_plot(fig, line_thickness=1, marker_size=5, font_size=11)
     fig.write_image("plots/ms_analysis/relativ/thiamine_absolut.svg")
+
+
+sfig2c(raw)

@@ -107,10 +107,6 @@ def get_cfus():
             "1D",
         )
         sheets.append(sheet)
-    with pd.ExcelWriter(
-        "../data/data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
-    ) as writer:
-        pd.concat(sheets).to_excel(writer, index=False, sheet_name="Chemostat CFU data")
 
     return pd.concat(dfs)
 
@@ -160,6 +156,7 @@ def get_od_chemostats():
         "/home/eric/ChiBioFlow/data/at_oa/250320_ct_mono/calibration.csv", Ms
     )
     df.insert(len(df.columns), "experiment", "ct_mono")
+    dfs.append(df)
     for i, r in enumerate(df["reactor"].unique()):
         mask = df[df["reactor"] == r]
         sheet = pd.DataFrame(
@@ -195,10 +192,7 @@ def get_od_chemostats():
         M["od_calibrated"] = OD
         M["experiment"] = "ct_mono_old"
         dfs.append(M)
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(sheets).to_excel(
-            writer, index=False, sheet_name="Monoculture chemostat OD data"
-        )
+
     return pd.concat(dfs)
 
 
@@ -479,10 +473,6 @@ def ct_oa_plate_reader():
                 line_counter[comment] += 1
 
                 sheets.append(sheet)
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(sheets).to_excel(
-            writer, index=False, sheet_name="Monoculture batch growth curves"
-        )
 
     return pd.concat(sheets)
 
@@ -677,10 +667,6 @@ def relative_quantification():
             "2D",
         )
         sheets.append(df)
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(sheets).to_excel(
-            writer, index=False, sheet_name="MS relative quantification"
-        )
     return pd.concat(sheets)
 
 
@@ -869,15 +855,34 @@ def absolute_quantification():
         )
         sheets.append(df)
 
+    return pd.concat(sheets)
+
+
+def writer():
+    pd.DataFrame().to_excel("../data/data.xlsx", index=False)
+    df = get_cfus()
+    with pd.ExcelWriter(
+        "../data/data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
+    ) as writer:
+        pd.concat(df).to_excel(writer, index=False, sheet_name="Chemostat CFU data")
+
+    df = get_od_chemostats()
     with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(sheets).to_excel(
+        pd.concat(df).to_excel(
+            writer, index=False, sheet_name="Monoculture chemostat OD data"
+        )
+    df = ct_oa_plate_reader()
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(df).to_excel(
+            writer, index=False, sheet_name="Monoculture batch growth curves"
+        )
+    df = relative_quantification()
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(df).to_excel(
+            writer, index=False, sheet_name="MS relative quantification"
+        )
+    df = absolute_quantification()
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(df).to_excel(
             writer, index=False, sheet_name="MS absoluts quantification"
         )
-
-
-pd.DataFrame().to_excel("../data/data.xlsx", index=False)
-get_cfus()
-get_od_chemostats()
-ct_oa_plate_reader()
-relative_quantification()
-absolute_quantification()

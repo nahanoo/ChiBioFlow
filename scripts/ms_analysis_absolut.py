@@ -145,7 +145,7 @@ def plotting():
         fig.write_image("plots/ms_analysis/absolut/" + f)
 
 
-def media_metabolites():
+def sfig2a(raw):
     relevant = ["Isoleucine", "Glutamine", "Lactate", "Citrate"]
     fig = go.Figure()
     raw = raw[["metabolite", "group"] + media].copy()
@@ -183,11 +183,10 @@ def media_metabolites():
         left_margin=40,
         right_margin=0,
     )
-    fig.write_image("plots/ms_analysis/absolut/media.svg")
+    fig.write_image("plots/ms_analysis/absolut/sfig2a.svg")
 
 
 def fig2f():
-
     df = raw[raw["metabolite"] == "Cis-Aconitate"]
     fig = go.Figure()
     fig.add_trace(
@@ -292,8 +291,8 @@ def fig2f():
     fig.update_yaxes(title="Concentration [µM]", type="log")
     fig.update_layout(
         yaxis_title="Concentration [µM]",
-        width=width * 0.8,
-        height=1.3 * height,
+        width=width,
+        height=1.5 * height,
         title="Cis-Aconitate",
     )
     fig = style_plot(
@@ -307,3 +306,6 @@ def fig2f():
         right_margin=0,
     )
     fig.write_image("plots/ms_analysis/absolut/fig2f.svg")
+
+
+fig2f()
