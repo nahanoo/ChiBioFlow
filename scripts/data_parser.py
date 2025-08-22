@@ -107,7 +107,10 @@ def get_cfus():
             "1D",
         )
         sheets.append(sheet)
-
+    with pd.ExcelWriter(
+        "../data/data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
+    ) as writer:
+        pd.concat(sheets).to_excel(writer, index=False, sheet_name="Chemostat CFU data")
     return pd.concat(dfs)
 
 
@@ -147,7 +150,7 @@ def get_od_chemostats():
             r["od_calibrated"],
             replicates[i],
             "Oa",
-            "Oa mono-culture with 10000 nM thiamine",
+            "Oa chemostat mono-culture with 10000 nM thiamine",
             "S1B",
         )
         sheets.append(sheet)
@@ -174,8 +177,8 @@ def get_od_chemostats():
             mask["od_calibrated"],
             replicates[i],
             "Ct",
-            "Ct mono-culture with 10000 nM thiamine",
-            "S1B",
+            "Ct chemostat mono-culture with 10000 nM thiamine",
+            "S1C",
         )
         sheets.append(sheet)
     Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/241101_ct_mono")
@@ -192,7 +195,10 @@ def get_od_chemostats():
         M["od_calibrated"] = OD
         M["experiment"] = "ct_mono_old"
         dfs.append(M)
-
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(sheets).to_excel(
+            writer, index=False, sheet_name="Monoculture chemostat OD data"
+        )
     return pd.concat(dfs)
 
 
@@ -229,7 +235,7 @@ def ct_oa_plate_reader():
             y,
             replicates[i],
             "Ct",
-            "Ct mono-culture growth curve with 10000 nM thiamine",
+            "Ct batch mono-culture growth curve with 10000 nM thiamine",
             "1A",
         )
         sheets.append(sheet)
@@ -258,7 +264,7 @@ def ct_oa_plate_reader():
             y,
             replicates[i],
             "Oa",
-            "Oa mono-culture growth curve with 10000 nM thiamine",
+            "Oa batch mono-culture growth curve with 10000 nM thiamine",
             "1A",
         )
         sheets.append(sheet)
@@ -292,7 +298,7 @@ def ct_oa_plate_reader():
             y,
             replicates[i],
             "Oa",
-            "Oa mono-culture growth curve with no thiamine",
+            "Oa batch mono-culture growth curve with no thiamine",
             "1A",
         )
         sheets.append(sheet)
@@ -325,7 +331,7 @@ def ct_oa_plate_reader():
             y,
             replicates[i],
             "Oa",
-            "Oa mono-culture growth curve in spent-media of Ct",
+            "Oa batch mono-culture growth curve in spent-media of Ct",
             "1A",
         )
         sheets.append(sheet)
@@ -391,8 +397,8 @@ def ct_oa_plate_reader():
                 y,
                 replicates[i],
                 "Oa",
-                "Oa mono-culture growth curve with " + t_conc,
-                "1A",
+                "Oa batch mono-culture growth curve with " + t_conc,
+                "S1D",
             )
             sheets.append(sheet)
     df = pd.read_csv(
@@ -434,7 +440,7 @@ def ct_oa_plate_reader():
                     "replicate_" + comment.split(" ")[-1],
                     "Ct",
                     names[j],
-                    "2C",
+                    "3C",
                 )
                 line_counter[comment] += 1
 
@@ -473,7 +479,10 @@ def ct_oa_plate_reader():
                 line_counter[comment] += 1
 
                 sheets.append(sheet)
-
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(sheets).to_excel(
+            writer, index=False, sheet_name="Monoculture batch growth curves"
+        )
     return pd.concat(sheets)
 
 
@@ -539,8 +548,8 @@ def relative_quantification():
             "replicate_" + str(i + 1),
             None,
             raw["group"],
-            "Spent chemostat media of Ct ",
-            "2D",
+            "MS analysis spent chemostat media of Ct ",
+            "3A",
         )
         sheets.append(df)
 
@@ -570,8 +579,8 @@ def relative_quantification():
             "replicate_" + str(i + 1),
             None,
             raw["group"],
-            "Spent chemostat media of Oa ",
-            "2D",
+            "MS analysis spent chemostat media of Oa ",
+            "3A",
         )
         sheets.append(df)
 
@@ -602,7 +611,7 @@ def relative_quantification():
             None,
             raw["group"],
             "Chemostat media used for experiments",
-            "2D",
+            "S2",
         )
         sheets.append(df)
 
@@ -632,8 +641,8 @@ def relative_quantification():
             "replicate_" + str(i + 1),
             "Ct",
             raw["group"],
-            "Ct grown in spent chemostat media of Oa",
-            "2D",
+            "MS analysis ct grown in spent chemostat media of Oa",
+            "2A",
         )
         sheets.append(df)
 
@@ -663,10 +672,14 @@ def relative_quantification():
             "replicate_" + str(i + 1),
             "Oa",
             raw["group"],
-            "Oa grown in spent chemostat media of Oa",
-            "2D",
+            "MS analysis oa grown in spent chemostat media of Oa",
+            "2A",
         )
         sheets.append(df)
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(sheets).to_excel(
+            writer, index=False, sheet_name="MS relative quantification"
+        )
     return pd.concat(sheets)
 
 
@@ -854,35 +867,20 @@ def absolute_quantification():
             "2D",
         )
         sheets.append(df)
-
+    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+        pd.concat(sheets).to_excel(
+            writer, index=False, sheet_name="MS absoluts quantification"
+        )
     return pd.concat(sheets)
 
 
 def writer():
     pd.DataFrame().to_excel("../data/data.xlsx", index=False)
     df = get_cfus()
-    with pd.ExcelWriter(
-        "../data/data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
-    ) as writer:
-        pd.concat(df).to_excel(writer, index=False, sheet_name="Chemostat CFU data")
-
     df = get_od_chemostats()
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(df).to_excel(
-            writer, index=False, sheet_name="Monoculture chemostat OD data"
-        )
     df = ct_oa_plate_reader()
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(df).to_excel(
-            writer, index=False, sheet_name="Monoculture batch growth curves"
-        )
     df = relative_quantification()
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(df).to_excel(
-            writer, index=False, sheet_name="MS relative quantification"
-        )
     df = absolute_quantification()
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(df).to_excel(
-            writer, index=False, sheet_name="MS absoluts quantification"
-        )
+
+
+writer()

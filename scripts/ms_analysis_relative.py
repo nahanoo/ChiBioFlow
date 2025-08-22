@@ -200,105 +200,135 @@ def fig2c():
     pass
 
 
-fig = make_subplots(
-    rows=2, cols=2, subplot_titles=["Ct", "Oa", "Ct", "Oa"], vertical_spacing=0.2
-)
-groups = []
-for i, (m, media_ct) in enumerate(zip(df["metabolite"], df["media_ct_c"])):
-    if media_ct[0][1] < 0.05:
-        fig.add_trace(
-            go.Scatter(
-                x=[media_ct[1]],
-                y=-np.log10([media_ct[0][1]]),
-                marker=dict(
-                    color=colors_metabolites[meta.loc[m]["group"]],
-                ),
-                hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
-                showlegend=False,
-            ),
-            row=1,
-            col=1,
-        )
-
-for i, (m, media_oa) in enumerate(zip(df["metabolite"], df["media_oa_c"])):
-    if media_oa[0][1] < 0.05:
-        fig.add_trace(
-            go.Scatter(
-                x=[media_oa[1]],
-                y=-np.log10([media_oa[0][1]]),
-                marker=dict(
-                    color=colors_metabolites[meta.loc[m]["group"]],
-                ),
-                hovertext=[meta.loc[m]["group"] + "<br>" + m],
-                showlegend=False,
-            ),
-            row=1,
-            col=2,
-        )
-        groups.append(meta.loc[m]["group"])
-
-
-for i, (m, ct_batch) in enumerate(zip(df["metabolite"], df["oa_c_ct_b"])):
-    if (ct_batch[0][1] < 0.05) & (ct_batch[1] < 0):
-        fig.add_trace(
-            go.Scatter(
-                x=[ct_batch[1]],
-                y=-np.log10([ct_batch[0][1]]),
-                marker=dict(
-                    color=colors_metabolites[meta.loc[m]["group"]],
-                ),
-                hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
-                showlegend=False,
-            ),
-            row=2,
-            col=1,
-        )
-        groups.append(meta.loc[m]["group"])
-
-for i, (m, oa_batch) in enumerate(zip(df["metabolite"], df["ct_c_oa_b"])):
-    if (oa_batch[0][1] < 0.05) & (oa_batch[1] < 0):
-        fig.add_trace(
-            go.Scatter(
-                x=[oa_batch[1]],
-                y=-np.log10([oa_batch[0][1]]),
-                marker=dict(
-                    color=colors_metabolites[meta.loc[m]["group"]],
-                ),
-                hovertext=[meta.loc[m]["group"] + "<br>" + m],
-                showlegend=False,
-            ),
-            row=2,
-            col=2,
-        )
-        groups.append(meta.loc[m]["group"])
-for group in sorted(list(set(groups))):
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            marker=dict(color=colors_metabolites[group]),
-            name=group,
-        )
+def leakage_consumption():
+    fig = make_subplots(
+        rows=2,
+        cols=2,
+        subplot_titles=["Ct", "Oa", "Ct", "Oa"],
+        vertical_spacing=0.12,
+        shared_yaxes=True,
+        shared_xaxes=True,
     )
+    groups = []
+    consumed = []
+    for i, (m, ct_batch) in enumerate(zip(df["metabolite"], df["oa_c_ct_b"])):
+        if (ct_batch[0][1] < 0.05) & (ct_batch[1] < 0):
+            fig.add_trace(
+                go.Scatter(
+                    x=[ct_batch[1]],
+                    y=-np.log10([ct_batch[0][1]]),
+                    marker=dict(
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                    ),
+                    hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
+                    textfont=dict(size=8),
+                    textposition="middle right",
+                    mode="markers+text",
+                    text=m,
+                    showlegend=False,
+                ),
+                row=2,
+                col=1,
+            )
+            groups.append(meta.loc[m]["group"])
+            consumed.append(m)
 
-fig.update_layout(
-    width=3 * width,
-    height=2.6 * height,
-)
-fig = style_plot(
-    fig,
-    line_thickness=1,
-    marker_size=5,
-    font_size=11,
-    buttom_margin=30,
-    top_margin=40,
-    left_margin=30,
-    right_margin=30,
-)
-fig["layout"]["xaxis3"]["title"] = "log<sub>2</sub> fold change"
-fig["layout"]["yaxis1"]["title"] = "-log<sub>10</sub> p-value"
-fig.write_image("plots/ms_analysis/relativ/fig3a.svg")
+    for i, (m, oa_batch) in enumerate(zip(df["metabolite"], df["ct_c_oa_b"])):
+        if (oa_batch[0][1] < 0.05) & (oa_batch[1] < 0):
+            fig.add_trace(
+                go.Scatter(
+                    x=[oa_batch[1]],
+                    y=-np.log10([oa_batch[0][1]]),
+                    marker=dict(
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                    ),
+                    hovertext=[meta.loc[m]["group"] + "<br>" + m],
+                    showlegend=False,
+                    textfont=dict(size=8),
+                    textposition="middle right",
+                    mode="markers+text",
+                    text=m,
+                ),
+                row=2,
+                col=2,
+            )
+            groups.append(meta.loc[m]["group"])
+            consumed.append(m)
+
+    for group in sorted(list(set(groups))):
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(color=colors_metabolites[group]),
+                name=group,
+            )
+        )
+    for i, (m, media_ct) in enumerate(zip(df["metabolite"], df["media_ct_c"])):
+        if media_ct[0][1] < 0.05:
+            fig.add_trace(
+                go.Scatter(
+                    x=[media_ct[1]],
+                    y=-np.log10([media_ct[0][1]]),
+                    marker=dict(
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                    ),
+                    hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
+                    showlegend=False,
+                    textfont=dict(size=8),
+                    textposition="middle left",
+                    mode=("markers+text" if m in consumed else "markers"),
+                    text=m,
+                ),
+                row=1,
+                col=1,
+            )
+
+    for i, (m, media_oa) in enumerate(zip(df["metabolite"], df["media_oa_c"])):
+        if media_oa[0][1] < 0.05:
+            fig.add_trace(
+                go.Scatter(
+                    x=[media_oa[1]],
+                    y=-np.log10([media_oa[0][1]]),
+                    marker=dict(
+                        color=colors_metabolites[meta.loc[m]["group"]],
+                    ),
+                    hovertext=[meta.loc[m]["group"] + "<br>" + m],
+                    showlegend=False,
+                    textfont=dict(size=8),
+                    textposition="middle left",
+                    mode=("markers+text" if m in consumed else "markers"),
+                    text=m,
+                ),
+                row=1,
+                col=2,
+            )
+            groups.append(meta.loc[m]["group"])
+
+    fig.update_layout(
+        width=3 * width,
+        height=2.6 * height,
+    )
+    fig.for_each_xaxis(lambda x: x.update(ticks="inside"))
+    fig.for_each_yaxis(lambda y: y.update(ticks="inside"))
+    fig = style_plot(
+        fig,
+        line_thickness=1,
+        marker_size=5,
+        font_size=11,
+        buttom_margin=30,
+        top_margin=40,
+        left_margin=30,
+        right_margin=30,
+    )
+    fig["layout"]["xaxis3"]["title"] = "log<sub>2</sub> fold change"
+    fig["layout"]["yaxis1"]["title"] = "-log<sub>10</sub> p-value"
+    # fig.show()
+    fig.write_image("plots/ms_analysis/relativ/fig3a.svg")
+
+
+leakage_consumption()
 
 
 def fig2e():

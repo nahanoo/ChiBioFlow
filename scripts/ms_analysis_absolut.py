@@ -288,7 +288,7 @@ def fig2f():
         ),
     )
 
-    fig.update_yaxes(title="Concentration [µM]", type="log")
+    fig.update_yaxes(title="Concentration [µM]", type="log", ticks="inside")
     fig.update_layout(
         yaxis_title="Concentration [µM]",
         width=width,
@@ -300,8 +300,8 @@ def fig2f():
         line_thickness=1,
         marker_size=5,
         font_size=11,
-        buttom_margin=30,
-        top_margin=30,
+        buttom_margin=20,
+        top_margin=20,
         left_margin=30,
         right_margin=0,
     )

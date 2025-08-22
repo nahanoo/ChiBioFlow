@@ -12,6 +12,8 @@ from models import (
     niche_creation_cf as nccf,
     niche_supply as ns,
     niche_creation_batch as ncb,
+    plot_competition as plot_comp,
+    plot_mutual_cf as plot_mutual_cf,
 )
 from joblib import Parallel, delayed
 import plotly.io as pio
@@ -38,8 +40,8 @@ xs = np.linspace(0, 5000, 5000 * 6)
 def fig1d():
 
     p = parse_params()
-    Ds = np.linspace(0, 0.2, 500)
-    alphas = np.linspace(1, 100, 500)
+    Ds = np.linspace(0, 0.2, 10)
+    alphas = np.linspace(1, 100, 10)
     zs = np.zeros((len(Ds), len(alphas)))
     for i, D in enumerate(Ds):
         p["D"] = D
@@ -78,23 +80,24 @@ def fig1d():
                 # y=0.25,
                 thickness=10,
             ),
+            showscale=False,
         )
     )
 
     fig.update_xaxes(
-        title="1 / Q<sub>Ct,R</sub> nM/OD",
+        title="Thiamine supply concentration [nM]",
         zeroline=False,
     )
     fig.update_yaxes(title="Dilution rate [1/h]", zeroline=False, showgrid=False)
-    fig.update_layout(height=150, width=170)
+    fig.update_layout(height=150, width=170, title="Thiamine supplied")
     fig = style_plot(
         fig,
         line_thickness=line_thickness,
         font_size=11,
-        left_margin=40,
+        left_margin=20,
         buttom_margin=25,
-        top_margin=0,
-        right_margin=0,
+        top_margin=20,
+        right_margin=10,
     )
     fig.write_image("plots/simulations/coexistence/fig1d.svg")
 
@@ -165,20 +168,15 @@ def fig1c():
     fig.write_image("plots/simulations/coexistence/fig1c.svg")
 
 
-fig1c()
-
-
 def fig3a():
     fig = make_subplots(
         rows=1,
-        cols=4,
-        horizontal_spacing=0.1,
-    )
-    figj = make_subplots(
-        rows=1,
         cols=3,
-        horizontal_spacing=0.1,
+        horizontal_spacing=0.05,
+        column_titles=["Ct", "Oa", "Co-culture"],
+        shared_yaxes=True,
     )
+
     p = parse_params()
     a = 0.027
     p["D"] = 0
@@ -192,16 +190,6 @@ def fig3a():
         go.Scatter(
             x=xs,
             y=Y[:, 0],
-            name="Ct",
-            line=dict(color=colors["ct"], shape="spline"),
-        ),
-        row=1,
-        col=1,
-    )
-    figj.add_trace(
-        go.Scatter(
-            x=xs,
-            y=JCt,
             name="Ct",
             line=dict(color=colors["ct"], shape="spline"),
         ),
@@ -227,29 +215,11 @@ def fig3a():
         row=1,
         col=2,
     )
-    figj.add_trace(
-        go.Scatter(
-            x=xs,
-            y=JOa,
-            name="Oa",
-            line=dict(color=colors["oa"], shape="spline"),
-        ),
-        row=1,
-        col=2,
-    )
 
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=Y[:, 3],
-            name="M",
-            line=dict(color="black", shape="spline"),
-        ),
-        row=1,
-        col=4,
-    )
     p = parse_params()
     p["D"] = 0
+    p["N01"] = 0
+
     p["a2_2"] = a
 
     Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
@@ -283,32 +253,41 @@ def fig3a():
         col=3,
     )
 
-    figj.add_trace(
-        go.Scatter(
-            x=xs,
-            y=JOa,
-            name="Oa",
-            line=dict(color=colors["oa"], shape="spline"),
-            showlegend=False,
-        ),
-        row=1,
-        col=3,
+    fig.for_each_xaxis(lambda x: x.update(ticks="inside"))
+    fig.for_each_yaxis(lambda y: y.update(ticks="inside"))
+    fig.update_layout(
+        width=width * 2,
+        height=180,
+        showlegend=False,
+        yaxis=dict(title="OD"),
+        xaxis2=dict(title="Time [h]"),
     )
-    figj.add_trace(
-        go.Scatter(
-            x=xs,
-            y=JCt,
-            name="Ct",
-            line=dict(color=colors["ct"], shape="spline"),
-            showlegend=False,
-        ),
-        row=1,
-        col=3,
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=10,
+        buttom_margin=10,
+        top_margin=20,
+        right_margin=rm,
     )
+    fig.write_image("plots/simulations/coexistence/fig3a.svg")
 
-    fig.for_each_xaxis(lambda x: x.update(range=[0, 24], dtick=12))
-    fig.for_each_yaxis(lambda y: y.update(range=[0, 0.4], dtick=0.2))
-    fig.update_layout(width=width * 2, height=height, showlegend=False)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=M,
+            name="M",
+            line=dict(color="black", shape="spline"),
+        ),
+    )
+    fig.update_layout(
+        width=width * 2 / 3,
+        height=height,
+        showlegend=False,
+        xaxis=dict(ticks="inside"),
+        yaxis=dict(ticks="inside"),
+    )
     fig = style_plot(
         fig,
         font_size=11,
@@ -317,20 +296,7 @@ def fig3a():
         top_margin=10,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/coexistence/fig3a.svg")
-
-    figj.for_each_xaxis(lambda x: x.update(range=[0, 24], dtick=12))
-    figj.for_each_yaxis(lambda y: y.update(range=[0, 0.4], dtick=0.2))
-    figj.update_layout(width=width * 2, height=height, showlegend=False)
-    figj = style_plot(
-        figj,
-        font_size=11,
-        left_margin=lm,
-        buttom_margin=0,
-        top_margin=10,
-        right_margin=rm,
-    )
-    figj.write_image("plots/simulations/coexistence/batch_failure_j.svg")
+    fig.write_image("plots/simulations/coexistence/fig3a_metabolite.svg")
 
 
 def fig2a():
@@ -565,6 +531,8 @@ def fig2c():
         top_margin=30,
         right_margin=rm,
     )
+    fig.add_vline(x=0.159)
+    fig.show()
     fig.write_image("plots/simulations/coexistence/fig2c.svg")
 
 
@@ -603,6 +571,18 @@ def fig2e():
                 outlinewidth=0.5,
                 outlinecolor="black",
             ),
+        )
+    )
+    fig.add_trace(
+        go.Contour(
+            z=zs,
+            x=Kms,
+            y=Rs,
+            showscale=False,
+            contours=dict(start=0.07, end=0.07, coloring="none"),
+            line=dict(color="black"),
+            name="<i>Ct</i>",
+            showlegend=False,
         )
     )
 
@@ -723,3 +703,32 @@ def sfig3():
         marker_size=4,
     )
     fig.write_image("plots/experiments/sfig3.svg")
+
+
+fig = make_subplots(
+    rows=1,
+    cols=2,
+    horizontal_spacing=0.05,
+    subplot_titles=["Cross-feeding", "No cross-feeding"],
+    shared_yaxes=True,
+)
+for trace in plot_mutual_cf().data:
+    fig.add_trace(trace, row=1, col=1)
+for trace in plot_comp().data:
+    fig.add_trace(trace, row=1, col=2)
+fig.update_layout(
+    width=260,
+    height=180,
+    yaxis=dict(title="OD", ticks="inside"),
+    xaxis=dict(title="Time [h]", ticks="inside"),
+    showlegend=False,
+)
+fig = style_plot(
+    fig,
+    font_size=11,
+    left_margin=20,
+    buttom_margin=30,
+    top_margin=20,
+    right_margin=0,
+)
+fig.write_image("plots/simulations/coexistence/fig4b.svg")

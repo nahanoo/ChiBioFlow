@@ -75,7 +75,7 @@ fig.update_yaxes(
     type="log",
     range=[2, 11],
     dtick=1,
-    title="CFU/mL",
+    title="CFUs/mL",
     tickformat=".0e",
     row=1,
     col=1,
@@ -84,7 +84,7 @@ fig.update_yaxes(
     type="log",
     range=[2, 11],
     dtick=1,
-    title="CFU/mL",
+    title="CFUs/mL",
     tickformat=".0e",
     row=1,
     col=2,
@@ -93,7 +93,7 @@ fig.update_yaxes(
     type="log",
     range=[2, 11],
     dtick=1,
-    title="CFU/mL",
+    title="CFUs/mL",
     tickformat=".0e",
     row=3,
     col=1,
@@ -102,7 +102,7 @@ fig.update_yaxes(
     type="log",
     range=[2, 11],
     dtick=1,
-    title="CFU/mL",
+    title="CFUs/mL",
     tickformat=".0e",
     row=3,
     col=2,
@@ -134,7 +134,14 @@ fig.update_yaxes(
     row=4,
     col=2,
 )
-fig.update_xaxes(title="Time [h]", range=[0, 72], dtick=12)
+fig.update_xaxes(title=None)
+fig.update_xaxes(title='Time [h]',row=4,col=1)
+fig.update_xaxes(title='Time [h]',row=4,col=2)
+
 fig.update_layout(height=800, width=1000)
 fig = style_plot(fig, marker_size=10, font_size=11, line_thickness=2)
 fig.write_image("plot.svg")
+
+reactor_cs = {'M0':'ribose','M1':'acetate','M2':'histidine','M3':'glutaric acid'}
+cfus["reactor"] = cfus["reactor"].map(reactor_cs)
+cfus = cfus[['species','reactor','sample_time','dilution','count','average','stdev']]

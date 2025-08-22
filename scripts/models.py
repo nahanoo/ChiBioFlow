@@ -85,8 +85,7 @@ def competition(y, t, p):
 
 def plot_competition():
     p = parse_params()
-    p["D"] = 0.16842105263157894
-    xs = np.linspace(0, 10000, 10000)
+    xs = np.linspace(0, 250, 1000)
     Y = odeint(competition, [p["N01"], p["N02"], p["M1"]], xs, args=(p,))
     Ct, Oa, R = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R)
@@ -97,23 +96,29 @@ def plot_competition():
     fig.add_trace(
         go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
     )
-    fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="Abundance [OD]")
+    fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="OD")
     fig.update_layout(
-        width=width,
-        height=height,
-        # xaxis=dict(range=[0, 72], dtick=24),
-        yaxis=dict(range=[0, 0.3], dtick=0.1),
+        width=130,
+        height=180,
+        xaxis=dict(ticks="inside"),
+        yaxis=dict(
+            ticks="inside",
+            range=[0, 0.3],
+            dtick=0.1,
+        ),
         showlegend=False,
+        title="No cross-feeding",
     )
     fig = style_plot(
         fig,
         font_size=11,
-        left_margin=lm,
-        buttom_margin=bm,
-        top_margin=tm,
-        right_margin=rm,
+        left_margin=20,
+        buttom_margin=30,
+        top_margin=20,
+        right_margin=0,
     )
     fig.write_image("plots/simulations/dynamics/fig3b.svg")
+    return fig
 
 
 def thiamine_supply(y, t, p):
@@ -204,29 +209,52 @@ def mutual_cf(y, t, p):
 def plot_mutual_cf():
     xs = np.linspace(0, 250, 2000)
     p = parse_params()
-    p["N02"] = 0
+    # p["N02"] = 0
     Y = odeint(mutual_cf, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     Ct, Oa, R, T = Y[-1]
     print("Ct", Ct, "Oa", Oa, "R", R, "T", T)
     fig = go.Figure()
     fig.add_trace(
-        go.Scatter(x=xs, y=Y[:, 0], name="<i>Ct</i>", marker=dict(color=colors["ct"]))
+        go.Scatter(
+            x=xs,
+            y=Y[:, 0],
+            name="<i>Ct</i>",
+            marker=dict(color=colors["ct"]),
+            showlegend=False,
+        )
     )
     fig.add_trace(
-        go.Scatter(x=xs, y=Y[:, 1], name="<i>Oa</i>", marker=dict(color=colors["oa"]))
+        go.Scatter(
+            x=xs,
+            y=Y[:, 1],
+            name="<i>Oa</i>",
+            marker=dict(color=colors["oa"]),
+            showlegend=False,
+        )
     )
     fig.update_xaxes(title="Time [h]"), fig.update_yaxes(title="OD")
-    fig.update_layout(width=width, height=height)
+    fig.update_layout(
+        width=130,
+        height=180,
+        xaxis=dict(ticks="inside"),
+        yaxis=dict(
+            ticks="inside",
+            range=[0, 0.3],
+            dtick=0.1,
+        ),
+        title="Cross-feeding",
+    )
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
-        font_size=font_size,
-        left_margin=lm,
-        buttom_margin=bm,
-        top_margin=tm,
-        right_margin=rm,
+        # line_thickness=line_thickness,
+        font_size=11,
+        left_margin=20,
+        buttom_margin=30,
+        top_margin=20,
+        right_margin=0,
     )
     fig.write_image("plots/simulations/dynamics/mutual_cf.svg")
+    return fig
 
 
 def plot_thiamine_production():

@@ -39,14 +39,15 @@ def fig1cd():
                 ),
             )
     fig.update_layout(
-        xaxis=dict(title="Time [h]", range=[0, 52], dtick=12),
-        yaxis=dict(
-            title="CFUs/mL",
-            type="log",
-            range=[7, 9],
+        xaxis=dict(
+            title="Time [h]",
+            # range=[0, 52], dtick=12),
+            ticks="inside",
         ),
+        yaxis=dict(title="CFUs/mL", type="log", range=[7, 9], ticks="inside"),
         width=150,
         height=150,
+        title="Thiamine supplied",
     )
     fig = style_plot(
         fig,
@@ -54,7 +55,7 @@ def fig1cd():
         right_margin=0,
         left_margin=45,
         buttom_margin=30,
-        top_margin=0,
+        top_margin=20,
     )
 
     fig.write_image("plots/experiments/fi1c.svg")
@@ -78,14 +79,21 @@ def fig1cd():
                 ),
             )
     fig.update_layout(
-        xaxis=dict(title="Time [h]", range=[0, 42], dtick=12),
+        xaxis=dict(
+            title="Time [h]",
+            # range=[0, 42],
+            # dtick=12),
+            ticks="inside",
+        ),
         yaxis=dict(
             title="CFUs/mL",
             type="log",
             range=[7, 9],
+            ticks="inside",
         ),
         width=width,
         height=height,
+        title="Cross-feeding",
     )
     fig = style_plot(
         fig,
@@ -93,7 +101,7 @@ def fig1cd():
         right_margin=0,
         left_margin=45,
         buttom_margin=30,
-        top_margin=0,
+        top_margin=20,
     )
     fig.write_image("plots/experiments/fig1d.svg")
 
@@ -129,8 +137,9 @@ def sfig1bc():
             zeroline=True,
             dtick=12,
             title="Time [h]",
+            ticks="inside",
         ),
-        yaxis=dict(range=[0, 0.5], dtick=0.1),
+        yaxis=dict(range=[0, 0.5], dtick=0.1, ticks="inside"),
         title="<i>O. anthropi</i>",
         width=width,
         height=height,
@@ -177,8 +186,9 @@ def sfig1bc():
             zeroline=True,
             dtick=12,
             title="Time [h]",
+            ticks="inside",
         ),
-        yaxis=dict(range=[0, 0.5], dtick=0.1),
+        yaxis=dict(range=[0, 0.5], dtick=0.1, ticks="inside"),
         title="<i>O. anthropi</i>",
         width=width,
         height=height,
@@ -348,9 +358,6 @@ def fig1a():
     fig.write_image("plots/experiments/fig1a.svg")
 
 
-fig1a()
-
-
 def sfig1e():
     fig = go.Figure()
     df = pd.read_csv(
@@ -427,13 +434,19 @@ def sfig1e():
     )
     fig.update_layout(
         xaxis=dict(
-            range=[0, max(x)], showgrid=True, zeroline=True, dtick=12, title="Time [h]"
+            range=[0, max(x)],
+            showgrid=True,
+            zeroline=True,
+            dtick=12,
+            title="Time [h]",
+            ticks="inside",
         ),
         yaxis=dict(
             range=[0, 0.35],
             showgrid=True,
             dtick=0.1,
             title="OD",
+            ticks="inside",
         ),
         width=width,
         height=width,
@@ -497,6 +510,7 @@ def sfig1a():
             mode="lines",
         ),
     )
+    fig.update_layout(xaxis=dict(ticks="inside"), yaxis=dict(ticks="inside"))
     fig = style_plot(fig, font_size=11, left_margin=10, buttom_margin=20)
     fig.write_image("plots/experiments/sfig1a.svg")
     colors = ["#6A5ACD", "#7570B3"]
@@ -620,7 +634,12 @@ def sfig1d():
     )
     fig.update_layout(
         xaxis=dict(
-            range=[0, max(x)], showgrid=True, zeroline=True, dtick=12, title="Time [h]"
+            range=[0, max(x)],
+            showgrid=True,
+            zeroline=True,
+            dtick=12,
+            title="Time [h]",
+            ticks="inside",
         ),
         yaxis=dict(
             range=[0, 0.4],
@@ -628,19 +647,20 @@ def sfig1d():
             zeroline=True,
             dtick=0.1,
             title="OD",
+            ticks="inside",
         ),
         width=150,
         height=150,
         showlegend=False,
-        # title="Thiamine gradient <i>O. anthropi</i>",
+        title="Oa thiamine gradient",
     )
     fig = style_plot(
         fig,
         font_size=11,
         left_margin=30,
         right_margin=0,
-        buttom_margin=25,
-        top_margin=0,
+        buttom_margin=30,
+        top_margin=20,
     )
     fig.write_image("plots/experiments/sfig1d.svg")
 
@@ -774,9 +794,12 @@ def fig2d():
     data = pd.read_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/measurements.csv"
     )
-    fig = go.Figure()
+    figs = [go.Figure(), go.Figure()]
     ys = []
-    sources = ["Spent media Oa"]
+    sources = [
+        "Spent media Ct",
+        "Spent media Oa",
+    ]
     for j, cs in enumerate(sources):
         line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
         for i, (lg, comment) in enumerate(
@@ -786,7 +809,7 @@ def fig2d():
                 x = data[lg + "_time"]
                 y = data[lg + "_measurement"]
                 ys.append(y.to_numpy())
-                fig.add_trace(
+                figs[j].add_trace(
                     go.Scatter(
                         x=x,
                         y=y,
@@ -804,37 +827,54 @@ def fig2d():
     for q, x in enumerate(xs):
         if x <= 18:
             i = q
-        if x >= 36:
+        if x >= 40:
             j = q
             break
     slope, intercept, r_value, p_value, std_err = linregress(xs[i:j], np.log(ys[i:j]))
     print("Slope Ct", slope)
-    """fig.add_trace(
+    figs[1].add_trace(
         go.Scatter(
             x=xs[i:j],
             y=np.exp(slope * xs[i:j] + intercept),
             name="fit",
             line=dict(dash="dot", color="black"),
         )
-    )"""
+    )
 
-    fig.update_layout(
-        xaxis=dict(title="Time [h]"),
-        yaxis=dict(title="OD"),
+    figs[1].update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", ticks="inside", type="log"),
         showlegend=False,
         width=175,
-        height=height * 1.3,
+        height=160,
         title="Ct in spent chemo-<br>stat media of Oa",
     )
-    fig = style_plot(
-        fig,
+    figs[1] = style_plot(
+        figs[1],
         font_size=11,
         buttom_margin=25,
         left_margin=35,
         right_margin=10,
         top_margin=30,
     )
-    fig.write_image("plots/experiments/fig2d_ct.svg")
+    figs[1].write_image("plots/experiments/fig2d_ct.svg")
+    figs[0].update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", ticks="inside", type="log"),
+        showlegend=False,
+        width=175,
+        height=220,
+        title="Ct in spent chemo-<br>stat media of Ct",
+    )
+    figs[1] = style_plot(
+        figs[0],
+        font_size=11,
+        buttom_margin=25,
+        left_margin=35,
+        right_margin=10,
+        top_margin=30,
+    )
+    figs[0].write_image("plots/experiments/fig2d_ct_ct.svg")
     fig = go.Figure()
     for j, cs in enumerate(["Spent media Ct", "Spent media Oa"]):
         line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
@@ -864,7 +904,7 @@ def fig2d():
         yaxis=dict(title="OD", range=[0, 0.03], dtick=0.01),
         title="<i>O. anthropi</i>",
         width=100,
-        height=height,
+        height=160,
         showlegend=False,
     )
     fig = style_plot(
@@ -877,6 +917,9 @@ def fig2d():
         right_margin=20,
     )
     fig.write_image("plots/experiments/fig2d_oa.svg")
+
+
+fig2d()
 
 
 def Km_cufs():
