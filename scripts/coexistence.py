@@ -18,8 +18,6 @@ from models import (
 from joblib import Parallel, delayed
 import plotly.io as pio
 
-pio.kaleido.scope.mathjax = None
-
 
 def parse_params():
     df = dict(pd.read_csv("parameters.csv"))
@@ -37,28 +35,45 @@ line_thickness = 1.2
 xs = np.linspace(0, 5000, 5000 * 6)
 
 
-def fig1d():
+def compute_ratio(D, alpha, p_base, xs, thiamine_supplied=True):
+    p = p_base.copy()
+    p["D"] = D
+    if thiamine_supplied:
+        p["M3"] = alpha
+        Y = odeint(ts, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
+    else:
+        p["q1_3"] = alpha
+        Y = odeint(mc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    Ct, Oa, R, T = Y[-1]
+    if Ct <= 1e-6:
+        Ct = 0
+    if Oa <= 1e-6:
+        Oa = 0
+    if (Ct == 0) and (Oa == 0):
+        return np.nan, T  # use NaN instead of None for numeric matrix
+    else:
+        return Oa / (Ct + Oa), T
 
-    p = parse_params()
-    Ds = np.linspace(0, 0.2, 10)
-    alphas = np.linspace(1, 100, 10)
-    zs = np.zeros((len(Ds), len(alphas)))
-    for i, D in enumerate(Ds):
-        p["D"] = D
-        for j, alpha in enumerate(alphas):
-            p["M3"] = alpha
-            Y = odeint(ts, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
-            Ct, Oa, R, T = Y[-1]
-            if Ct <= 1e-6:
-                Ct = 0
-            if Oa <= 1e-6:
-                Oa = 0
-            if (Ct == 0) and (Oa == 0):
-                ratio = None
-            else:
-                ratio = Oa / (Ct + Oa)
-            zs[i, j] = ratio
 
+def coexistence_thiamine_supplied():
+    p_base = parse_params()
+    Ds = np.linspace(0, 0.3, 100)
+    alphas = np.linspace(1, 100, 100)
+
+    # Create full parameter grid
+    param_grid = [
+        (i, j, D, alpha) for i, D in enumerate(Ds) for j, alpha in enumerate(alphas)
+    ]
+
+    # Run in parallel
+    results = Parallel(n_jobs=-1, verbose=1)(
+        delayed(compute_ratio)(D, alpha, p_base, xs) for (_, _, D, alpha) in param_grid
+    )
+
+    # Reconstruct result matrix
+    zs = np.array([res[0] for res in results]).reshape(len(Ds), len(alphas))
+
+    # Plot
     fig = go.Figure()
 
     fig.add_trace(
@@ -77,7 +92,6 @@ def fig1d():
             colorbar=dict(
                 title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
                 len=0.8,
-                # y=0.25,
                 thickness=10,
             ),
             showscale=False,
@@ -85,10 +99,11 @@ def fig1d():
     )
 
     fig.update_xaxes(
-        title="Thiamine supply concentration [nM]",
-        zeroline=False,
+        title="Thiamine supply concentration [nM]", zeroline=False, ticks="inside"
     )
-    fig.update_yaxes(title="Dilution rate [1/h]", zeroline=False, showgrid=False)
+    fig.update_yaxes(
+        title="Dilution rate [1/h]", zeroline=False, showgrid=False, ticks="inside"
+    )
     fig.update_layout(height=150, width=170, title="Thiamine supplied")
     fig = style_plot(
         fig,
@@ -99,33 +114,33 @@ def fig1d():
         top_margin=20,
         right_margin=10,
     )
-    fig.write_image("plots/simulations/coexistence/fig1d.svg")
+    fig.write_image("plots/simulations/coexistence/coexistence_thiamine_supplied.svg")
 
 
-def fig1c():
-    p = parse_params()
-    Ds = np.linspace(0, 0.3, 500)
-    alphas = np.linspace(0.0002, 1, 500)
-    zs = np.zeros((len(Ds), len(alphas)))
-    Ts = []
-    for i, D in enumerate(Ds):
-        p["D"] = D
-        for j, alpha in enumerate(alphas):
-            p["q1_3"] = alpha
-            Y = odeint(mc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
-            Ct, Oa, R, T = Y[-1]
+def coexistence_cross_feeding():
+    p_base = parse_params()
+    Ds = np.linspace(0, 0.3, 200)
+    alphas = np.linspace(0.0002, 1, 200)
 
-            ratio = Oa / (Ct + Oa)
-            zs[i, j] = ratio
-            Ts.append(T)
+    param_grid = [
+        (i, j, D, alpha) for i, D in enumerate(Ds) for j, alpha in enumerate(alphas)
+    ]
+
+    results = Parallel(n_jobs=-1, verbose=1)(
+        delayed(compute_ratio)(D, alpha, p_base, xs, thiamine_supplied=False)
+        for (_, _, D, alpha) in param_grid
+    )
+
+    # Reconstruct matrices
+    ratios = np.array([r for r, T in results]).reshape(len(Ds), len(alphas))
+    Ts = np.array([T for r, T in results]).reshape(len(Ds), len(alphas))
 
     fig = go.Figure()
-    from scipy.ndimage import zoom
 
     fig.add_trace(
         go.Contour(
-            z=zs,
-            x=Ts,
+            z=ratios,
+            x=Ts[0],  # assumes all rows of Ts have the same alpha ordering
             y=Ds,
             colorscale=colors_heatmap,
             ncontours=50,
@@ -135,7 +150,6 @@ def fig1c():
             contours=dict(showlines=False),
             colorbar=dict(
                 title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
-                # y=0.25,
                 thickness=10,
                 outlinewidth=0.5,
                 outlinecolor="black",
@@ -148,14 +162,12 @@ def fig1c():
         title="Thiamine concentration in chemostat [nM]",
         type="log",
         ticks="inside",
-        # zeroline=False,
-        # range=[0.0002, 0.02],
-        # dtick=0.002,
     )
     fig.update_yaxes(
         title="Dilution rate [1/h]", zeroline=False, showgrid=False, ticks="inside"
     )
     fig.update_layout(height=150, width=150, title="Cross-feeding")
+
     fig = style_plot(
         fig,
         line_thickness=line_thickness,
@@ -165,13 +177,14 @@ def fig1c():
         top_margin=20,
         right_margin=10,
     )
-    fig.write_image("plots/simulations/coexistence/fig1c.svg")
+
+    fig.write_image("plots/simulations/coexistence/coexistence_cross_feeding.svg")
 
 
 def fig3a():
     fig = make_subplots(
         rows=1,
-        cols=3,
+        cols=2,
         horizontal_spacing=0.05,
         column_titles=["Ct", "Oa", "Co-culture"],
         shared_yaxes=True,
@@ -213,12 +226,12 @@ def fig3a():
             line=dict(color=colors["oa"], shape="spline"),
         ),
         row=1,
-        col=2,
+        col=1,
     )
 
     p = parse_params()
     p["D"] = 0
-    p["N01"] = 0
+    # p["N01"] = 0
 
     p["a2_2"] = a
 
@@ -238,7 +251,7 @@ def fig3a():
             showlegend=False,
         ),
         row=1,
-        col=3,
+        col=2,
     )
 
     fig.add_trace(
@@ -250,13 +263,13 @@ def fig3a():
             showlegend=False,
         ),
         row=1,
-        col=3,
+        col=2,
     )
 
     fig.for_each_xaxis(lambda x: x.update(ticks="inside"))
     fig.for_each_yaxis(lambda y: y.update(ticks="inside"))
     fig.update_layout(
-        width=width * 2,
+        width=190,
         height=180,
         showlegend=False,
         yaxis=dict(title="OD"),
@@ -282,7 +295,7 @@ def fig3a():
         ),
     )
     fig.update_layout(
-        width=width * 2 / 3,
+        width=190,
         height=height,
         showlegend=False,
         xaxis=dict(ticks="inside"),
@@ -705,30 +718,31 @@ def sfig3():
     fig.write_image("plots/experiments/sfig3.svg")
 
 
-fig = make_subplots(
-    rows=1,
-    cols=2,
-    horizontal_spacing=0.05,
-    subplot_titles=["Cross-feeding", "No cross-feeding"],
-    shared_yaxes=True,
-)
-for trace in plot_mutual_cf().data:
-    fig.add_trace(trace, row=1, col=1)
-for trace in plot_comp().data:
-    fig.add_trace(trace, row=1, col=2)
-fig.update_layout(
-    width=260,
-    height=180,
-    yaxis=dict(title="OD", ticks="inside"),
-    xaxis=dict(title="Time [h]", ticks="inside"),
-    showlegend=False,
-)
-fig = style_plot(
-    fig,
-    font_size=11,
-    left_margin=20,
-    buttom_margin=30,
-    top_margin=20,
-    right_margin=0,
-)
-fig.write_image("plots/simulations/coexistence/fig4b.svg")
+def fig4c():
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        horizontal_spacing=0.05,
+        subplot_titles=["Cross-feeding", "No cross-feeding"],
+        shared_yaxes=True,
+    )
+    for trace in plot_mutual_cf().data:
+        fig.add_trace(trace, row=1, col=1)
+    for trace in plot_comp().data:
+        fig.add_trace(trace, row=1, col=2)
+    fig.update_layout(
+        width=190,
+        height=180,
+        yaxis=dict(title="OD", ticks="inside"),
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        showlegend=False,
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=20,
+        buttom_margin=30,
+        top_margin=20,
+        right_margin=0,
+    )
+    fig.write_image("plots/simulations/coexistence/fig4b.svg")
