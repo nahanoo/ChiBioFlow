@@ -198,7 +198,7 @@ def sfig1bc():
     fig.write_image("plots/experiments/sfig1c.svg")
 
 
-def fig1a():
+def growth_curves_ct_oa():
     model = False
     df = pd.read_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250328_ct_oa_thiamine_gradient/data/metadata.csv"
@@ -355,7 +355,10 @@ def fig1a():
         left_margin=20,
         right_margin=20,
     )
-    fig.write_image("plots/experiments/fig1a.svg")
+    fig.write_image("plots/experiments/growth_curves_ct_oa.svg")
+
+
+growth_curves_ct_oa()
 
 
 def sfig1e():
@@ -919,9 +922,6 @@ def fig2d():
     fig.write_image("plots/experiments/fig2d_oa.svg")
 
 
-fig2d()
-
-
 def Km_cufs():
     concentrations = {
         30: "#1f77b4",  # blue
@@ -1009,3 +1009,56 @@ def Km_cufs():
     fig.write_image("tmp.svg")
     print(slopes)
     fig.show()
+
+
+def fig4a():
+    legend = {
+        "ct": "Ct",
+        "oa": "Oa",
+        "ct_oa_thiamine": "A + T",
+        "ct_oa": "A",
+    }
+    cfus = get_cfus()
+    cfus = cfus[(cfus["experiment"] == "no_cs") & (cfus["species"].isin(["ct", "oa"]))]
+    fig = go.Figure()
+    for i, s in enumerate(cfus["species"].unique()):
+        df = cfus[cfus["species"] == s]
+        fig.add_trace(
+            go.Scatter(
+                x=df["sample_time"],
+                y=df["average"],
+                error_y=dict(type="data", array=df["stdev"].to_list(), visible=True),
+                name=legend[s],
+                showlegend=False,
+                line=dict(color=colors[s]),
+            ),
+        )
+    fig.update_layout(
+        xaxis=dict(
+            title="Time [h]",
+            # range=[0, 42],
+            # dtick=12),
+            ticks="inside",
+        ),
+        yaxis=dict(
+            title="CFUs/mL",
+            type="log",
+            range=[5, 9],
+            ticks="inside",
+        ),
+        width=190,
+        height=180,
+        title="No carbon source",
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        right_margin=0,
+        left_margin=45,
+        buttom_margin=30,
+        top_margin=20,
+    )
+    fig.write_image("plots/experiments/no_cs.svg")
+
+
+fig4a()
