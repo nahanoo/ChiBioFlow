@@ -153,3 +153,149 @@ def ct_oa_isocline():
     )
     fig = square_panel_by_height(fig, height_px=150)
     fig.write_image("plots/isoclines/ct_oa_isoclines.svg")
+
+
+def compute_ratio(D, alpha, p_base, xs, thiamine_supplied=True):
+    p = p_base.copy()
+    p["D"] = D
+    if thiamine_supplied:
+        p["M3"] = alpha
+        Y = odeint(ts, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
+    else:
+        p["q1_3"] = alpha
+        Y = odeint(mc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    Ct, Oa, R, T = Y[-1]
+    if Ct <= 1e-6:
+        Ct = 0
+    if Oa <= 1e-6:
+        Oa = 0
+    if (Ct == 0) and (Oa == 0):
+        return np.nan, T  # use NaN instead of None for numeric matrix
+    else:
+        return Oa / (Ct + Oa), T
+
+
+def coexistence_sweep_thiamine_added():
+    p_base = parse_params()
+    Ds = np.linspace(0, 0.3, 100)
+    alphas = np.linspace(1, 100, 100)
+
+    # Create full parameter grid
+    param_grid = [
+        (i, j, D, alpha) for i, D in enumerate(Ds) for j, alpha in enumerate(alphas)
+    ]
+
+    # Run in parallel
+    results = Parallel(n_jobs=-1, verbose=1)(
+        delayed(compute_ratio)(D, alpha, p_base, xs) for (_, _, D, alpha) in param_grid
+    )
+
+    # Reconstruct result matrix
+    zs = np.array([res[0] for res in results]).reshape(len(Ds), len(alphas))
+
+    # Plot
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Contour(
+            z=zs,
+            x=alphas,
+            y=Ds,
+            colorscale=colors_heatmap,
+            ncontours=50,
+            zmid=0.5,
+            zmin=0,
+            zmax=1,
+            contours=dict(
+                showlines=False,
+            ),
+            colorbar=dict(
+                title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
+                len=0.8,
+                thickness=10,
+            ),
+            showscale=False,
+        )
+    )
+
+    fig.update_xaxes(
+        title="Thiamine supply concentration [nM]", zeroline=False, ticks="inside"
+    )
+    fig.update_yaxes(
+        title="Dilution rate [1/h]", zeroline=False, showgrid=False, ticks="inside"
+    )
+    fig.update_layout(height=150, width=170, title="Thiamine supplied")
+    fig = style_plot(
+        fig,
+        line_thickness=line_thickness,
+        font_size=11,
+        left_margin=20,
+        buttom_margin=25,
+        top_margin=20,
+        right_margin=10,
+    )
+    fig.write_image("plots/simulations/coexistence/coexistence_thiamine_supplied.svg")
+
+
+def coexistence_sweep_thiamine_free():
+    p_base = parse_params()
+    Ds = np.linspace(0, 0.3, 200)
+    alphas = np.linspace(0.0002, 1, 200)
+
+    param_grid = [
+        (i, j, D, alpha) for i, D in enumerate(Ds) for j, alpha in enumerate(alphas)
+    ]
+
+    results = Parallel(n_jobs=-1, verbose=1)(
+        delayed(compute_ratio)(D, alpha, p_base, xs, thiamine_supplied=False)
+        for (_, _, D, alpha) in param_grid
+    )
+
+    # Reconstruct matrices
+    ratios = np.array([r for r, T in results]).reshape(len(Ds), len(alphas))
+    Ts = np.array([T for r, T in results]).reshape(len(Ds), len(alphas))
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Contour(
+            z=ratios,
+            x=Ts[0],  # assumes all rows of Ts have the same alpha ordering
+            y=Ds,
+            colorscale=colors_heatmap,
+            ncontours=50,
+            zmid=0.5,
+            zmin=0,
+            zmax=1,
+            contours=dict(showlines=False),
+            colorbar=dict(
+                title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
+                thickness=10,
+                outlinewidth=0.5,
+                outlinecolor="black",
+            ),
+            showscale=False,
+        )
+    )
+
+    fig.update_xaxes(
+        title="Thiamine concentration in chemostat [nM]",
+        type="log",
+        ticks="inside",
+    )
+    fig.update_yaxes(
+        title="Dilution rate [1/h]", zeroline=False, showgrid=False, ticks="inside"
+    )
+    fig.update_layout(height=150, width=150, title="Cross-feeding")
+
+    fig = style_plot(
+        fig,
+        line_thickness=line_thickness,
+        font_size=11,
+        left_margin=20,
+        buttom_margin=25,
+        top_margin=20,
+        right_margin=10,
+    )
+
+    fig.write_image("plots/simulations/coexistence/coexistence_cross_feeding.svg")
