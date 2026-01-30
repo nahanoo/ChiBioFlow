@@ -55,7 +55,7 @@ def style_plot(
         except KeyError:
             pass
         try:
-            d["error_y"]["thickness"] = line_thickness / 2
+            d["error_y"]["thickness"] = line_thickness
         except KeyError:
             pass
     for a in fig["layout"]["annotations"]:
@@ -105,4 +105,50 @@ def style_plot(
     fig.for_each_yaxis(
         lambda axis: axis.title.update(font=dict(size=font_size, color="black"))
     )
+    return fig
+
+
+def square_panel_by_height(
+    fig,
+    height_px: int,
+    cbar_trace: int = 0,
+    cbar_gap_px: int = 8,
+    cbar_label_px: int = 40,  # budget for tick labels (and title if you add one)
+    extra_right_px: int = 0,  # any extra whitespace you want
+):
+    # 1) total figure height is fixed
+    fig.update_layout(autosize=False, height=height_px)
+
+    # margins (must be set before calling this; e.g. by your style_plot)
+    m = fig.layout.margin
+    l = int(m.l or 0)
+    r = int(m.r or 0)
+    t = int(m.t or 0)
+    b = int(m.b or 0)
+
+    # 2) square panel side = inner height
+    side = height_px - t - b
+    side = max(side, 10)  # safety
+
+    # 3) reserve right-side pixels for colorbar + labels
+    thick = 0
+    if cbar_trace is not None:
+        cb = getattr(fig.data[cbar_trace], "colorbar", None)
+        thick = int(getattr(cb, "thickness", 0) or 0)
+
+    right_px = thick + cbar_gap_px + cbar_label_px + extra_right_px
+
+    inner_w = side + right_px
+    fig.update_layout(width=l + r + inner_w)
+
+    # 4) shrink x-domain so plot area is exactly `side` pixels wide
+    dom_end = side / inner_w
+    fig.update_xaxes(domain=[0.0, dom_end])
+    fig.update_yaxes(domain=[0.0, 1.0])
+
+    # 5) put the colorbar into the reserved right-side area (still in "paper" coords) :contentReference[oaicite:1]{index=1}
+    if cbar_trace is not None and thick > 0:
+        x_left = dom_end + (cbar_gap_px / inner_w)
+        fig.data[cbar_trace].update(colorbar=dict(x=x_left, xanchor="left"))
+
     return fig

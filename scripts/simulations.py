@@ -6,28 +6,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from models import (
     competition as cp,
-    thiamine_supply as ts,
-    mutual_cf as mc,
     niche_creation as nc,
-    niche_creation_cf as nccf,
-    niche_supply as ns,
-    niche_creation_batch as ncb,
     plot_competition as plot_comp,
     plot_mutual_cf as plot_mutual_cf,
 )
-from joblib import Parallel, delayed
-import plotly.io as pio
 
-pio.kaleido.scope.mathjax = None
-
-
-def parse_params():
-    df = dict(pd.read_csv("parameters.csv"))
-    params = pd.Series(df["value"].values, index=df["parameter"]).to_dict()
-    p = params
-    return p
-
-
+# Margins for plots
 lm = 10
 bm = 10
 tm = 10
@@ -37,269 +21,14 @@ line_thickness = 1.2
 xs = np.linspace(0, 5000, 5000 * 6)
 
 
-def fig1d():
-
-    p = parse_params()
-    Ds = np.linspace(0, 0.2, 10)
-    alphas = np.linspace(1, 100, 10)
-    zs = np.zeros((len(Ds), len(alphas)))
-    for i, D in enumerate(Ds):
-        p["D"] = D
-        for j, alpha in enumerate(alphas):
-            p["M3"] = alpha
-            Y = odeint(ts, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
-            Ct, Oa, R, T = Y[-1]
-            if Ct <= 1e-6:
-                Ct = 0
-            if Oa <= 1e-6:
-                Oa = 0
-            if (Ct == 0) and (Oa == 0):
-                ratio = None
-            else:
-                ratio = Oa / (Ct + Oa)
-            zs[i, j] = ratio
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Contour(
-            z=zs,
-            x=alphas,
-            y=Ds,
-            colorscale=colors_heatmap,
-            ncontours=50,
-            zmid=0.5,
-            zmin=0,
-            zmax=1,
-            contours=dict(
-                showlines=False,
-            ),
-            colorbar=dict(
-                title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
-                len=0.8,
-                # y=0.25,
-                thickness=10,
-            ),
-            showscale=False,
-        )
-    )
-
-    fig.update_xaxes(
-        title="Thiamine supply concentration [nM]",
-        zeroline=False,
-    )
-    fig.update_yaxes(title="Dilution rate [1/h]", zeroline=False, showgrid=False)
-    fig.update_layout(height=150, width=170, title="Thiamine supplied")
-    fig = style_plot(
-        fig,
-        line_thickness=line_thickness,
-        font_size=11,
-        left_margin=20,
-        buttom_margin=25,
-        top_margin=20,
-        right_margin=10,
-    )
-    fig.write_image("plots/simulations/coexistence/fig1d.svg")
+def parse_params():
+    df = dict(pd.read_csv("parameters.csv"))
+    params = pd.Series(df["value"].values, index=df["parameter"]).to_dict()
+    p = params
+    return p
 
 
-def fig1c():
-    p = parse_params()
-    Ds = np.linspace(0, 0.3, 500)
-    alphas = np.linspace(0.0002, 1, 500)
-    zs = np.zeros((len(Ds), len(alphas)))
-    Ts = []
-    for i, D in enumerate(Ds):
-        p["D"] = D
-        for j, alpha in enumerate(alphas):
-            p["q1_3"] = alpha
-            Y = odeint(mc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
-            Ct, Oa, R, T = Y[-1]
-
-            ratio = Oa / (Ct + Oa)
-            zs[i, j] = ratio
-            Ts.append(T)
-
-    fig = go.Figure()
-    from scipy.ndimage import zoom
-
-    fig.add_trace(
-        go.Contour(
-            z=zs,
-            x=Ts,
-            y=Ds,
-            colorscale=colors_heatmap,
-            ncontours=50,
-            zmid=0.5,
-            zmin=0,
-            zmax=1,
-            contours=dict(showlines=False),
-            colorbar=dict(
-                title=dict(text="<i>Oa</i> fraction", side="right", font=dict(size=8)),
-                # y=0.25,
-                thickness=10,
-                outlinewidth=0.5,
-                outlinecolor="black",
-            ),
-            showscale=False,
-        )
-    )
-
-    fig.update_xaxes(
-        title="Thiamine concentration in chemostat [nM]",
-        type="log",
-        ticks="inside",
-        # zeroline=False,
-        # range=[0.0002, 0.02],
-        # dtick=0.002,
-    )
-    fig.update_yaxes(
-        title="Dilution rate [1/h]", zeroline=False, showgrid=False, ticks="inside"
-    )
-    fig.update_layout(height=150, width=150, title="Cross-feeding")
-    fig = style_plot(
-        fig,
-        line_thickness=line_thickness,
-        font_size=11,
-        left_margin=20,
-        buttom_margin=25,
-        top_margin=20,
-        right_margin=10,
-    )
-    fig.write_image("plots/simulations/coexistence/fig1c.svg")
-
-
-def fig3a():
-    fig = make_subplots(
-        rows=1,
-        cols=3,
-        horizontal_spacing=0.05,
-        column_titles=["Ct", "Oa", "Co-culture"],
-        shared_yaxes=True,
-    )
-
-    p = parse_params()
-    a = 0.027
-    p["D"] = 0
-    p["N02"] = 0
-    p["a2_2"] = a
-    xs = np.linspace(0, 24, 1000)
-    Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
-    R = Y[:, 2]
-    JCt = p["v1_1"] * R / (p["K1_1"] + R)
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=Y[:, 0],
-            name="Ct",
-            line=dict(color=colors["ct"], shape="spline"),
-        ),
-        row=1,
-        col=1,
-    )
-
-    p = parse_params()
-    p["D"] = 0
-    p["N01"] = 0
-    p["a2_2"] = a
-
-    Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
-    R = Y[:, 2]
-    JOa = p["v2_1"] * R / (p["K2_1"] + R)
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=Y[:, 1],
-            name="Oa",
-            line=dict(color=colors["oa"], shape="spline"),
-        ),
-        row=1,
-        col=2,
-    )
-
-    p = parse_params()
-    p["D"] = 0
-    p["N01"] = 0
-
-    p["a2_2"] = a
-
-    Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
-    R = Y[:, 2]
-    JCt = p["v1_1"] * R / (p["K1_1"] + R)
-    JOa = p["v2_1"] * R / (p["K2_1"] + R)
-
-    M = Y[:, 3]
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=Y[:, 0],
-            name="Ct",
-            mode="lines",
-            line=dict(color=colors["ct"], shape="spline"),
-            showlegend=False,
-        ),
-        row=1,
-        col=3,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=Y[:, 1],
-            name="Oa",
-            line=dict(color=colors["oa"], shape="spline"),
-            showlegend=False,
-        ),
-        row=1,
-        col=3,
-    )
-
-    fig.for_each_xaxis(lambda x: x.update(ticks="inside"))
-    fig.for_each_yaxis(lambda y: y.update(ticks="inside"))
-    fig.update_layout(
-        width=width * 2,
-        height=180,
-        showlegend=False,
-        yaxis=dict(title="OD"),
-        xaxis2=dict(title="Time [h]"),
-    )
-    fig = style_plot(
-        fig,
-        font_size=11,
-        left_margin=10,
-        buttom_margin=10,
-        top_margin=20,
-        right_margin=rm,
-    )
-    fig.write_image("plots/simulations/coexistence/fig3a.svg")
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=M,
-            name="M",
-            line=dict(color="black", shape="spline"),
-        ),
-    )
-    fig.update_layout(
-        width=width * 2 / 3,
-        height=height,
-        showlegend=False,
-        xaxis=dict(ticks="inside"),
-        yaxis=dict(ticks="inside"),
-    )
-    fig = style_plot(
-        fig,
-        font_size=11,
-        left_margin=lm,
-        buttom_margin=0,
-        top_margin=10,
-        right_margin=rm,
-    )
-    fig.write_image("plots/simulations/coexistence/fig3a_metabolite.svg")
-
-
-def fig2a():
+def chemostat_acetate_concentration():
     Ds = np.linspace(0, 0.3, 1000)
     p = parse_params()
     r_stars = []
@@ -375,10 +104,10 @@ def fig2a():
         top_margin=20,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/coexistence/fig2a.svg")
+    fig.write_image("plots/simulations/coexistence/chemostat_acetate_concentration.svg")
 
 
-def fig2b():
+def achievable_growth_rate():
     p = parse_params()
     r_equal = (p["K1_1"] * p["v2_1"] - p["K2_1"] * p["v1_1"]) / (p["v1_1"] - p["v2_1"])
     dc_oa = r_equal * p["v1_1"] / (p["K1_1"] + r_equal)
@@ -472,10 +201,10 @@ def fig2b():
         top_margin=10,
         right_margin=rm,
     )
-    fig.write_image("plots/simulations/coexistence/fig2b.svg")
+    fig.write_image("plots/simulations/coexistence/achievable_growth_rate.svg")
 
 
-def fig2c():
+def missing_growth_rate():
     p = parse_params()
     r_equal = (p["K1_1"] * p["v2_1"] - p["K2_1"] * p["v1_1"]) / (p["v1_1"] - p["v2_1"])
     dc_oa = r_equal * p["v1_1"] / (p["K1_1"] + r_equal)
@@ -532,11 +261,10 @@ def fig2c():
         right_margin=rm,
     )
     fig.add_vline(x=0.159)
-    fig.show()
-    fig.write_image("plots/simulations/coexistence/fig2c.svg")
+    fig.write_image("plots/simulations/coexistence/missing_growth_rate.svg")
 
 
-def fig2e():
+def metabolite_affinity():
     Kms = np.linspace(1e-3, 1, 1000)
     Rs = np.linspace(1e-3, 1, 1000)
     zs = np.zeros((len(Rs), len(Kms)))
@@ -615,10 +343,10 @@ def fig2e():
         top_margin=5,
         right_margin=20,
     )
-    fig.write_image("plots/simulations/coexistence/fig2e.svg")
+    fig.write_image("plots/simulations/coexistence/metabolite_affinity.svg")
 
 
-def sfig3():
+def km_across_substrates():
     color_dict = {
         "arabinose": "#1f77b4",  # blue
         "fructose": "#ff7f0e",  # orange
@@ -702,33 +430,182 @@ def sfig3():
         right_margin=rm,
         marker_size=4,
     )
-    fig.write_image("plots/experiments/sfig3.svg")
+    fig.write_image("plots/experiments/km_across_substrates.svg")
 
 
-fig = make_subplots(
-    rows=1,
-    cols=2,
-    horizontal_spacing=0.05,
-    subplot_titles=["Cross-feeding", "No cross-feeding"],
-    shared_yaxes=True,
-)
-for trace in plot_mutual_cf().data:
-    fig.add_trace(trace, row=1, col=1)
-for trace in plot_comp().data:
-    fig.add_trace(trace, row=1, col=2)
-fig.update_layout(
-    width=260,
-    height=180,
-    yaxis=dict(title="OD", ticks="inside"),
-    xaxis=dict(title="Time [h]", ticks="inside"),
-    showlegend=False,
-)
-fig = style_plot(
-    fig,
-    font_size=11,
-    left_margin=20,
-    buttom_margin=30,
-    top_margin=20,
-    right_margin=0,
-)
-fig.write_image("plots/simulations/coexistence/fig4b.svg")
+def simulate_chemostat_community_experiments():
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        horizontal_spacing=0.05,
+        subplot_titles=["Cross-feeding", "No cross-feeding"],
+        shared_yaxes=True,
+    )
+    for trace in plot_mutual_cf().data:
+        fig.add_trace(trace, row=1, col=1)
+    for trace in plot_comp().data:
+        fig.add_trace(trace, row=1, col=2)
+    fig.update_layout(
+        width=190,
+        height=180,
+        yaxis=dict(title="OD", ticks="inside"),
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        showlegend=False,
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=20,
+        buttom_margin=30,
+        top_margin=20,
+        right_margin=0,
+    )
+    fig.write_image(
+        "plots/simulations/coexistence/simulate_chemostat_community_experiments.svg"
+    )
+
+
+def simulate_cross_feeding_batch():
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        horizontal_spacing=0.05,
+        column_titles=["Ct", "Oa", "Co-culture"],
+        shared_yaxes=True,
+    )
+
+    p = parse_params()
+    a = 0.027
+    p["D"] = 0
+    p["N02"] = 0
+    p["a2_2"] = a
+    xs = np.linspace(0, 24, 1000)
+    Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    R = Y[:, 2]
+    JCt = p["v1_1"] * R / (p["K1_1"] + R)
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 0],
+            name="Ct",
+            line=dict(color=colors["ct"], shape="spline"),
+        ),
+        row=1,
+        col=1,
+    )
+
+    p = parse_params()
+    p["D"] = 0
+    p["N01"] = 0
+    p["a2_2"] = a
+
+    Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    R = Y[:, 2]
+    JOa = p["v2_1"] * R / (p["K2_1"] + R)
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 1],
+            name="Oa",
+            line=dict(color=colors["oa"], shape="spline"),
+        ),
+        row=1,
+        col=1,
+    )
+
+    p = parse_params()
+    p["D"] = 0
+    # p["N01"] = 0
+
+    p["a2_2"] = a
+
+    Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    R = Y[:, 2]
+    JCt = p["v1_1"] * R / (p["K1_1"] + R)
+    JOa = p["v2_1"] * R / (p["K2_1"] + R)
+
+    M = Y[:, 3]
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 0],
+            name="Ct",
+            mode="lines",
+            line=dict(color=colors["ct"], shape="spline"),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 1],
+            name="Oa",
+            line=dict(color=colors["oa"], shape="spline"),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    fig.for_each_xaxis(lambda x: x.update(ticks="inside"))
+    fig.for_each_yaxis(lambda y: y.update(ticks="inside"))
+    fig.update_layout(
+        width=190,
+        height=180,
+        showlegend=False,
+        yaxis=dict(title="OD"),
+        xaxis2=dict(title="Time [h]"),
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=10,
+        buttom_margin=10,
+        top_margin=20,
+        right_margin=rm,
+    )
+    fig.write_image("plots/simulations/coexistence/fig3a.svg")
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=M,
+            name="M",
+            line=dict(color="black", shape="spline"),
+        ),
+    )
+    fig.update_layout(
+        width=190,
+        height=height,
+        showlegend=False,
+        xaxis=dict(ticks="inside"),
+        yaxis=dict(ticks="inside"),
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=lm,
+        buttom_margin=0,
+        top_margin=10,
+        right_margin=rm,
+    )
+    fig.write_image(
+        "plots/simulations/coexistence/simulate_cross_feeding_batch_metabolite.svg"
+    )
+
+
+def main():
+    chemostat_acetate_concentration()
+    achievable_growth_rate()
+    missing_growth_rate()
+    metabolite_affinity()
+    km_across_substrates()
+    simulate_chemostat_community_experiments()
+    simulate_cross_feeding_batch()
+
+
+main()

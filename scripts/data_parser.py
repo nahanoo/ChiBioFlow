@@ -107,6 +107,50 @@ def get_cfus():
             "1D",
         )
         sheets.append(sheet)
+    df = cfu_parser("/home/eric/ChiBioFlow/data/250822_chemostats")[0]
+    df = df[df["reactor"] == "M0"]
+    df.insert(len(df.columns), "experiment", "no_cs")
+    dfs.append(df)
+    sheet = pd.DataFrame(
+        columns=["time", "CFUs/mL", "name", "species", "description", "figure"]
+    )
+    mask = df[(df["reactor"] == "M0") & (df["species"] == "ct")]
+    (
+        sheet["time"],
+        sheet["CFUs/mL"],
+        sheet["name"],
+        sheet["species"],
+        sheet["description"],
+        sheet["figure"],
+    ) = (
+        mask["sample_time"],
+        mask["average"],
+        replicats[0],
+        "Ct",
+        "Ct Oa chemostat experiment with no carbon source",
+        None,
+    )
+    sheets.append(sheet)
+    sheet = pd.DataFrame(
+        columns=["time", "CFUs/mL", "name", "species", "description", "figure"]
+    )
+    mask = df[(df["reactor"] == "M0") & (df["species"] == "oa")]
+    (
+        sheet["time"],
+        sheet["CFUs/mL"],
+        sheet["name"],
+        sheet["species"],
+        sheet["description"],
+        sheet["figure"],
+    ) = (
+        mask["sample_time"],
+        mask["average"],
+        replicats[0],
+        "Oa",
+        "Ct Oa  chemostat experiment with no carbon source",
+        None,
+    )
+    sheets.append(sheet)
     with pd.ExcelWriter(
         "../data/data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
     ) as writer:
@@ -881,6 +925,3 @@ def writer():
     df = ct_oa_plate_reader()
     df = relative_quantification()
     df = absolute_quantification()
-
-
-writer()

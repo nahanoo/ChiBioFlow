@@ -1,0 +1,30 @@
+Readme
+
+Conditions
+
+This folder contains the data for the chemostat experiments for different medium conditions.
+Conditions:
+	- No carbon source
+	- Acetate 45 mM
+	- Ribose 18 mM
+	- Histidine 15 mM
+	- Glutaric acid 18 mM
+
+Protocol
+
+I started the chemostat experiments on Mondays (T0) and stopped them on Thrusday.
+I sample the experiment starting from Tuesday where the system is usually already at steady state. Starting from Tuesday, I did two samples per day, of which I did CFUs. Once per day, I measured the OD on a plate reader. You can find the labbook entries as PDF exports in the protocols folder
+
+Data
+
+You can find the CFU data and the OD data from the daily plate readings in the dataframes folder. The CFU dataframes split by condition contains following columns:
+
+['species', 'reactor', 'sample_time', 'average', 'stdev', 'count','dilution']
+
+Average: Average CFUs/mL for three dilutions (three 5 uL spots on one agar plate)
+Stdev: Square root of the sample variance (stdev function from statistics in python)
+count: Counted colonies
+dilution: In which dilution colonies were counted
+
+Plots
+In the plots directory you can find a plot of the CFUs in svg format.
