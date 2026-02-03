@@ -1,133 +1,214 @@
 import pandas as pd
+from data_parser import get_od_chemostats
+import plotly.graph_objects as go
+from style import *
+import curveball
 import numpy as np
-import scipy.optimize as optimize
-from os.path import join
-from matplotlib import pyplot as plt
-from scipy.integrate import odeint
-from scipy.stats import linregress
+from scipy.integrate import solve_ivp
+import lmfit
 
 
-def get_dfs(path):
-    meta = pd.read_csv(join(path, "metadata.csv"))
-    raw = pd.read_csv(join(path, "measurements.csv"))
-    return meta, raw
-
-
-def mask_df(df, t1, t2):
-    for i, row in df.iterrows():
-        if row["time"] >= t1:
-            t0 = row["time"]
-            break
-    df = df[(df["time"] >= t1) & (df["time"] <= t2)]
-    df.loc[:, "time"] = df.loc[:, "time"] - t0
-    return df
-
-
-def plot_OD(df, t1=None, t2=None):
-    if (t1 is not None) | (t2 is not None):
-        df = df[(df["time"] > t1) & (df["time"] < t2)]
-    for c in df.columns[1:]:
-        plt.plot(df["time"], df[c], label=c)
-    plt.xlabel("Time [h]"), plt.ylabel("OD")
-    plt.legend()
-    plt.show()
-
-
-def get_n0_series(series):
-    for value in series:
-        if value > 0:
-            return value
-
-
-def get_n0(df):
-    n0s = []
-    for c in df.columns[1:]:
-        n0s.append(get_n0_series(df[c]))
-    return np.average(n0s)
-
-
-def get_yield_series(series, c0):
-    return (max(series) - get_n0_series(series)) / c0
-
-
-def get_yield(df, c0):
-    qs = []
-    for c in df.columns[1:]:
-        qs.append(get_yield_series(df[c], c0))
-    return np.average(qs)
-
-
-def fit_max_growth_rate(df, t1, t2, plot=True):
-    vs = []
-    df = df[(df["time"] >= t1) & (df["time"] <= t2)]
-    for c in df.columns[1:]:
-        slope, intercept, r_value, p_value, std_err = linregress(
-            df["time"].to_numpy(), np.log(df[c].to_numpy())
+def plot_od_chemostats(df):
+    fig = go.Figure()
+    for i, (_, df) in enumerate(df.groupby("name")):
+        fig.add_trace(
+            go.Scatter(
+                x=df["time"][::5],
+                y=df["OD"][::5],
+                mode="markers",
+                name=df["name"].iloc[0],
+                marker=dict(
+                    symbol="circle", size=6, color=list(colors_metabolites.values())[i]
+                ),
+                showlegend=False,
+            )
         )
-        vs.append(slope)
-    v = np.average(vs)
-    if plot:
-        n0 = get_n0(df)
-        fit = [n0 * np.exp(v * t) for t in df["time"]]
-        for c in df.columns[1:]:
-            plt.plot(df["time"], df[c], label=c)
-        plt.plot(df["time"], fit, label="Model", linestyle="--")
-        plt.legend()
-        plt.show()
-    return v
+    fig = style_plot(fig)
+    return fig
 
 
-def monod(y, t, v, Km, q):
-    n, c = y
-    dndt = v * c / (Km + c) * n
-    dcdt = -v * c / (Km + c) * n / q
-    return np.array([dndt, dcdt])
-
-
-def simulate_monod(Km, v, t, q, n, c0, n0):
-    y = odeint(monod, [n0, c0], t, args=(v, Km[0], q))
-    return np.sum((n - y[:, 0]) ** 2)
-
-
-def get_Km(t, series, c0, n0, v, q):
-    Km = optimize.minimize(
-        simulate_monod,
-        [0.1],
-        args=(
-            v,
-            t,
-            q,
-            series,
-            c0,
-            n0,
-        ),
-        bounds=((0, 100),),
-    ).x
-    return Km[0]
-
-
-def fit_Km(df, v, c0):
-    Kms = []
-    for c in df.columns[1:]:
-        n0, q = get_n0_series(df[c]), get_yield_series(df[c], c0)
-        Kms.append(get_Km(df["time"].to_numpy(), df[c].to_numpy(), c0, n0, v, q))
-    return np.average(Kms)
-
-
-def plot_fit(df, Km, v, n0, q, c0):
-    plt.figure(figsize=(10, 6))
-    for c in df.columns[1:]:
-        plt.plot(df["time"].to_numpy(), df[c], label=c)
-
-    y = odeint(
-        monod,
-        [n0, c0],
-        df["time"].to_numpy(),
-        args=(v, Km, q),
+def plot_max_growth_rate(fig, x_means, rs, i):
+    fig.add_trace(
+        go.Scatter(
+            x=x_means,
+            y=rs,
+            mode="markers",
+            name=f"Replicate {i+1}",
+            marker=dict(
+                symbol="diamond", size=10, color=list(colors_metabolites.values())[i]
+            ),
+            showlegend=True,
+        )
     )
-    plt.plot(df["time"].to_numpy(), y[:, 0], label="Model", linestyle="--")
+    fig.update_layout(
+        xaxis=dict(title="Time [h]"), yaxis=dict(title="Growth rate [1/h]")
+    )
+    return fig
 
-    plt.xlabel("Time")
-    plt.ylabel("OD")
-    plt.legend()
-    plt.show()
+
+def plot_chemostat_fit(fig, t, N, i):
+    fig.add_trace(
+        go.Scatter(
+            x=t,
+            y=N,
+            mode="lines",
+            name="Simulated N",
+            marker=dict(color=list(colors_metabolites.values())[i]),
+            showlegend=False,
+        )
+    )
+    fig.update_layout(xaxis=dict(title="Time [h]"), yaxis=dict(title="OD600"))
+    return fig
+
+
+def add_legend(fig, r, K, i):
+    fig.add_trace(
+        go.Scatter(
+            x=[None],
+            y=[None],
+            mode="lines",
+            name=f"Replicate {i+1}:<br>r: {r:.3f} h⁻¹<br>Km: {K:.5f} mM",
+            line=dict(color=list(colors_metabolites.values())[i]),
+        )
+    )
+    return fig
+
+
+def growth_rate_model(x, y, window=5, D=0.15):
+    ln_y = np.log(y)
+    rs = []
+    x_means = []
+    # Set time to 0 if clipped
+    x = x - x[0]
+    for i in range(len(x)):
+        t0 = x[i]
+        t1 = t0 + window
+        mask = (x >= t0) & (x <= t1)
+        if mask.sum() < 30:
+            continue
+        x_window = x[mask]
+        ln_y_window = ln_y[mask]
+        k = np.polyfit(x_window, ln_y_window, 1)[0]
+        r = 0.15 + k
+        rs.append(r)
+        x_mean = x_window.mean()
+        x_means.append(x_mean)
+    return np.max(rs), (x_means, rs)
+
+
+def chemostat_model(t, y, r, Km, Y, M, D):
+    N, R = y
+    dNdt = (r * R / (Km + R)) * N - D * N
+    dRdt = D * (M - R) - (1 / Y) * (r * R / (Km + R)) * N
+    return [dNdt, dRdt]
+
+
+def simulate_model(t, r, Km, Y, M, D, N0, R0):
+    sol = solve_ivp(
+        fun=lambda t, y: chemostat_model(t, y, r, Km, Y, M, D),
+        t_span=(t[0], t[-1]),
+        y0=[N0, R0],
+        t_eval=t,
+        method="LSODA",
+    )
+    return sol.y
+
+
+def fit_km(t, y, r, Km, Y, M, D, N0, R0):
+    params = lmfit.Parameters()
+    params.add("Km", value=Km, min=0.0001, max=20)
+
+    def residual(p):
+        Km = p["Km"].value
+        N, _ = simulate_model(t, r, Km, Y, M, D, N0, R0)
+        return N - y
+
+    return lmfit.minimize(residual, params, method="least_squares")
+
+
+def fit_max_growth_rate(df):
+    fig = go.Figure()
+    for i, (_, rep) in enumerate(df.groupby("name")):
+        x = rep["time"].to_numpy()
+        y = rep["OD"].to_numpy()
+        r, (x_means, r_windows) = growth_rate_model(x, y)
+        plot_max_growth_rate(fig, x_means, r_windows, i)
+    fig = style_plot(fig)
+    fig.write_image("plots/fitting/oa_chemostat_growth_rates.svg")
+
+
+def fit_oa(df):
+    df = df[df["species"] == "Oa"]
+    df = df[(df["time"] >= 1) & (df["time"] <= 60)]
+    fig_N = plot_od_chemostats(df)
+    fig_r = go.Figure()
+    for i, (_, rep) in enumerate(df.groupby("name")):
+        x = rep["time"].to_numpy()
+        y = rep["OD"].to_numpy()
+        r, (x_means, r_windows) = growth_rate_model(x, y)
+        r = np.mean(r_windows[: 60 * 25])
+        # r = 0.19
+        Y = max(y) / 7.5
+        N0 = np.mean(y[:60])
+        fit = fit_km(
+            t=x,
+            y=y,
+            r=r,
+            Km=0.02,
+            Y=Y,
+            M=7.5,
+            D=0.15,
+            N0=N0,
+            R0=7.5,
+        )
+        Km_fitted = fit.params["Km"].value
+        N, R = simulate_model(x, r, Km_fitted, Y, 7.5, 0.15, N0, 7.5)
+        fig_N = plot_chemostat_fit(fig_N, x, N, i)
+        fig_N = add_legend(fig_N, r, Km_fitted, i)
+        fig_r = plot_max_growth_rate(fig_r, x_means, r_windows, i)
+
+    fig_N = style_plot(fig_N, font_size=10, marker_size=1.5)
+    fig_N.update_layout(width=300, height=180)
+    fig_N.write_image("plots/fitting/oa_chemostat_fit.svg")
+    fig_r = style_plot(fig_r, font_size=10, marker_size=2)
+    fig_r.update_layout(width=300, height=180)
+    fig_r.write_image("plots/fitting/oa_chemostat_growth_rates.svg")
+
+
+def fit_ct():
+    df = get_od_chemostats(write_excel=False)
+    # df = pd.read_csv("../data/od_chemostats.csv")
+    df = df[df["species"] == "Ct"]
+    df = df[(df["time"] >= 1) & (df["time"] <= 12)]
+    fig_N = plot_od_chemostats(df)
+    fig_r = go.Figure()
+    for i, (_, rep) in enumerate(df.groupby("name")):
+        x = rep["time"].to_numpy()
+        y = rep["OD"].to_numpy()
+        r, (x_means, r_windows) = growth_rate_model(x, y)
+        r = r_windows[0]
+        Y = (max(y) - 0.02) / 7.5
+        N0 = np.mean(y[:50])
+        fit = fit_km(
+            t=x,
+            y=y,
+            r=r,
+            Km=0.02,
+            Y=Y,
+            M=7.5,
+            D=0.15,
+            N0=N0,
+            R0=7.5,
+        )
+        Km_fitted = fit.params["Km"].value
+        N, R = simulate_model(x, r, Km_fitted, Y, 7.5, 0.15, N0, 7.5)
+        fig_N = plot_chemostat_fit(fig_N, x, N, i)
+        fig_N = add_legend(fig_N, r, Km_fitted, i)
+        fig_r = plot_max_growth_rate(fig_r, x_means, r_windows, i)
+
+    fig_N = style_plot(fig_N, font_size=10, marker_size=1.5)
+    fig_N.update_layout(width=300, height=180)
+    fig_N.write_image("plots/fitting/ct_chemostat_fit.svg")
+    fig_r = style_plot(fig_r, font_size=10, marker_size=2)
+    fig_r.update_layout(width=300, height=180)
+    fig_r.write_image("plots/fitting/ct_chemostat_growth_rates.svg")
