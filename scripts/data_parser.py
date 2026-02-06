@@ -158,7 +158,7 @@ def get_cfus():
     return pd.concat(dfs)
 
 
-def get_od_chemostats():
+def get_od_chemostats(write_excel=True):
     sheets = []
     replicates = ["replicate_1", "replicate_2", "replicate_3"]
     dfs = []
@@ -199,6 +199,24 @@ def get_od_chemostats():
         )
         sheets.append(sheet)
     Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/250320_ct_mono")
+    dfs = []
+    for rname, r in Ms.groupby("reactor"):
+        if rname == "M0":
+            rdfs = []
+            t0 = 2.41
+            t1 = 3.13
+            slice_1 = r[r["exp_time"] >= t1]
+            od_slice_1 = slice_1.iloc[-1]["od_measured"]
+            slice_0 = r[r["exp_time"] <= t0]
+            slice_0_out = slice_0.copy()
+            slice_0_out["od_measured"] = slice_0["od_measured"] - od_slice_1
+            rdfs.append(slice_0_out)
+            rdfs.append(slice_1)
+            dfs.append(pd.concat(rdfs))
+        else:
+            dfs.append(r)
+    Ms = pd.concat(dfs)
+
     df = calibration_csv(
         "/home/eric/ChiBioFlow/data/at_oa/250320_ct_mono/calibration.csv", Ms
     )
@@ -239,11 +257,12 @@ def get_od_chemostats():
         M["od_calibrated"] = OD
         M["experiment"] = "ct_mono_old"
         dfs.append(M)
-    with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
-        pd.concat(sheets).to_excel(
-            writer, index=False, sheet_name="Monoculture chemostat OD data"
-        )
-    return pd.concat(dfs)
+    if write_excel:
+        with pd.ExcelWriter("../data/data.xlsx", engine="openpyxl", mode="a") as writer:
+            pd.concat(sheets).to_excel(
+                writer, index=False, sheet_name="Monoculture chemostat OD data"
+            )
+    return pd.concat(sheets)
 
 
 def ct_oa_plate_reader():

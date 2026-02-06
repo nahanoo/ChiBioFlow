@@ -1,5 +1,5 @@
 import pandas as pd
-from data_parser import get_cfus, get_od_chemostats, ct_oa_plate_reader
+from data_parser import df, get_cfus, get_od_chemostats, ct_oa_plate_reader
 import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
@@ -9,6 +9,7 @@ from scipy.stats import linregress
 from style import *
 import scipy.stats as stats
 import statsmodels.formula.api as smf
+import curveball
 
 
 def growth_curves_ct_oa():
@@ -308,99 +309,364 @@ def chemostat_ct_oa_community():
     print("Oa/Ct fold:", 10**est, "CI:", (10 ** ci[0], 10 ** ci[1]))
 
 
-chemostat_ct_oa_community()
+def statistics_ct_oa_chemostat(eps=1e-12):
+    df = get_cfus()
+    ct_oa_thiamine = df[df["experiment"] == "ct_oa_thiamine"]
+    # 1) filter time 0
+    ss = ct_oa_thiamine.loc[ct_oa_thiamine["sample_time"] != 0].copy()
+
+    # 2) wide table
+    wide = ss.pivot_table(
+        index=["reactor", "sample_time"],
+        columns="species",
+        values="average",
+        aggfunc="mean",
+    ).dropna(subset=["ct", "oa"])
+
+    # 3) guard against non-positive values (log not defined)
+    # if you *expect* zeros from detection limits, using eps is common:
+    wide["ct_pos"] = wide["ct"].astype(float).clip(lower=eps)
+    wide["oa_pos"] = wide["oa"].astype(float).clip(lower=eps)
+
+    # 4) log10 ratio
+    wide["d"] = np.log10(wide["oa_pos"]) - np.log10(wide["ct_pos"])
+    dlong = wide.reset_index()
+
+    # 5) mixed model: random intercept per reactor
+    m = smf.mixedlm("d ~ 1", dlong, groups=dlong["reactor"])
+    r = m.fit(reml=False)
+
+    est = float(r.params["Intercept"])  # mean log10(Oa/Ct)
+    se = float(r.bse["Intercept"])
+
+    # Wald z-test for H0: est=0
+    z = est / se
+
+    # one-sided p for Oa > Ct (H1: est > 0)
+    p_one = stats.norm.sf(z)  # same as 1 - cdf(z)
+
+    # (optional) two-sided p
+    p_two = 2 * stats.norm.sf(abs(z))
+
+    # 95% CI on log10 scale, then back-transform to fold-change
+    ci_log = (est - 1.96 * se, est + 1.96 * se)
+    fold = 10**est
+    fold_ci = (10 ** ci_log[0], 10 ** ci_log[1])
+
+    out = {
+        "mean_log10_Oa_over_Ct": est,
+        "se": se,
+        "z": z,
+        "p_one_sided_Oa_gt_Ct": p_one,
+        "p_two_sided": p_two,
+        "fold_Oa_over_Ct": fold,
+        "fold_CI95": fold_ci,
+        "result": r,  # keep the fitted model if you want r.summary()
+    }
+
+    print(
+        f"mean log10(Oa/Ct) = {out['mean_log10_Oa_over_Ct']:.3f} (SE {out['se']:.3f}), z={out['z']:.2f}"
+    )
+    print(
+        f"one-sided p (Oa > Ct) = {out['p_one_sided_Oa_gt_Ct']:.3g}  |  two-sided p = {out['p_two_sided']:.3g}"
+    )
+    print(
+        f"Oa/Ct fold-change = {out['fold_Oa_over_Ct']:.2f}  (95% CI {out['fold_CI95'][0]:.2f}–{out['fold_CI95'][1]:.2f})"
+    )
 
 
-def sfig1bc():
+def calibration_curve(cal: pd.DataFrame, title="OD calibration: OD = k·log10(R) + b"):
+    """
+    cal: DataFrame indexed by reactor (or with 'reactor' column),
+         columns: OD0, R0, OD1, R1
+    """
+    cal = cal.copy()
+    if "reactor" in cal.columns:
+        cal = cal.set_index("reactor")
+
+    # compute k and b per reactor (no sympy needed)
+    cal["k"] = (cal["OD1"] - cal["OD0"]) / (np.log10(cal["R1"]) - np.log10(cal["R0"]))
+    cal["b"] = cal["OD0"] - cal["k"] * np.log10(cal["R0"])
+
     fig = go.Figure()
 
-    df = get_od_chemostats()
-    df = df[df["experiment"] == "oa_mono"]
-    Ms = [df[df["reactor"] == M] for M in ["M0", "M1"]]
-    df = get_od_chemostats()
-    df = df[df["experiment"] == "oa_mono_repeat"]
-    df["reactor"] = "M2"
-    Ms.insert(2, df)
-    for i, M in enumerate(Ms):
-        x = M["exp_time"].to_numpy()
-        y = M["od_calibrated"].to_numpy()
+    # choose an R-range for the line (across both points)
+    R_all = np.r_[cal["R0"].to_numpy(float), cal["R1"].to_numpy(float)]
+    R_min, R_max = float(np.nanmin(R_all)), float(np.nanmax(R_all))
+    R_line = np.logspace(np.log10(R_min), np.log10(R_max), 200)
+    names = ["Replicate 1", " Replicate 2", "Replicate 3"]
+    for i, (reactor, row) in enumerate(cal.iterrows()):
+        color = list(colors_metabolites.values())[i]
+
+        # points
         fig.add_trace(
             go.Scatter(
-                x=x[4:-10],
-                y=y[4:-10],
-                # name=M.loc[0, "reactor"],
-                name="Chemostat",
+                x=[row["R0"], row["R1"]],
+                y=[row["OD0"], row["OD1"]],
+                mode="markers",
+                name=f"{names[i]}",
+                marker=dict(size=9, color=color, line=dict(width=1)),
                 showlegend=True,
-                marker=dict(color=colors["oa"]),
+            )
+        )
+
+        # line
+        OD_line = row["k"] * np.log10(R_line) + row["b"]
+        fig.add_trace(
+            go.Scatter(
+                x=R_line,
+                y=OD_line,
+                mode="lines",
+                name=f"{names[i]} fit",
+                line=dict(color=color, width=2),
+                showlegend=False,
             )
         )
 
     fig.update_layout(
-        xaxis=dict(
-            range=[0, max(M["exp_time"])],
-            showgrid=True,
-            zeroline=True,
-            dtick=12,
-            title="Time [h]",
-            ticks="inside",
-        ),
-        yaxis=dict(range=[0, 0.5], dtick=0.1, ticks="inside"),
-        title="<i>O. anthropi</i>",
-        width=width,
-        height=height,
-        showlegend=False,
+        title=title,
+        xaxis=dict(title="Raw reading R", type="log", ticks="inside"),
+        yaxis=dict(title="Calibrated OD", ticks="inside"),
+        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+        template="simple_white",
+        width=270,
+        height=180,
     )
-    p = parse_params()
+    return fig
 
-    p["N02"] = 0.1
-    p["q2_1"] = 0.053
-    Y = odeint(oa_mono, [p["N02"], p["M1"]], M["exp_time"], args=(p,))
+
+def plot_calibration_curve_ct_oa_mono():
+    df = pd.read_csv("~/ChiBioFlow/data/at_oa/250320_ct_mono/calibration.csv")
+    fig = calibration_curve(df)
+    fig = style_plot(fig, font_size=11, marker_size=7, line_thickness=1.5)
+    fig.write_image("plots/experiments/od_calibration_curve_ct_mono.svg")
+
+    df = pd.read_csv("~/ChiBioFlow/data/at_oa/250310_oa_mono/calibration.csv")
+    fig = calibration_curve(df)
+    fig = style_plot(fig, font_size=11, marker_size=7, line_thickness=1.5)
+    fig.write_image("plots/experiments/od_calibration_curve_oa_mono.svg")
+
+
+def plot_ct_in_spent_chemostat_media():
+    df = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/metadata.csv"
+    )
+    df_ct = df[df["species"] == "Comamonas testosteroni"]
+    df_ct = df_ct.sort_values(by="exp_ID")
+    df_oa = df[df["species"] == "Ochrobactrum anthropi"]
+    data = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/measurements.csv"
+    )
+    figs = [go.Figure(), go.Figure()]
+    ys = []
+    sources = [
+        "Spent media Ct",
+        "Spent media Oa",
+    ]
+    cvs = []
+    for j, cs in enumerate(sources):
+        line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
+        for i, (lg, comment) in enumerate(
+            df_ct[df_ct["carbon_source"] == cs][["linegroup", "comments"]].values
+        ):
+            if line_counter[comment] == 0:
+                cv = pd.DataFrame(columns=["Time", "OD", "Well", "Strain"])
+                x = data[lg + "_time"]
+                y = data[lg + "_measurement"]
+                ys.append(y.to_numpy())
+                figs[j].add_trace(
+                    go.Scatter(
+                        x=x,
+                        y=y,
+                        name=cs,
+                        legendgroup=cs,
+                        line=dict(color=colors["ct"]),
+                        showlegend=(i == 0),
+                        opacity=(1 if j == 0 else 1),
+                    )
+                )
+                line_counter[comment] += 1
+                cv["Time"], cv["OD"], cv["Well"], cv["Strain"] = x, y, lg, cs
+                cv = cv[cv["Time"] > 18]
+                cvs.append(cv)
+
+    cv = pd.concat(cvs)
+    cv_ct_oa = cv[cv["Strain"] == "Spent media Oa"]
+
+    m = curveball.models.fit_model(
+        cv_ct_oa,
+        PLOT=False,
+        PRINT=False,
+        param_guess={"y0": 0.009},
+        param_fix=["y0"],
+    )
+    m = sorted(m, key=lambda r: r.model.name)
+    figs[1].add_trace(
+        go.Scatter(
+            x=m[1].userkws["t"],
+            y=m[1].best_fit,
+            mode="lines",
+            line=dict(dash="1px 1px", color="black"),
+            name="fit",
+            showlegend=False,
+        )
+    )
+
+    figs[1].update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", ticks="inside"),
+        showlegend=False,
+        width=175,
+        height=160,
+        title=f"Ct in spent chemo-<br>stat media of Oa r: {m[1].params['r'].value:.2f}",
+    )
+    figs[1] = style_plot(
+        figs[1],
+        font_size=11,
+        buttom_margin=25,
+        left_margin=35,
+        right_margin=10,
+        top_margin=30,
+    )
+    print(f"Ct in spent chemo-stat media of Oa r: {m[1].params['r'].value:.2f}")
+    figs[1].write_image("plots/experiments/ct_grown_in_oa_chemostat.svg")
+
+    cv_ct_ct = cv[cv["Strain"] == "Spent media Ct"]
+
+    m = curveball.models.fit_model(
+        cv_ct_ct,
+        PLOT=False,
+        PRINT=False,
+        param_guess={"y0": 0.009},
+        param_fix=["y0"],
+    )
+    m = sorted(m, key=lambda r: r.model.name)
+    figs[0].add_trace(
+        go.Scatter(
+            x=m[1].userkws["t"],
+            y=m[1].best_fit,
+            mode="lines",
+            line=dict(dash="1px 1px", color="black"),
+            name="fit",
+            showlegend=False,
+        )
+    )
+
+    figs[0].update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", ticks="inside"),
+        showlegend=False,
+        width=175,
+        height=160,
+        title=f"Ct in spent chemo-<br>stat media of Ct r: {m[1].params['r'].value:.2f}",
+    )
+    figs[0] = style_plot(
+        figs[0],
+        font_size=11,
+        buttom_margin=25,
+        left_margin=35,
+        right_margin=10,
+        top_margin=30,
+    )
+    figs[0].write_image("plots/experiments/ct_grown_in_ct_chemostat.svg")
+    print(f"Ct in spent chemo-stat media of Ct r: {m[1].params['r'].value:.2f}")
+
+
+def plot_oa_in_spent_chemostat_media():
+    df = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/metadata.csv"
+    )
+    df_ct = df[df["species"] == "Comamonas testosteroni"]
+    df_ct = df_ct.sort_values(by="exp_ID")
+    df_oa = df[df["species"] == "Ochrobactrum anthropi"]
+    data = pd.read_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/measurements.csv"
+    )
+    figs = [go.Figure(), go.Figure()]
+    css = ["Spent media Ct", "Spent media Oa"]
+    for j, cs in enumerate(css):
+        line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
+        for i, (lg, comment) in enumerate(
+            df_oa[df_oa["carbon_source"] == cs][["linegroup", "comments"]].values
+        ):
+            if line_counter[comment] == 0:
+                x = data[lg + "_time"]
+                y = data[lg + "_measurement"]
+                figs[j].add_trace(
+                    go.Scatter(
+                        x=x[5:],
+                        y=y[5:],
+                        name=cs,
+                        legendgroup=cs,
+                        mode="lines",
+                        line=dict(
+                            color=colors["oa"],
+                        ),
+                        showlegend=False,
+                    )
+                )
+                line_counter[comment] += 1
+    titles = [
+        "Oa in spent chemo-<br>stat media of Ct",
+        "Oa in spent chemo-<br>stat media of Oa",
+    ]
+    for i, title in enumerate(titles):
+        figs[i].update_layout(
+            xaxis=dict(title="Time [h]", range=[0, 72], dtick=12),
+            yaxis=dict(title="OD", range=[0, 0.03], dtick=0.01),
+            title=title,
+            width=175,
+            height=160,
+            showlegend=False,
+        )
+        figs[i] = style_plot(
+            figs[i],
+            font_size=11,
+            buttom_margin=25,
+            left_margin=35,
+            right_margin=10,
+            top_margin=30,
+        )
+        figs[i].write_image(
+            "plots/experiments/oa_grown_in_{}_chemostat.svg".format(
+                css[i].lower().replace(" ", "_")
+            )
+        )
+
+
+def oa_mono_no_thiamine():
+    Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/250310_oa_mono")
+    df = calibration_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250310_oa_mono/calibration.csv", Ms
+    )
+    df = df[df["reactor"] == "M3"]
+    fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=M["exp_time"],
-            y=Y[:, 0],
-            name="Model",
-            line=dict(color="black", dash="dot"),
-            mode="lines",
-        ),
-    )
-    fig = style_plot(fig, font_size=11, left_margin=20, buttom_margin=20)
-    fig.write_image("plots/experiments/sfig1b.svg")
-    df = get_od_chemostats()
-    df = df[df["experiment"] == "oa_mono"]
-    Ms = [df[df["reactor"] == M] for M in ["M3"]]
-    fig = go.Figure()
-    for i, M in enumerate(Ms):
-        x = M["exp_time"].to_numpy()
-        y = M["od_calibrated"].to_numpy()
-        fig.add_trace(
-            go.Scatter(
-                x=x[4:-10],
-                y=y[4:-10],
-                # name=M.loc[0, "reactor"],
-                name="Chemostat",
-                showlegend=True,
-                marker=dict(color=colors["oa"]),
-            )
+            x=df["exp_time"][4:-10],
+            y=df["od_calibrated"][4:-10],
+            name="Chemostat",
+            showlegend=True,
+            marker=dict(color=colors["oa"]),
         )
+    )
 
     fig.update_layout(
         xaxis=dict(
-            range=[0, max(M["exp_time"])],
-            showgrid=True,
-            zeroline=True,
-            dtick=12,
             title="Time [h]",
             ticks="inside",
         ),
-        yaxis=dict(range=[0, 0.5], dtick=0.1, ticks="inside"),
-        title="<i>O. anthropi</i>",
+        yaxis=dict(title="OD600", ticks="inside"),
+        title="Oa in chemostat without thiamine",
         width=width,
         height=height,
         showlegend=False,
     )
     fig = style_plot(fig, font_size=11, left_margin=20, buttom_margin=20)
-    fig.write_image("plots/experiments/sfig1c.svg")
+    fig.write_image("plots/experiments/oa_mono_no_thiamine.svg")
+
+
+oa_mono_no_thiamine()
 
 
 def sfig1e():
@@ -827,141 +1093,6 @@ def max_growth_rate_high_conc():
         left_margin=20,
     )
     fig.write_image("plots/experiments/oa_high_conc.svg")
-
-
-def fig2d():
-    df = pd.read_csv(
-        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/metadata.csv"
-    )
-    df_ct = df[df["species"] == "Comamonas testosteroni"]
-    df_ct = df_ct.sort_values(by="exp_ID")
-    df_oa = df[df["species"] == "Ochrobactrum anthropi"]
-    data = pd.read_csv(
-        "/home/eric/ChiBioFlow/data/at_oa/250411_spent_media_growth_curves/measurements.csv"
-    )
-    figs = [go.Figure(), go.Figure()]
-    ys = []
-    sources = [
-        "Spent media Ct",
-        "Spent media Oa",
-    ]
-    for j, cs in enumerate(sources):
-        line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
-        for i, (lg, comment) in enumerate(
-            df_ct[df_ct["carbon_source"] == cs][["linegroup", "comments"]].values
-        ):
-            if line_counter[comment] == 0:
-                x = data[lg + "_time"]
-                y = data[lg + "_measurement"]
-                ys.append(y.to_numpy())
-                figs[j].add_trace(
-                    go.Scatter(
-                        x=x,
-                        y=y,
-                        name=cs,
-                        legendgroup=cs,
-                        line=dict(color=colors["ct"]),
-                        showlegend=(i == 0),
-                        opacity=(1 if j == 0 else 1),
-                    )
-                )
-                line_counter[comment] += 1
-    ys = np.average(ys, axis=0)
-    xs = x
-    i, j = 0, 0
-    for q, x in enumerate(xs):
-        if x <= 18:
-            i = q
-        if x >= 40:
-            j = q
-            break
-    slope, intercept, r_value, p_value, std_err = linregress(xs[i:j], np.log(ys[i:j]))
-    print("Slope Ct", slope)
-    figs[1].add_trace(
-        go.Scatter(
-            x=xs[i:j],
-            y=np.exp(slope * xs[i:j] + intercept),
-            name="fit",
-            line=dict(dash="dot", color="black"),
-        )
-    )
-
-    figs[1].update_layout(
-        xaxis=dict(title="Time [h]", ticks="inside"),
-        yaxis=dict(title="OD", ticks="inside", type="log"),
-        showlegend=False,
-        width=175,
-        height=160,
-        title="Ct in spent chemo-<br>stat media of Oa",
-    )
-    figs[1] = style_plot(
-        figs[1],
-        font_size=11,
-        buttom_margin=25,
-        left_margin=35,
-        right_margin=10,
-        top_margin=30,
-    )
-    figs[1].write_image("plots/experiments/fig2d_ct.svg")
-    figs[0].update_layout(
-        xaxis=dict(title="Time [h]", ticks="inside"),
-        yaxis=dict(title="OD", ticks="inside", type="log"),
-        showlegend=False,
-        width=175,
-        height=220,
-        title="Ct in spent chemo-<br>stat media of Ct",
-    )
-    figs[1] = style_plot(
-        figs[0],
-        font_size=11,
-        buttom_margin=25,
-        left_margin=35,
-        right_margin=10,
-        top_margin=30,
-    )
-    figs[0].write_image("plots/experiments/fig2d_ct_ct.svg")
-    fig = go.Figure()
-    for j, cs in enumerate(["Spent media Ct", "Spent media Oa"]):
-        line_counter = {"Batch 1": 0, "Batch 2": 0, "Batch 3": 0}
-        for i, (lg, comment) in enumerate(
-            df_oa[df_oa["carbon_source"] == cs][["linegroup", "comments"]].values
-        ):
-            if line_counter[comment] == 0:
-                x = data[lg + "_time"]
-                y = data[lg + "_measurement"]
-                fig.add_trace(
-                    go.Scatter(
-                        x=x[5:],
-                        y=y[5:],
-                        name=cs,
-                        legendgroup=cs,
-                        mode="lines",
-                        line=dict(
-                            color=colors["oa"],
-                        ),
-                        opacity=(0.5 if j == 0 else 1),
-                        showlegend=(i == 0),
-                    )
-                )
-                line_counter[comment] += 1
-    fig.update_layout(
-        xaxis=dict(title="Time [h]", range=[0, 72], dtick=12),
-        yaxis=dict(title="OD", range=[0, 0.03], dtick=0.01),
-        title="<i>O. anthropi</i>",
-        width=100,
-        height=160,
-        showlegend=False,
-    )
-    fig = style_plot(
-        fig,
-        line_thickness=0.8,
-        font_size=8,
-        buttom_margin=20,
-        left_margin=25,
-        top_margin=20,
-        right_margin=20,
-    )
-    fig.write_image("plots/experiments/fig2d_oa.svg")
 
 
 def Km_cufs():

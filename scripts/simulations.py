@@ -264,6 +264,9 @@ def missing_growth_rate():
     fig.write_image("plots/simulations/coexistence/missing_growth_rate.svg")
 
 
+missing_growth_rate()
+
+
 def metabolite_affinity():
     Kms = np.linspace(1e-3, 1, 1000)
     Rs = np.linspace(1e-3, 1, 1000)
@@ -606,6 +609,3 @@ def main():
     km_across_substrates()
     simulate_chemostat_community_experiments()
     simulate_cross_feeding_batch()
-
-
-main()

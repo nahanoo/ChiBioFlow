@@ -59,7 +59,7 @@ colors = {
 symbols = {"Ct": "cross", "Oa": "square"}
 
 
-def plotting():
+def plot_metabolic_classes():
     for group in set(raw["group"]):
         df = raw[raw["group"] == group]
         f = group.replace(" ", "_").replace("/", "_") + ".pdf"
@@ -194,10 +194,6 @@ for i, m in enumerate(raw["metabolite"]):
         df.at[i, "group"] = group
 df.index = df["metabolite"]
 df = df.sort_values(by="group")
-
-
-def fig2c():
-    pass
 
 
 def leakage_consumption():

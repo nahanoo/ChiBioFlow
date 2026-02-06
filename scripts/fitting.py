@@ -37,7 +37,7 @@ def plot_max_growth_rate(fig, x_means, rs, i):
             marker=dict(
                 symbol="diamond", size=10, color=list(colors_metabolites.values())[i]
             ),
-            showlegend=True,
+            showlegend=False,
         )
     )
     fig.update_layout(
@@ -67,7 +67,7 @@ def add_legend(fig, r, K, i):
             x=[None],
             y=[None],
             mode="lines",
-            name=f"Replicate {i+1}:<br>r: {r:.3f} h⁻¹<br>Km: {K:.5f} mM",
+            name=f"r: {r:.3f} h⁻¹<br>Km: {K:.5f} mM",
             line=dict(color=list(colors_metabolites.values())[i]),
         )
     )
@@ -142,6 +142,7 @@ def fit_oa(df):
     df = df[(df["time"] >= 1) & (df["time"] <= 60)]
     fig_N = plot_od_chemostats(df)
     fig_r = go.Figure()
+    rs, Kms = [], []
     for i, (_, rep) in enumerate(df.groupby("name")):
         x = rep["time"].to_numpy()
         y = rep["OD"].to_numpy()
@@ -162,26 +163,30 @@ def fit_oa(df):
             R0=7.5,
         )
         Km_fitted = fit.params["Km"].value
+        rs.append(r)
+        Kms.append(Km_fitted)
         N, R = simulate_model(x, r, Km_fitted, Y, 7.5, 0.15, N0, 7.5)
         fig_N = plot_chemostat_fit(fig_N, x, N, i)
         fig_N = add_legend(fig_N, r, Km_fitted, i)
         fig_r = plot_max_growth_rate(fig_r, x_means, r_windows, i)
 
     fig_N = style_plot(fig_N, font_size=10, marker_size=1.5)
-    fig_N.update_layout(width=300, height=180)
+    fig_N.update_layout(width=300, height=150)
     fig_N.write_image("plots/fitting/oa_chemostat_fit.svg")
-    fig_r = style_plot(fig_r, font_size=10, marker_size=2)
-    fig_r.update_layout(width=300, height=180)
+    fig_r = style_plot(fig_r, font_size=10, marker_size=1.5)
+    fig_r.update_layout(width=150, height=150)
     fig_r.write_image("plots/fitting/oa_chemostat_growth_rates.svg")
+    print(f"OA growth rate: {np.mean(rs):.3f} ± {np.std(rs):.3f}")
+    print(f"OA Km: {np.mean(Kms):.3f} ± {np.std(Kms):.3f}")
 
 
-def fit_ct():
-    df = get_od_chemostats(write_excel=False)
+def fit_ct(df):
     # df = pd.read_csv("../data/od_chemostats.csv")
     df = df[df["species"] == "Ct"]
     df = df[(df["time"] >= 1) & (df["time"] <= 12)]
     fig_N = plot_od_chemostats(df)
     fig_r = go.Figure()
+    rs, Kms = [], []
     for i, (_, rep) in enumerate(df.groupby("name")):
         x = rep["time"].to_numpy()
         y = rep["OD"].to_numpy()
@@ -205,10 +210,67 @@ def fit_ct():
         fig_N = plot_chemostat_fit(fig_N, x, N, i)
         fig_N = add_legend(fig_N, r, Km_fitted, i)
         fig_r = plot_max_growth_rate(fig_r, x_means, r_windows, i)
+        rs.append(r)
+        Kms.append(Km_fitted)
 
     fig_N = style_plot(fig_N, font_size=10, marker_size=1.5)
-    fig_N.update_layout(width=300, height=180)
+    fig_N.update_layout(width=300, height=150)
     fig_N.write_image("plots/fitting/ct_chemostat_fit.svg")
-    fig_r = style_plot(fig_r, font_size=10, marker_size=2)
-    fig_r.update_layout(width=300, height=180)
+    fig_r = style_plot(fig_r, font_size=10, marker_size=1.5)
+    fig_r.update_layout(width=150, height=150)
     fig_r.write_image("plots/fitting/ct_chemostat_growth_rates.svg")
+    print(f"CT growth rate: {np.mean(rs):.3f} ± {np.std(rs):.3f}")
+    print(f"CT Km: {np.mean(Kms):.3f} ± {np.std(Kms):.3f}")
+
+
+def normalized_growth_rates():
+    fig = go.Figure()
+    df = get_od_chemostats(write_excel=False)
+    df = df[df["species"] == "Oa"]
+    df = df[(df["time"] >= 1) & (df["time"] <= 60)]
+    for i, (_, rep) in enumerate(df.groupby("name")):
+        x = rep["time"].to_numpy()
+        y = rep["OD"].to_numpy()
+        r, (x_means, r_windows) = growth_rate_model(x, y)
+        fig.add_trace(
+            go.Scatter(
+                x=x_means,
+                y=np.array(r_windows) / 0.18,
+                mode="markers",
+                marker=dict(color=colors["oa"]),
+                showlegend=False,
+            )
+        )
+    df = get_od_chemostats(write_excel=False)
+    # df = pd.read_csv("../data/od_chemostats.csv")
+    df = df[df["species"] == "Ct"]
+    df = df[(df["time"] >= 1) & (df["time"] <= 12)]
+    for i, (_, rep) in enumerate(df.groupby("name")):
+        x = rep["time"].to_numpy()
+        y = rep["OD"].to_numpy()
+        r, (x_means, r_windows) = growth_rate_model(x, y)
+        fig.add_trace(
+            go.Scatter(
+                x=x_means,
+                y=np.array(r_windows) / 0.45,
+                mode="markers",
+                marker=dict(color=colors["ct"]),
+                showlegend=False,
+            )
+        )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]"),
+        yaxis=dict(title="Normalized growth rate"),
+        width=150,
+        height=150,
+    )
+
+    fig = style_plot(fig, font_size=12, marker_size=2)
+    fig.write_image("plots/fitting/chemostat_normalized_growth_rates.svg")
+
+
+df = get_od_chemostats(write_excel=False)
+
+fit_oa(df)
+fit_ct(df)
+normalized_growth_rates()
