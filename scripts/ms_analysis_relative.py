@@ -218,13 +218,13 @@ def leakage_consumption():
                     ),
                     hovertext=[meta.loc[m]["group"] + "<br>" + m + "<br>Ct"],
                     textfont=dict(size=8),
-                    textposition="middle right",
+                    textposition="middle left",
                     mode="markers+text",
                     text=m,
                     showlegend=False,
                 ),
                 row=2,
-                col=1,
+                col=2,
             )
             groups.append(meta.loc[m]["group"])
             consumed.append(m)
@@ -241,11 +241,11 @@ def leakage_consumption():
                     hovertext=[meta.loc[m]["group"] + "<br>" + m],
                     showlegend=False,
                     textfont=dict(size=8),
-                    textposition="middle right",
+                    textposition="middle left",
                     mode="markers+text",
                     text=m,
                 ),
-                row=2,
+                row=1,
                 col=2,
             )
             groups.append(meta.loc[m]["group"])
@@ -297,8 +297,8 @@ def leakage_consumption():
                     mode=("markers+text" if m in consumed else "markers"),
                     text=m,
                 ),
-                row=1,
-                col=2,
+                row=2,
+                col=1,
             )
             groups.append(meta.loc[m]["group"])
 
