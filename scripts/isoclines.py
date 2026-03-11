@@ -3,17 +3,22 @@ import pandas as pd
 import plotly.graph_objects as go
 from style import *
 from joblib import Parallel, delayed
+from scipy.integrate import odeint
+from models import thiamine_supply as ts
+from models import mutual_cf as mc
 
 
-df = dict(pd.read_csv("parameters.csv"))
-params = pd.Series(df["value"].values, index=df["parameter"]).to_dict()
-p = params
+def parse_params():
+    df = dict(pd.read_csv("parameters.csv"))
+    params = pd.Series(df["value"].values, index=df["parameter"]).to_dict()
+    p = params
+    return p
 
 
 def ct_oa_isocline():
     Ts = np.geomspace(1e-2, 1e4)
     Rs = np.geomspace(1e-2, 10)
-
+    p = parse_params()
     R_grid, T_grid = np.meshgrid(Rs, Ts)
     JCt = p["v1_1"] * R_grid / (R_grid + p["K1_1"])
     JOa = p["v2_1"] * R_grid / (R_grid + p["K2_1"]) * T_grid / (T_grid + p["K2_3"])
@@ -41,10 +46,19 @@ def ct_oa_isocline():
             ),
         )
     )
+    fig = style_plot(
+        fig,
+        line_thickness=1.5,
+        font_size=9,
+        left_margin=0,
+        buttom_margin=0,
+        top_margin=0,
+        right_margin=0,
+    )
     fig.update_layout(
         autosize=False,
         height=150,
-        width=200,
+        width=205,
         yaxis=dict(
             title="Thiamine [nM]",
             zeroline=True,
@@ -64,15 +78,7 @@ def ct_oa_isocline():
             dtick=1,
         ),
     )
-    fig = style_plot(
-        fig,
-        line_thickness=1.5,
-        font_size=11,
-        left_margin=30,
-        buttom_margin=25,
-        top_margin=15,
-        right_margin=0,
-    )
+
     fig.add_trace(
         go.Contour(
             z=JOat,
@@ -150,7 +156,6 @@ def ct_oa_isocline():
             showlegend=False,
         )
     )
-    fig = square_panel_by_height(fig, height_px=150)
     fig.write_image("plots/isoclines/ct_oa_isoclines.svg")
 
 
@@ -176,8 +181,8 @@ def compute_ratio(D, alpha, p_base, xs, thiamine_supplied=True):
 
 def coexistence_sweep_thiamine_added():
     p_base = parse_params()
-    Ds = np.linspace(0, 0.3, 100)
-    alphas = np.linspace(1, 100, 100)
+    Ds = np.linspace(0, 0.3, 200)
+    alphas = np.linspace(1, 100, 500)
 
     # Create full parameter grid
     param_grid = [
@@ -185,6 +190,7 @@ def coexistence_sweep_thiamine_added():
     ]
 
     # Run in parallel
+    xs = np.linspace(0, 2000, 2000 * 6)
     results = Parallel(n_jobs=-1, verbose=1)(
         delayed(compute_ratio)(D, alpha, p_base, xs) for (_, _, D, alpha) in param_grid
     )
@@ -226,7 +232,7 @@ def coexistence_sweep_thiamine_added():
     fig.update_layout(height=150, width=170, title="Thiamine supplied")
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
+        line_thickness=2,
         font_size=11,
         left_margin=20,
         buttom_margin=25,
@@ -238,13 +244,13 @@ def coexistence_sweep_thiamine_added():
 
 def coexistence_sweep_thiamine_free():
     p_base = parse_params()
-    Ds = np.linspace(0, 0.3, 200)
-    alphas = np.linspace(0.0002, 1, 200)
+    Ds = np.linspace(0, 0.3, 300)
+    alphas = np.linspace(0.0002, 1, 300)
 
     param_grid = [
         (i, j, D, alpha) for i, D in enumerate(Ds) for j, alpha in enumerate(alphas)
     ]
-
+    xs = np.linspace(0, 2000, 2000 * 6)
     results = Parallel(n_jobs=-1, verbose=1)(
         delayed(compute_ratio)(D, alpha, p_base, xs, thiamine_supplied=False)
         for (_, _, D, alpha) in param_grid
@@ -289,7 +295,7 @@ def coexistence_sweep_thiamine_free():
 
     fig = style_plot(
         fig,
-        line_thickness=line_thickness,
+        line_thickness=2,
         font_size=11,
         left_margin=20,
         buttom_margin=25,
@@ -298,3 +304,6 @@ def coexistence_sweep_thiamine_free():
     )
 
     fig.write_image("plots/simulations/coexistence/coexistence_cross_feeding.svg")
+
+
+ct_oa_isocline()

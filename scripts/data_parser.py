@@ -178,13 +178,25 @@ def get_od_chemostats(write_excel=True):
     dfs.append(df)
     df["reactor"] = "M2"
     reactors.insert(2, df)
+    maxODS = [0.354, 0.382, 0.398]
     for i, r in enumerate(reactors):
         sheet = pd.DataFrame(
-            columns=["time", "OD", "name", "species", "description", "figure"]
+            columns=[
+                "time",
+                "OD",
+                "FL",
+                "maxOD",
+                "name",
+                "species",
+                "description",
+                "figure",
+            ]
         )
         (
             sheet["time"],
             sheet["OD"],
+            sheet["FL"],
+            sheet["maxOD"],
             sheet["name"],
             sheet["species"],
             sheet["description"],
@@ -192,6 +204,8 @@ def get_od_chemostats(write_excel=True):
         ) = (
             r["exp_time"],
             r["od_calibrated"],
+            r["FP1_emit1"],
+            maxODS[i],
             replicates[i],
             "Oa",
             "Oa chemostat mono-culture with 10000 nM thiamine",
@@ -207,9 +221,11 @@ def get_od_chemostats(write_excel=True):
             t1 = 3.13
             slice_1 = r[r["exp_time"] >= t1]
             od_slice_1 = slice_1.iloc[-1]["od_measured"]
+            fl_slice_1 = slice_1.iloc[-1]["FP1_emit1"]
             slice_0 = r[r["exp_time"] <= t0]
             slice_0_out = slice_0.copy()
             slice_0_out["od_measured"] = slice_0["od_measured"] - od_slice_1
+            slice_0_out["FP1_emit1"] = slice_0["FP1_emit1"] - fl_slice_1
             rdfs.append(slice_0_out)
             rdfs.append(slice_1)
             dfs.append(pd.concat(rdfs))
@@ -222,14 +238,26 @@ def get_od_chemostats(write_excel=True):
     )
     df.insert(len(df.columns), "experiment", "ct_mono")
     dfs.append(df)
+    maxODS = [0.3, 0.304, 0.33]
     for i, r in enumerate(df["reactor"].unique()):
         mask = df[df["reactor"] == r]
         sheet = pd.DataFrame(
-            columns=["time", "OD", "name", "species", "description", "figure"]
+            columns=[
+                "time",
+                "OD",
+                "FL",
+                "maxOD",
+                "name",
+                "species",
+                "description",
+                "figure",
+            ]
         )
         (
             sheet["time"],
             sheet["OD"],
+            sheet["FL"],
+            sheet["maxOD"],
             sheet["name"],
             sheet["species"],
             sheet["description"],
@@ -237,6 +265,8 @@ def get_od_chemostats(write_excel=True):
         ) = (
             mask["exp_time"],
             mask["od_calibrated"],
+            mask["FP1_emit1"],
+            maxODS[i],
             replicates[i],
             "Ct",
             "Ct chemostat mono-culture with 10000 nM thiamine",

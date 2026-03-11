@@ -92,6 +92,18 @@ def chemostat_acetate_concentration():
                 y0=0,
                 x1=dc_oa,
                 y1=1,
+                line=dict(
+                    color="black",
+                    width=1.5,
+                ),
+            ),
+            dict(
+                type="line",
+                yref="paper",
+                x0=0.15,
+                y0=0,
+                x1=0.15,
+                y1=1,
                 line=dict(color="black", width=1.5, dash="dot"),
             ),
         ],
@@ -105,6 +117,9 @@ def chemostat_acetate_concentration():
         right_margin=rm,
     )
     fig.write_image("plots/simulations/coexistence/chemostat_acetate_concentration.svg")
+
+
+chemostat_acetate_concentration()
 
 
 def achievable_growth_rate():
@@ -200,6 +215,7 @@ def achievable_growth_rate():
         buttom_margin=10,
         top_margin=10,
         right_margin=rm,
+        line_thickness=2.5,
     )
     fig.write_image("plots/simulations/coexistence/achievable_growth_rate.svg")
 
@@ -246,7 +262,7 @@ def missing_growth_rate():
     )
     fig.update_layout(
         xaxis=dict(title="Dilution rate [1/h]", ticks="inside"),
-        yaxis=dict(title="J 1/h", ticks="inside"),
+        yaxis=dict(title="J 1/h", ticks="inside", range=[0, 0.15]),
         showlegend=False,
         width=width,
         height=height * 1.3,
@@ -259,12 +275,10 @@ def missing_growth_rate():
         buttom_margin=10,
         top_margin=30,
         right_margin=rm,
+        line_thickness=2.5,
     )
     fig.add_vline(x=0.159)
     fig.write_image("plots/simulations/coexistence/missing_growth_rate.svg")
-
-
-missing_growth_rate()
 
 
 def metabolite_affinity():
@@ -310,7 +324,7 @@ def metabolite_affinity():
             x=Kms,
             y=Rs,
             showscale=False,
-            contours=dict(start=0.07, end=0.07, coloring="none"),
+            contours=dict(start=0.1, end=0.1, coloring="none"),
             line=dict(color="black"),
             name="<i>Ct</i>",
             showlegend=False,
@@ -332,7 +346,7 @@ def metabolite_affinity():
             dtick="1",
             ticks="inside",
         ),
-        height=height * 1.3,
+        height=height * 1.15,
         width=250,
         title="Realizable growth rates",
     )
@@ -462,6 +476,7 @@ def simulate_chemostat_community_experiments():
         buttom_margin=30,
         top_margin=20,
         right_margin=0,
+        line_thickness=2.5,
     )
     fig.write_image(
         "plots/simulations/coexistence/simulate_chemostat_community_experiments.svg"
@@ -473,7 +488,7 @@ def simulate_cross_feeding_batch():
         rows=1,
         cols=2,
         horizontal_spacing=0.05,
-        column_titles=["Ct", "Oa", "Co-culture"],
+        column_titles=["Mono-culture", "Co-culture"],
         shared_yaxes=True,
     )
 
@@ -501,8 +516,8 @@ def simulate_cross_feeding_batch():
     p["D"] = 0
     p["N01"] = 0
     p["a2_2"] = a
-
     Y = odeint(nc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
+    M_prod = Y[:, 3]
     R = Y[:, 2]
     JOa = p["v2_1"] * R / (p["K2_1"] + R)
     fig.add_trace(
@@ -569,14 +584,16 @@ def simulate_cross_feeding_batch():
         buttom_margin=10,
         top_margin=20,
         right_margin=rm,
+        line_thickness=2.5,
     )
-    fig.write_image("plots/simulations/coexistence/fig3a.svg")
+    fig.write_image("plots/simulations/coexistence/masked_interactions_batch.svg")
 
+    fig = go.Figure()
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
             x=xs,
-            y=M,
+            y=M_prod,
             name="M",
             line=dict(color="black", shape="spline"),
         ),

@@ -289,13 +289,22 @@ def plot_thiamine_production():
 
 def niche_creation(y, t, p):
     Ct, Oa, R, M = y
+
+    # resource-specific growth contributions
     JCtR = p["v1_1"] * R / (R + p["K1_1"])
     JCtM = p["v1_2"] * M / (M + p["K1_2"])
     JOa = p["v2_1"] * R / (R + p["K2_1"])
-    dCt = JCtR * Ct + JCtM * Ct - p["D"] * Ct
+
+    # total Ct growth rate
+    JCt = JCtR + JCtM
+
+    dCt = JCt * Ct - p["D"] * Ct
     dOa = JOa * Oa - p["D"] * Oa
+
     dR = -JCtR * Ct / p["q1_1"] - JOa * Oa / p["q2_1"] - p["D"] * R + p["D"] * p["M1"]
-    dM = p["a2_2"] * Oa * JOa / p["q2_2"] - JCtM * Ct / p["q1_2"] - p["D"] * M
+
+    dM = p["a2_2"] * JOa * Oa / p["q2_2"] - JCtM * Ct / p["q1_2"] - p["D"] * M
+
     return dCt, dOa, dR, dM
 
 
