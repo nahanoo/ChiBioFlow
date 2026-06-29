@@ -4,9 +4,11 @@ import pandas as pd
 from style import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from chibio_parser import fluorescence_paresr, calibration_csv
 from models import (
     competition as cp,
     niche_creation as nc,
+    thiamine_supply as ts,
     plot_competition as plot_comp,
     plot_mutual_cf as plot_mutual_cf,
 )
@@ -117,9 +119,6 @@ def chemostat_acetate_concentration():
         right_margin=rm,
     )
     fig.write_image("plots/simulations/coexistence/chemostat_acetate_concentration.svg")
-
-
-chemostat_acetate_concentration()
 
 
 def achievable_growth_rate():
@@ -615,6 +614,133 @@ def simulate_cross_feeding_batch():
     )
     fig.write_image(
         "plots/simulations/coexistence/simulate_cross_feeding_batch_metabolite.svg"
+    )
+
+
+def simulate_oa_thiamine_gradient():
+    thiamine_colors = {
+        0: "#1f77b4",
+        0.01: "#ff7f0e",
+        0.1: "#2ca02c",
+        1: "#d62728",
+        10: "#9467bd",
+        100: "#8c564b",
+        1000: "#e377c2",
+        10000: "#7f7f7f",
+    }
+    p = parse_params()
+    p["N02"] = 0.2
+    xs = np.linspace(0, 72, 2000)
+
+    fig = go.Figure()
+    for M3, color in reversed(thiamine_colors.items()):
+        p["M3"] = M3
+        Y = odeint(ts, [0, p["N02"], p["M1"], M3], xs, args=(p,))
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=Y[:, 1],
+                mode="lines",
+                name=f"{M3} nM",
+                line=dict(color=color),
+                showlegend=True,
+            )
+        )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside", dtick=12),
+        yaxis=dict(title="OD", ticks="inside", range=[0, 0.5], dtick=0.1),
+        legend=dict(title="Thiamine", font=dict(size=9)),
+        width=300,
+        height=260,
+        title="Oa thiamine gradient simulation",
+        showlegend=True,
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=30,
+        right_margin=80,
+        buttom_margin=30,
+        top_margin=35,
+    )
+    fig.write_image("plots/simulations/dynamics/oa_thiamine_gradient.svg")
+
+
+def simulate_thiamine_carryover():
+    # 8 mL preculture (10000 nM thiamine) + 17 mL thiamine-free medium = 25 mL
+    T0 = (8 / 25) * 10000  # = 3200 nM initial thiamine
+    N0 = 0.1  # starting OD after dilution
+    p = parse_params()
+    p["D"] = 0.15
+    p["M3"] = 0  # thiamine-free feed
+
+    xs = np.linspace(0, 72, 2000)
+    Y = odeint(ts, [0, N0, p["M1"], T0], xs, args=(p,))
+
+    # load experimental data (M3 reactor from 250310_oa_mono)
+    Ms = fluorescence_paresr("/home/eric/ChiBioFlow/data/at_oa/250310_oa_mono")
+    df_exp = calibration_csv(
+        "/home/eric/ChiBioFlow/data/at_oa/250310_oa_mono/calibration.csv", Ms
+    )
+    df_exp = df_exp[df_exp["reactor"] == "M3"]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=df_exp["exp_time"][4:-10],
+            y=df_exp["od_calibrated"][4:-10],
+            mode="markers",
+            name="Experiment",
+            marker=dict(color=colors["oa"], size=3),
+            showlegend=True,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 1],
+            name="Simulation",
+            line=dict(color=colors["oa"]),
+            showlegend=True,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=Y[:, 3],
+            name="Thiamine [nM]",
+            line=dict(color=colors["blue"], dash="dash"),
+            showlegend=True,
+            yaxis="y2",
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside", dtick=12),
+        yaxis=dict(title="OD", ticks="inside", range=[0, 0.5], dtick=0.1),
+        yaxis2=dict(
+            title="Thiamine [nM]",
+            overlaying="y",
+            side="right",
+            ticks="inside",
+            showgrid=False,
+        ),
+        legend=dict(font=dict(size=9)),
+        width=320,
+        height=220,
+        title="Oa carryover thiamine chemostat",
+        showlegend=True,
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=35,
+        right_margin=80,
+        buttom_margin=30,
+        top_margin=35,
+    )
+    fig.write_image("plots/simulations/dynamics/oa_thiamine_carryover.svg")
+    print(
+        f"T0 = {T0:.0f} nM | Final OD: {max(Y[-1, 1], 0):.4f} | Final T: {Y[-1, 3]:.4f} nM"
     )
 
 

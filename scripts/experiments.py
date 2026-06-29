@@ -284,7 +284,7 @@ def chemostat_ct_oa_thiamine():
             showexponent="all",
             ticks="inside",
         ),
-        width=width,
+        width=220,
         height=height,
         title="Thiamine-added",
     )
@@ -720,9 +720,6 @@ def oa_mono_no_thiamine():
     fig.write_image("plots/experiments/oa_mono_no_thiamine.svg")
 
 
-oa_mono_no_thiamine()
-
-
 def oa_thiamine_gradient():
     colors = {
         "0 nM thiamine": "#1f77b4",
@@ -821,6 +818,114 @@ def oa_thiamine_gradient():
     fig.write_image("plots/experiments/oa_thiamine_gradient.svg")
 
 
+def oa_washout_acetate():
+    e = "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs"
+    cfus = cfu_parser(e)[0]
+    cfus = cfus[(cfus["reactor"] == "M0") & (cfus["species"] == "oa")]
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=cfus["sample_time"],
+            y=cfus["average"],
+            error_y=dict(type="data", array=cfus["stdev"].to_list(), visible=True),
+            name="Oa",
+            showlegend=False,
+            mode="lines+markers",
+            line=dict(color=colors["oa"]),
+            marker=dict(color=colors["oa"]),
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="CFUs/mL", type="log", range=[5, 10], ticks="inside"),
+        width=150,
+        height=180,
+        title="M0: Oa, acetate, no thiamine",
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        right_margin=0,
+        left_margin=45,
+        buttom_margin=30,
+        top_margin=20,
+        marker_size=7,
+    )
+    fig.write_image("plots/experiments/oa_washout_acetate.svg")
+
+
+def oa_washout_no_cs():
+    e = "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs"
+    cfus = cfu_parser(e)[0]
+    cfus = cfus[(cfus["reactor"] == "M1") & (cfus["species"] == "oa")]
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=cfus["sample_time"],
+            y=cfus["average"],
+            error_y=dict(type="data", array=cfus["stdev"].to_list(), visible=True),
+            name="Oa",
+            showlegend=False,
+            mode="lines+markers",
+            line=dict(color=colors["oa"]),
+            marker=dict(color=colors["oa"]),
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="CFUs/mL", type="log", range=[5, 9], ticks="inside"),
+        width=150,
+        height=180,
+        title="M1: Oa, thiamine, no carbon source",
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        right_margin=0,
+        left_margin=45,
+        buttom_margin=30,
+        top_margin=20,
+        marker_size=7,
+    )
+    fig.write_image("plots/experiments/oa_washout_no_cs.svg")
+
+
+def ct_washout_no_cs():
+    e = "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs"
+    cfus = cfu_parser(e)[0]
+    cfus = cfus[(cfus["reactor"] == "M2") & (cfus["species"] == "ct")]
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=cfus["sample_time"],
+            y=cfus["average"],
+            error_y=dict(type="data", array=cfus["stdev"].to_list(), visible=True),
+            name="Ct",
+            showlegend=False,
+            mode="lines+markers",
+            line=dict(color=colors["ct"]),
+            marker=dict(color=colors["ct"]),
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="CFUs/mL", type="log", range=[5, 9], ticks="inside"),
+        width=150,
+        height=180,
+        title="M2: Ct, thiamine, no carbon source",
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        right_margin=0,
+        left_margin=45,
+        buttom_margin=30,
+        top_margin=20,
+        marker_size=7,
+    )
+    fig.write_image("plots/experiments/ct_washout_no_cs.svg")
+
+
 def ct_oa_no_cs():
     legend = {
         "ct": "Ct",
@@ -870,3 +975,8 @@ def ct_oa_no_cs():
         marker_size=7,
     )
     fig.write_image("plots/experiments/no_cs.svg")
+
+
+ct_washout_no_cs()
+oa_washout_no_cs()
+oa_washout_acetate()

@@ -166,7 +166,7 @@ def compute_ratio(D, alpha, p_base, xs, thiamine_supplied=True):
         p["M3"] = alpha
         Y = odeint(ts, [p["N01"], p["N02"], p["M1"], p["M3"]], xs, args=(p,))
     else:
-        p["q1_3"] = alpha
+        p["q1_3"] = 1 / alpha
         Y = odeint(mc, [p["N01"], p["N02"], p["M1"], 0], xs, args=(p,))
     Ct, Oa, R, T = Y[-1]
     if Ct <= 1e-6:
@@ -174,15 +174,15 @@ def compute_ratio(D, alpha, p_base, xs, thiamine_supplied=True):
     if Oa <= 1e-6:
         Oa = 0
     if (Ct == 0) and (Oa == 0):
-        return np.nan, T  # use NaN instead of None for numeric matrix
+        return np.nan, T, np.nan
     else:
-        return Oa / (Ct + Oa), T
+        return Oa / (Ct + Oa), T, Ct
 
 
 def coexistence_sweep_thiamine_added():
     p_base = parse_params()
     Ds = np.linspace(0, 0.3, 200)
-    alphas = np.linspace(1, 100, 500)
+    alphas = np.linspace(1, 100, 50)
 
     # Create full parameter grid
     param_grid = [
@@ -197,6 +197,17 @@ def coexistence_sweep_thiamine_added():
 
     # Reconstruct result matrix
     zs = np.array([res[0] for res in results]).reshape(len(Ds), len(alphas))
+    Cts = np.array([res[2] for res in results]).reshape(len(Ds), len(alphas))
+
+    # Find asterisk location: center of region where Oa fraction > 0.9
+    mask = zs > 0.9
+    rows, cols = np.where(mask)
+    ast_row, ast_col = rows[len(rows) // 2], cols[len(cols) // 2]
+    ast_D, ast_alpha = Ds[ast_row], alphas[ast_col]
+    ast_Ct = Cts[ast_row, ast_col]
+    print(
+        f"[thiamine_added] asterisk at D={ast_D:.3f}, alpha={ast_alpha:.1f} — Ct abundance: {ast_Ct}"
+    )
 
     # Plot
     fig = go.Figure()
@@ -239,13 +250,23 @@ def coexistence_sweep_thiamine_added():
         top_margin=20,
         right_margin=10,
     )
+    fig.add_trace(
+        go.Scatter(
+            x=[ast_alpha],
+            y=[ast_D],
+            mode="text",
+            text=["*"],
+            textfont=dict(size=16, color="black"),
+            showlegend=False,
+        )
+    )
     fig.write_image("plots/simulations/coexistence/coexistence_thiamine_supplied.svg")
 
 
 def coexistence_sweep_thiamine_free():
     p_base = parse_params()
     Ds = np.linspace(0, 0.3, 300)
-    alphas = np.linspace(0.0002, 1, 300)
+    alphas = np.geomspace(1, 5000, 50)
 
     param_grid = [
         (i, j, D, alpha) for i, D in enumerate(Ds) for j, alpha in enumerate(alphas)
@@ -257,15 +278,26 @@ def coexistence_sweep_thiamine_free():
     )
 
     # Reconstruct matrices
-    ratios = np.array([r for r, T in results]).reshape(len(Ds), len(alphas))
-    Ts = np.array([T for r, T in results]).reshape(len(Ds), len(alphas))
+    ratios = np.array([r for r, T, Ct in results]).reshape(len(Ds), len(alphas))
+    Ts = np.array([T for r, T, Ct in results]).reshape(len(Ds), len(alphas))
+    Cts = np.array([Ct for r, T, Ct in results]).reshape(len(Ds), len(alphas))
+
+    # Find asterisk location: center of region where Oa fraction > 0.9
+    mask = ratios > 0.9
+    rows, cols = np.where(mask)
+    ast_row, ast_col = rows[len(rows) // 2], cols[len(cols) // 2]
+    ast_D, ast_alpha = Ds[ast_row], alphas[ast_col]
+    ast_Ct = Cts[ast_row, ast_col]
+    print(
+        f"[thiamine_free] asterisk at D={ast_D:.3f}, alpha={ast_alpha:.1f} — Ct abundance: {ast_Ct}"
+    )
 
     fig = go.Figure()
 
     fig.add_trace(
         go.Contour(
             z=ratios,
-            x=Ts[0],  # assumes all rows of Ts have the same alpha ordering
+            x=alphas,
             y=Ds,
             colorscale=colors_heatmap,
             ncontours=50,
@@ -282,9 +314,8 @@ def coexistence_sweep_thiamine_free():
             showscale=False,
         )
     )
-
     fig.update_xaxes(
-        title="Thiamine concentration in chemostat [nM]",
+        title="Thiamine yield [nM/OD]",
         type="log",
         ticks="inside",
     )
@@ -302,8 +333,17 @@ def coexistence_sweep_thiamine_free():
         top_margin=20,
         right_margin=10,
     )
-
+    fig.add_trace(
+        go.Scatter(
+            x=[ast_alpha],
+            y=[ast_D],
+            mode="text",
+            text=["*"],
+            textfont=dict(size=16, color="black"),
+            showlegend=False,
+        )
+    )
     fig.write_image("plots/simulations/coexistence/coexistence_cross_feeding.svg")
 
 
-ct_oa_isocline()
+coexistence_sweep_thiamine_added()

@@ -151,6 +151,11 @@ def get_cfus():
         None,
     )
     sheets.append(sheet)
+
+    df = cfu_parser("/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs")[0]
+    df.insert(len(df.columns), "experiment", "oa_washout_ct_oa_no_cs")
+    dfs.append(df)
+
     with pd.ExcelWriter(
         "../data/data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
     ) as writer:
