@@ -4,7 +4,7 @@ import pandas as pd
 from style import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from chibio_parser import fluorescence_paresr, calibration_csv
+from chibio_parser import fluorescence_paresr, calibration_csv, cfu_parser
 from models import (
     competition as cp,
     niche_creation as nc,
@@ -742,6 +742,189 @@ def simulate_thiamine_carryover():
     print(
         f"T0 = {T0:.0f} nM | Final OD: {max(Y[-1, 1], 0):.4f} | Final T: {Y[-1, 3]:.4f} nM"
     )
+
+
+def thiamine_feed_contamination():
+    p = parse_params()
+    D = 0.15
+    e = "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs"
+
+    # Load experimental data
+    od_data = pd.read_excel(f"{e}/od.ods", engine="odf")
+    od_data = od_data[od_data["reactor"] == "M0"].reset_index(drop=True)
+    cfus = cfu_parser(e)[0]
+    cfus = cfus[(cfus["reactor"] == "M0") & (cfus["species"] == "oa")].reset_index(
+        drop=True
+    )
+
+    # Initial conditions and CFU/OD conversion from t=0
+    N0_od = float(od_data.loc[od_data["sample_time"] == 0, "OD"].values[0])
+    N0_cfu = float(cfus.loc[cfus["sample_time"] == 0, "average"].values[0])
+    cfu_per_od = N0_cfu / N0_od
+
+    # Observed SS OD (last data point) → required feed thiamine T_in
+    N_ss_od = float(od_data.iloc[-1]["OD"])
+    T_ss = D * p["K2_3"] / (p["v2_1"] - D)
+    T_in = T_ss + N_ss_od / p["q2_3"]
+    # T_in = 0.5
+
+    print(f"N0 = {N0_od:.3f} OD  |  {N0_cfu:.2e} CFU/mL")
+    print(f"cfu_per_od              = {cfu_per_od:.2e}")
+    print(f"N_ss = {N_ss_od:.3f} OD")
+    print(f"T* (reactor SS)         = {T_ss:.2f} nM")
+    print(f"T_in (feed contamination) = {T_in:.2f} nM")
+
+    def ode(y, t, D_val, T_in_val):
+        Oa, T = y
+        JOa = p["v2_1"] * T / (T + p["K2_3"])
+        dOa = JOa * Oa - D_val * Oa
+        dT = -JOa * Oa / p["q2_3"] - D_val * T + T_in_val * D_val
+        return dOa, dT
+
+    t_carryover = 24  # hours before actual washout begins
+
+    # Phase 0: carryover (flat at N0_od) 0-24 h
+    t0 = np.linspace(0, t_carryover, 500)
+    N0_flat = np.full(len(t0), N0_od)
+
+    # Phase 1: washout 24-96 h (72 h of dilution with trace T_in)
+    t1_rel = np.linspace(0, 96 - t_carryover, 2000)
+    Y1 = odeint(ode, [N0_od, T_in], t1_rel, args=(D, T_in))
+    t1 = t1_rel + t_carryover
+
+    # Phase 2: dilution stopped at t=96 h
+    t2_rel = np.linspace(0, 200, 2000)
+    Y2 = odeint(ode, Y1[-1], t2_rel, args=(0.0, 0.0))
+    t2 = t2_rel + 96
+
+    fold = Y2[-1, 0] / Y1[-1, 0]
+    print(f"CFUs at t=96 h:                       {Y1[-1, 0] * cfu_per_od:.2e}")
+    print(f"CFUs after dilution stops (plateau):  {Y2[-1, 0] * cfu_per_od:.2e}")
+    print(f"Fold increase after stopping dilution: {fold:.1f}x")
+
+    # --- OD plot ---
+    fig_od = go.Figure()
+    fig_od.add_trace(
+        go.Scatter(
+            x=t0,
+            y=N0_flat,
+            name="Carryover",
+            showlegend=True,
+            line=dict(color=colors["oa"], dash="dot"),
+        )
+    )
+    fig_od.add_trace(
+        go.Scatter(
+            x=t1,
+            y=Y1[:, 0],
+            name="Chemostat",
+            showlegend=True,
+            line=dict(color=colors["oa"]),
+        )
+    )
+    fig_od.add_trace(
+        go.Scatter(
+            x=t2,
+            y=Y2[:, 0],
+            name="Batch",
+            showlegend=True,
+            line=dict(color=colors["oa"], dash="dash"),
+        )
+    )
+    fig_od.add_trace(
+        go.Scatter(
+            x=od_data["sample_time"],
+            y=od_data["OD"],
+            name="Data",
+            showlegend=True,
+            mode="markers",
+            marker=dict(color=colors["oa"], symbol="circle-open", size=8),
+        )
+    )
+    fig_od.add_vline(x=t_carryover, line=dict(color="black", dash="dot", width=1))
+    fig_od.add_vline(x=96, line=dict(color="black", dash="dot", width=1))
+    fig_od.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD", ticks="inside"),
+        width=260,
+        height=180,
+        title=f"Oa washout (T_in = {T_in:.1f} nM)",
+        showlegend=True,
+    )
+    fig_od = style_plot(
+        fig_od,
+        font_size=11,
+        left_margin=35,
+        right_margin=10,
+        buttom_margin=30,
+        top_margin=30,
+    )
+    fig_od.write_image("plots/simulations/dynamics/thiamine_feed_contamination_od.svg")
+
+    # --- CFU plot ---
+    fig_cfu = go.Figure()
+    fig_cfu.add_trace(
+        go.Scatter(
+            x=t0,
+            y=N0_flat * cfu_per_od,
+            name="Carryover",
+            showlegend=True,
+            line=dict(color=colors["oa"], dash="dot"),
+        )
+    )
+    fig_cfu.add_trace(
+        go.Scatter(
+            x=t1,
+            y=Y1[:, 0] * cfu_per_od,
+            name="Chemostat",
+            showlegend=True,
+            line=dict(color=colors["oa"]),
+        )
+    )
+    fig_cfu.add_trace(
+        go.Scatter(
+            x=t2,
+            y=Y2[:, 0] * cfu_per_od,
+            name="Batch",
+            showlegend=True,
+            line=dict(color=colors["oa"], dash="dash"),
+        )
+    )
+    fig_cfu.add_trace(
+        go.Scatter(
+            x=cfus["sample_time"],
+            y=cfus["average"],
+            error_y=dict(type="data", array=cfus["stdev"].to_list(), visible=True),
+            name="Data",
+            showlegend=True,
+            mode="markers",
+            marker=dict(color=colors["oa"], symbol="circle-open", size=8),
+        )
+    )
+    fig_cfu.add_vline(x=t_carryover, line=dict(color="black", dash="dot", width=1))
+    fig_cfu.add_vline(x=96, line=dict(color="black", dash="dot", width=1))
+    fig_cfu.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="CFUs/mL", type="log", ticks="inside", exponentformat="power"),
+        width=260,
+        height=180,
+        title=f"Oa washout (T_in = {T_in:.1f} nM)",
+        showlegend=True,
+    )
+    fig_cfu = style_plot(
+        fig_cfu,
+        font_size=11,
+        left_margin=45,
+        right_margin=10,
+        buttom_margin=30,
+        top_margin=30,
+    )
+    fig_cfu.write_image(
+        "plots/simulations/dynamics/thiamine_feed_contamination_cfu.svg"
+    )
+
+
+thiamine_feed_contamination()
 
 
 def main():

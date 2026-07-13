@@ -671,8 +671,8 @@ def oa_mono_no_thiamine():
     # experimental data
     fig.add_trace(
         go.Scatter(
-            x=df["exp_time"][4:-10],
-            y=df["od_calibrated"][4:-10],
+            x=df["exp_time"][4:-10][::15],
+            y=df["od_calibrated"][4:-10][::15],
             mode="lines+markers",
             name="Chemostat",
             showlegend=False,
@@ -680,7 +680,11 @@ def oa_mono_no_thiamine():
             line=dict(color=colors["oa"]),
         )
     )
-
+    average_OD = np.average(
+        [y for x, y in zip(df["exp_time"], df["od_calibrated"]) if x >= 50]
+    )
+    print("Average OD after 20 h:", average_OD)
+    fig.add_hline(y=average_OD, line=dict(color="red", width=2))
     # washout reference: starts at OD 0.15 after 20 h
     D = 0.15
     t0 = 20
@@ -698,25 +702,25 @@ def oa_mono_no_thiamine():
             showlegend=False,
             line=dict(
                 color=colors["oa"],
-                dash="dash",
+                dash="dot",
                 width=2,
             ),
         )
     )
-
+    fig.show()
     fig.update_layout(
         xaxis=dict(
             title="Time [h]",
             ticks="inside",
         ),
         yaxis=dict(title="OD600", ticks="inside"),
-        title="Oa in chemostat without thiamine",
-        width=width,
+        title="Oa, no thiamine added",
+        width=185,
         height=height,
         showlegend=False,
     )
 
-    fig = style_plot(fig, font_size=11, left_margin=20, buttom_margin=20)
+    fig = style_plot(fig, font_size=11, left_margin=20, buttom_margin=20, top_margin=20)
     fig.write_image("plots/experiments/oa_mono_no_thiamine.svg")
 
 
@@ -785,6 +789,7 @@ def oa_thiamine_gradient():
             line=dict(dash="dot", color="black"),
         )
     )
+    fig.show()
     fig.update_layout(
         xaxis=dict(
             range=[0, max(x)],
@@ -823,6 +828,11 @@ def oa_washout_acetate():
     cfus = cfu_parser(e)[0]
     cfus = cfus[(cfus["reactor"] == "M0") & (cfus["species"] == "oa")]
     fig = go.Figure()
+    average_CFUs = np.average(
+        [y for x, y in zip(cfus["sample_time"], cfus["average"]) if x >= 60]
+    )
+    print(average_CFUs)
+    fig.add_hline(y=average_CFUs, line=dict(color="red", width=2))
     fig.add_trace(
         go.Scatter(
             x=cfus["sample_time"],
@@ -836,29 +846,104 @@ def oa_washout_acetate():
         )
     )
     fig.update_layout(
-        xaxis=dict(title="Time [h]", ticks="inside"),
-        yaxis=dict(title="CFUs/mL", type="log", range=[5, 10], ticks="inside"),
-        width=150,
-        height=180,
-        title="M0: Oa, acetate, no thiamine",
+        xaxis=dict(title="Time [h]", ticks="inside", dtick=24),
+        yaxis=dict(
+            exponentformat="power",
+            title="CFUs/mL",
+            type="log",
+            range=[5, 10],
+            ticks="inside",
+        ),
+        width=180,
+        height=150,
+        title="Oa, 7.5 mM acetate, no thiamine",
     )
     fig = style_plot(
         fig,
-        font_size=11,
-        right_margin=0,
-        left_margin=45,
-        buttom_margin=30,
-        top_margin=20,
+        font_size=8,
         marker_size=7,
+        top_margin=10,
     )
     fig.write_image("plots/experiments/oa_washout_acetate.svg")
+
+    df = calibration_csv(
+        "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs/calibration.csv",
+        fluorescence_paresr("260629_oa_washout_ct_oa_no_cs"),
+    )
+    df = df[df["reactor"] == "M0"]
+    df = df[(df["exp_time"] >= 0.1) & (df["exp_time"] <= 93.5)]
+
+    ods_engel = pd.read_excel(
+        "../data/260629_oa_washout_ct_oa_no_cs/ods/engel/ods.xlsx"
+    )
+    average_OD = np.average(
+        [
+            y
+            for x, y in zip(
+                df[df["reactor"] == "M0"]["exp_time"],
+                df[df["reactor"] == "M0"]["od_calibrated"],
+            )
+            if x >= 60
+        ]
+    )
+    print(average_OD)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=df["exp_time"][::15],
+            y=df["od_calibrated"][::15],
+            marker=dict(color=colors["oa"]),
+            name="Chi.Bio",
+            opacity=0.6,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=ods_engel["time"],
+            y=ods_engel["M0"],
+            mode="markers",
+            marker=dict(color=colors["oa"]),
+            name="H1",
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside", dtick=24),
+        yaxis=dict(title="OD", ticks="inside"),
+        title="Oa, no thiamine",
+        width=185,
+        height=150,
+        legend=dict(
+            xref="paper",
+            yref="paper",
+            xanchor="right",
+            yanchor="top",
+            x=0.99,
+            y=0.99,
+        ),
+    )
+    fig = style_plot(fig, marker_size=6, line_thickness=2, top_margin=10, font_size=11)
+    fig.write_image("plots/experiments/oa_washout_od.svg")
 
 
 def oa_washout_no_cs():
     e = "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs"
     cfus = cfu_parser(e)[0]
     cfus = cfus[(cfus["reactor"] == "M1") & (cfus["species"] == "oa")]
+    D = 0.15
+    N0 = float(cfus[cfus["sample_time"] == 0]["average"].values[0])
+    t_sim = np.linspace(0, cfus["sample_time"].max(), 300)
+    N_sim = N0 * np.exp(-D * t_sim)
     fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=t_sim,
+            y=N_sim,
+            mode="lines",
+            name="Washout",
+            showlegend=False,
+            line=dict(color=colors["oa"], dash="dot"),
+        )
+    )
     fig.add_trace(
         go.Scatter(
             x=cfus["sample_time"],
@@ -872,11 +957,23 @@ def oa_washout_no_cs():
         )
     )
     fig.update_layout(
-        xaxis=dict(title="Time [h]", ticks="inside"),
-        yaxis=dict(title="CFUs/mL", type="log", range=[5, 9], ticks="inside"),
-        width=150,
+        xaxis=dict(
+            title="Time [h]",
+            # range=[0, 42],
+            # dtick=12),
+            dtick=24,
+            ticks="inside",
+        ),
+        yaxis=dict(
+            title="CFUs/mL",
+            type="log",
+            range=[5, 10],
+            ticks="inside",
+            exponentformat="power",
+        ),
+        width=170,
         height=180,
-        title="M1: Oa, thiamine, no carbon source",
+        title="No carbon source",
     )
     fig = style_plot(
         fig,
@@ -894,7 +991,21 @@ def ct_washout_no_cs():
     e = "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs"
     cfus = cfu_parser(e)[0]
     cfus = cfus[(cfus["reactor"] == "M2") & (cfus["species"] == "ct")]
+    D = 0.15
+    N0 = float(cfus[cfus["sample_time"] == 0]["average"].values[0])
+    t_sim = np.linspace(0, cfus["sample_time"].max(), 300)
+    N_sim = N0 * np.exp(-D * t_sim)
     fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=t_sim,
+            y=N_sim,
+            mode="lines",
+            name="Washout",
+            showlegend=False,
+            line=dict(color=colors["ct"], dash="dot"),
+        )
+    )
     fig.add_trace(
         go.Scatter(
             x=cfus["sample_time"],
@@ -908,11 +1019,23 @@ def ct_washout_no_cs():
         )
     )
     fig.update_layout(
-        xaxis=dict(title="Time [h]", ticks="inside"),
-        yaxis=dict(title="CFUs/mL", type="log", range=[5, 9], ticks="inside"),
-        width=150,
+        xaxis=dict(
+            title="Time [h]",
+            # range=[0, 42],
+            # dtick=12),
+            dtick=24,
+            ticks="inside",
+        ),
+        yaxis=dict(
+            title="CFUs/mL",
+            type="log",
+            range=[5, 10],
+            ticks="inside",
+            exponentformat="power",
+        ),
+        width=170,
         height=180,
-        title="M2: Ct, thiamine, no carbon source",
+        title="No carbon source",
     )
     fig = style_plot(
         fig,
@@ -935,9 +1058,22 @@ def ct_oa_no_cs():
     }
     cfus = get_cfus()
     cfus = cfus[(cfus["experiment"] == "no_cs") & (cfus["species"].isin(["ct", "oa"]))]
+    D = 0.15
+    t_max = cfus["sample_time"].max()
+    t_sim = np.linspace(0, t_max, 300)
     fig = go.Figure()
     for i, s in enumerate(cfus["species"].unique()):
         df = cfus[cfus["species"] == s]
+        N0 = float(df[df["sample_time"] == 0]["average"].values[0])
+        fig.add_trace(
+            go.Scatter(
+                x=t_sim,
+                y=N0 * np.exp(-D * t_sim),
+                mode="lines",
+                showlegend=False,
+                line=dict(color=colors[s], dash="dot"),
+            )
+        )
         fig.add_trace(
             go.Scatter(
                 x=df["sample_time"],
@@ -953,15 +1089,17 @@ def ct_oa_no_cs():
             title="Time [h]",
             # range=[0, 42],
             # dtick=12),
+            dtick=24,
             ticks="inside",
         ),
         yaxis=dict(
             title="CFUs/mL",
             type="log",
-            range=[5, 9],
+            range=[5, 10],
             ticks="inside",
+            exponentformat="power",
         ),
-        width=150,
+        width=170,
         height=180,
         title="No carbon source",
     )
@@ -977,6 +1115,178 @@ def ct_oa_no_cs():
     fig.write_image("plots/experiments/no_cs.svg")
 
 
+def oa_mono_with_without_thiamine():
+    e_with = "/home/eric/ChiBioFlow/data/at_oa/250310_oa_mono"
+    Ms = fluorescence_paresr(e_with)
+    df_with = calibration_csv(f"{e_with}/calibration.csv", Ms)
+
+    e_with2 = "/home/eric/ChiBioFlow/data/at_oa/250327_oa_mono"
+    Ms2 = fluorescence_paresr(e_with2)
+    df_with2 = calibration_csv(f"{e_with2}/calibration.csv", Ms2)
+
+    e_no = "/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs"
+    Ms_no = fluorescence_paresr(e_no)
+    df_no = calibration_csv(f"{e_no}/calibration.csv", Ms_no)
+    df_no = df_no[df_no["reactor"] == "M0"]
+
+    fig = go.Figure()
+    average_OD = []
+    for i, reactor in enumerate(["M0", "M1"]):
+        sub = df_with[df_with["reactor"] == reactor]
+        fig.add_trace(
+            go.Scatter(
+                x=sub["exp_time"][4:-10][::15],
+                y=sub["od_calibrated"][4:-10][::15],
+                mode="lines",
+                name="With thiamine" if i == 0 else None,
+                showlegend=i == 0,
+                legendgroup="with",
+                line=dict(color=colors["oa"]),
+            )
+        )
+        average_OD.append(
+            np.average(
+                [
+                    y
+                    for x, y in zip(
+                        sub["exp_time"][4:-10][::15], sub["od_calibrated"][4:-10][::15]
+                    )
+                    if x >= 50
+                ]
+            )
+        )
+
+    sub2 = df_with2[df_with2["reactor"] == "M0"]
+    fig.add_trace(
+        go.Scatter(
+            x=sub2["exp_time"][4:-60][::15],
+            y=sub2["od_calibrated"][4:-60][::15],
+            mode="lines",
+            name=None,
+            showlegend=False,
+            legendgroup="with",
+            line=dict(color=colors["oa"]),
+        )
+    )
+    average_OD.append(
+        np.average(
+            [
+                y
+                for x, y in zip(
+                    sub2["exp_time"][4:-60][::15], sub2["od_calibrated"][4:-60][::15]
+                )
+                if x >= 50
+            ]
+        )
+    )
+    print("Average OD with thiamine:", average_OD, "mean:", np.mean(average_OD))
+    fig.add_hline(
+        y=np.mean(average_OD),
+        line=dict(color=colors["oa"], dash="dot"),
+        annotation_text="Mean OD with thiamine",
+        annotation_position="bottom right",
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_no["exp_time"][4:-10][::15],
+            y=df_no["od_calibrated"][4:-10][::15],
+            mode="lines",
+            name="No thiamine",
+            showlegend=True,
+            legendgroup="no",
+            line=dict(color=colors["oa"], dash="dot"),
+        )
+    )
+
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="OD600", ticks="inside"),
+        width=300,
+        height=150,
+        showlegend=True,
+        title="With vs. no added thiamine",
+    )
+    fig = style_plot(fig, font_size=11, left_margin=20, buttom_margin=20, top_margin=10)
+    fig.write_image("plots/experiments/oa_mono_with_without_thiamine.svg")
+
+
+def compare_oa_mono_vs_oa_co(t0_mono=60, t0_co=5):
+    # mono Oa without thiamine (washout experiment, M0)
+    df_mono = cfu_parser("/home/eric/ChiBioFlow/data/260629_oa_washout_ct_oa_no_cs")[0]
+    df_mono = df_mono[
+        (df_mono["reactor"] == "M0") & (df_mono["species"] == "oa")
+    ].reset_index(drop=True)
+
+    # co-culture Oa (3 reactors, average across reactors per time point)
+    df_co_all = cfu_parser("/home/eric/ChiBioFlow/data/at_oa/241113_ct_oa")[0]
+    df_co_all = df_co_all[df_co_all["species"] == "oa"]
+    df_co = (
+        df_co_all.groupby("sample_time")["average"]
+        .agg(mean="mean", stdev="std")
+        .reset_index()
+    )
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_mono["sample_time"],
+            y=df_mono["average"],
+            error_y=dict(type="data", array=df_mono["stdev"].to_list(), visible=True),
+            mode="lines+markers",
+            name="Mono, no thiamine",
+            line=dict(color=colors["oa"], dash="dash"),
+            marker=dict(color=colors["oa"]),
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_co["sample_time"],
+            y=df_co["mean"],
+            error_y=dict(type="data", array=df_co["stdev"].to_list(), visible=True),
+            mode="lines+markers",
+            name="Co-culture with Ct",
+            line=dict(color=colors["oa"]),
+            marker=dict(color=colors["oa"]),
+        )
+    )
+
+    fig.add_vline(x=t0_mono, line=dict(dash="dot", color=colors["oa"], width=1))
+    fig.add_vline(x=t0_co, line=dict(dash="dot", color=colors["ct"], width=1))
+
+    fig.update_layout(
+        xaxis=dict(title="Time [h]", ticks="inside"),
+        yaxis=dict(title="CFUs/mL", type="log", ticks="inside"),
+        width=400,
+        height=200,
+        showlegend=True,
+    )
+    fig = style_plot(
+        fig,
+        font_size=11,
+        left_margin=45,
+        buttom_margin=30,
+        top_margin=20,
+        marker_size=7,
+    )
+    fig.write_image("plots/experiments/compare_oa_mono_vs_oa_co.svg")
+
+    mono_ss = df_mono[df_mono["sample_time"] >= t0_mono]["average"].mean()
+    co_ss = df_co[df_co["sample_time"] >= t0_co]["mean"].mean()
+    fold_change = co_ss / mono_ss
+    print(f"Mono SS (t >= {t0_mono} h): {mono_ss:.2e} CFU/mL")
+    print(f"Co SS  (t >= {t0_co} h):  {co_ss:.2e} CFU/mL")
+    print(f"Fold change: {fold_change:.2f}x  (log10: {np.log10(fold_change):.2f})")
+
+
+# oa_mono_no_thiamine()
 ct_washout_no_cs()
 oa_washout_no_cs()
-oa_washout_acetate()
+# oa_washout_acetate()
+# oa_mono_with_without_thiamine()
+# compare_oa_mono_vs_oa_co()
+# oa_mono_no_thiamine()
+# oa_thiamine_gradient()
+ct_oa_no_cs()
